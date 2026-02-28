@@ -33,11 +33,16 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
     setDownloading(true);
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: null });
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true });
       const link = document.createElement('a');
       link.download = 'kchime-reply.png';
       link.href = canvas.toDataURL('image/png');
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Download failed:', err);
     } finally {
       setDownloading(false);
     }
