@@ -1,6 +1,8 @@
 'use client';
 
-import { getApiKey, setApiKey } from '@/lib/storage';
+import { getAccent, getApiKey, setAccent, setApiKey } from '@/lib/storage';
+import { ACCENTS } from '@/lib/speech';
+import type { AccentCode } from '@/types';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -12,14 +14,21 @@ export function SettingsModal({ open, onClose }: Props) {
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [hasExistingKey, setHasExistingKey] = useState(false);
+  const [accent, setAccentState] = useState<AccentCode>('en-US');
 
   useEffect(() => {
     if (open) {
       setKey('');
       setSaved(false);
       setHasExistingKey(!!getApiKey());
+      setAccentState(getAccent());
     }
   }, [open]);
+
+  function handleAccentChange(code: AccentCode) {
+    setAccentState(code);
+    setAccent(code);
+  }
 
   function handleSave() {
     const trimmed = key.trim();
@@ -61,7 +70,30 @@ export function SettingsModal({ open, onClose }: Props) {
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-indigo-500 focus:outline-none"
         />
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-5">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Speak Accent
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.code}
+                onClick={() => handleAccentChange(a.code)}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                  accent === a.code
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <span className="text-base">{a.flag}</span>
+                <span>{a.label}</span>
+                {accent === a.code && <span className="ml-auto text-indigo-500">✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-5 flex gap-2">
           <button
             onClick={handleSave}
             disabled={!key.trim()}
@@ -73,7 +105,7 @@ export function SettingsModal({ open, onClose }: Props) {
             onClick={onClose}
             className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-50"
           >
-            Cancel
+            Done
           </button>
         </div>
       </div>

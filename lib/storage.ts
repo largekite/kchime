@@ -1,9 +1,11 @@
-import type { Progress, SavedPhrase } from '@/types';
+import type { AccentCode, Progress, SavedPhrase } from '@/types';
 
 const KEYS = {
   API_KEY: 'kchime_api_key',
   PROGRESS: 'kchime_progress',
   SAVED_PHRASES: 'kchime_saved_phrases',
+  WORK_REPLY_USAGE: 'kchime_work_reply_usage',
+  ACCENT: 'kchime_accent',
 } as const;
 
 function getToday(): string {
@@ -122,4 +124,40 @@ export function savePhrase(phrase: SavedPhrase): void {
 export function deletePhrase(phraseId: string): void {
   const phrases = getSavedPhrases().filter((p) => p.id !== phraseId);
   localStorage.setItem(KEYS.SAVED_PHRASES, JSON.stringify(phrases));
+}
+
+// --- Work Reply Usage ---
+
+interface WorkReplyUsage {
+  date: string;
+  count: number;
+}
+
+export function getWorkReplyUsage(): WorkReplyUsage {
+  if (typeof window === 'undefined') return { date: getToday(), count: 0 };
+  try {
+    const raw = localStorage.getItem(KEYS.WORK_REPLY_USAGE);
+    if (!raw) return { date: getToday(), count: 0 };
+    const parsed = JSON.parse(raw) as WorkReplyUsage;
+    if (parsed.date !== getToday()) return { date: getToday(), count: 0 };
+    return parsed;
+  } catch {
+    return { date: getToday(), count: 0 };
+  }
+}
+
+export function incrementWorkReplyCount(): void {
+  const usage = getWorkReplyUsage();
+  localStorage.setItem(KEYS.WORK_REPLY_USAGE, JSON.stringify({ date: getToday(), count: usage.count + 1 }));
+}
+
+// --- Accent ---
+
+export function getAccent(): AccentCode {
+  if (typeof window === 'undefined') return 'en-US';
+  return (localStorage.getItem(KEYS.ACCENT) as AccentCode) ?? 'en-US';
+}
+
+export function setAccent(code: AccentCode): void {
+  localStorage.setItem(KEYS.ACCENT, code);
 }

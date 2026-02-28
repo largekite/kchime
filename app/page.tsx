@@ -10,10 +10,10 @@ import type { Context, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
 
-const CONTEXTS: Context[] = ['Any', 'Work', 'Text', 'Party', 'Family'];
+const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
 const CONTEXT_ICONS: Record<Context, string> = {
   Any: '🌐',
-  Work: '💼',
+  Office: '🏢',
   Text: '💬',
   Party: '🎉',
   Family: '🏠',
@@ -43,7 +43,7 @@ export default function QuickReplyPage() {
 
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError('Add your Anthropic API key in Settings (gear icon ⚙️) to get started.');
+      setError('Add your Anthropic API key in Settings to get started.');
       return;
     }
 
@@ -146,7 +146,7 @@ export default function QuickReplyPage() {
           disabled={loading || (!input.trim() && !transcript.trim())}
           className="mt-3 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-40"
         >
-          {loading ? 'Generating replies…' : '⚡ Get Replies'}
+          {loading ? 'Generating replies…' : 'Get Replies'}
         </button>
 
         {error && (

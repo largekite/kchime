@@ -4,13 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'evaluate' | 'explain';
+      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply';
       apiKey: string;
       prompt?: string;
       context?: string;
       openingLine?: string;
       userReply?: string;
       text?: string;
+      message?: string;
+      preset?: string;
     };
 
     const { mode, apiKey } = body;
@@ -85,6 +87,39 @@ export async function POST(req: NextRequest) {
 
       const raw = message.content[0].type === 'text' ? message.content[0].text : '';
       const parsed = JSON.parse(raw) as { phrases: { phrase: string; meaning: string; tip?: string }[] };
+      return NextResponse.json(parsed);
+    }
+
+    if (mode === 'work-reply') {
+      const { message, preset } = body;
+      if (!message || !preset) return NextResponse.json({ error: 'Missing message or preset' }, { status: 400 });
+
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: `You are an expert workplace communication strategist. Given a workplace message and the context of how to reply, generate exactly 3 strategic reply variations: one safe/diplomatic, one balanced/direct, one bold/assertive. Each reply should be professional and appropriate for the workplace. Return ONLY valid JSON with this exact shape, no markdown:
+{
+  "variations": [
+    { "strategy": "Diplomatic", "text": "...", "risk": "Low", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 },
+    { "strategy": "Direct", "text": "...", "risk": "Medium", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 },
+    { "strategy": "Bold", "text": "...", "risk": "High", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 }
+  ],
+  "bestChoiceIndex": 0
+}
+powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborative", "Authoritative". bestChoiceIndex is the index of the recommended variation.`,
+        messages: [
+          {
+            role: 'user',
+            content: `Context: ${preset}\n\nMessage received:\n"${message}"\n\nGenerate 3 strategic reply variations.`,
+          },
+        ],
+      });
+
+      const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+      const parsed = JSON.parse(raw) as {
+        variations: { strategy: string; text: string; risk: string; powerPosition: string; assertiveness: number; warmth: number }[];
+        bestChoiceIndex: number;
+      };
       return NextResponse.json(parsed);
     }
 

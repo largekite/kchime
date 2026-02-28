@@ -1,6 +1,6 @@
 export type Tone = 'Casual' | 'Funny' | 'Warm' | 'Safe';
 
-export type Context = 'Any' | 'Work' | 'Text' | 'Party' | 'Family';
+export type Context = 'Any' | 'Office' | 'Text' | 'Party' | 'Family';
 
 export interface Reply {
   id: string;
@@ -67,4 +67,36 @@ export interface PhraseExplanation {
   phrase: string;
   meaning: string;
   tip?: string;
+}
+
+export type AccentCode = 'en-US' | 'en-GB' | 'en-AU' | 'en-IN';
+
+export interface Accent {
+  code: AccentCode;
+  label: string;
+  flag: string;
+}
+
+export type WorkplacePreset =
+  | 'Reply to Manager'
+  | 'Reply to Direct Report'
+  | 'Reply to Client'
+  | 'Push Back Politely'
+  | 'Deliver Constructive Feedback'
+  | 'Escalate Issue Professionally';
+
+export interface WorkReplyVariation {
+  id: string;
+  strategy: string;
+  label: string;
+  text: string;
+  risk: 'Low' | 'Medium' | 'High';
+  powerPosition: string;
+  assertiveness: number;
+  warmth: number;
+}
+
+export interface WorkReplyResult {
+  variations: WorkReplyVariation[];
+  bestChoiceIndex: number;
 }
