@@ -1,6 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
+function parseJson<T>(raw: string): T {
+  // Strip markdown code fences if present (e.g. ```json ... ```)
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  return JSON.parse(cleaned) as T;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
@@ -44,7 +50,7 @@ export async function POST(req: NextRequest) {
       });
 
       const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-      const parsed = JSON.parse(raw) as { replies: { tone: string; text: string }[] };
+      const parsed = parseJson<{ replies: { tone: string; text: string }[] }>(raw);
       return NextResponse.json(parsed);
     }
 
@@ -65,7 +71,7 @@ export async function POST(req: NextRequest) {
       });
 
       const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-      const parsed = JSON.parse(raw) as { natural: boolean; feedback: string; suggestion?: string };
+      const parsed = parseJson<{ natural: boolean; feedback: string; suggestion?: string }>(raw);
       return NextResponse.json(parsed);
     }
 
@@ -86,7 +92,7 @@ export async function POST(req: NextRequest) {
       });
 
       const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-      const parsed = JSON.parse(raw) as { phrases: { phrase: string; meaning: string; tip?: string }[] };
+      const parsed = parseJson<{ phrases: { phrase: string; meaning: string; tip?: string }[] }>(raw);
       return NextResponse.json(parsed);
     }
 
@@ -116,10 +122,10 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       });
 
       const raw = response.content[0].type === 'text' ? response.content[0].text : '';
-      const parsed = JSON.parse(raw) as {
+      const parsed = parseJson<{
         variations: { strategy: string; text: string; risk: string; powerPosition: string; assertiveness: number; warmth: number }[];
         bestChoiceIndex: number;
-      };
+      }>(raw);
       return NextResponse.json(parsed);
     }
 
