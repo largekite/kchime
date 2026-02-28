@@ -43,7 +43,7 @@ export default function QuickReplyPage() {
 
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError('Add your Anthropic API key in Settings to get started.');
+      setError('Connect your account in Settings to get started.');
       return;
     }
 

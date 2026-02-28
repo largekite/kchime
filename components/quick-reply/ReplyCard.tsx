@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
 import { speakText } from '@/lib/speech';
-import { getAccent } from '@/lib/storage';
 import type { Context, Reply, SavedPhrase, Tone } from '@/types';
 import { Bookmark, BookmarkCheck, Check, Copy, Share2, Square, Volume2 } from 'lucide-react';
 import clsx from 'clsx';
@@ -44,7 +43,7 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
       return;
     }
     setSpeaking(true);
-    speakText(reply.text, getAccent(), () => setSpeaking(false));
+    speakText(reply.text, () => setSpeaking(false));
   }
 
   function handleSave() {

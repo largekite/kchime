@@ -44,7 +44,7 @@ export default function WorkPage() {
   async function handleAnalyze() {
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError('Add your Anthropic API key in Settings (gear icon) to get started.');
+      setError('Connect your account in Settings to get started.');
       return;
     }
     if (!preset) {

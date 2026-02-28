@@ -32,7 +32,7 @@ export default function LivePage() {
       if (!autoMode || !transcript.trim() || isProcessing) return;
       const apiKey = getApiKey();
       if (!apiKey) {
-        setError('Add your API key in Settings to use Live mode.');
+        setError('Connect your account in Settings to use Live mode.');
         return;
       }
       setIsProcessing(true);
@@ -71,7 +71,7 @@ export default function LivePage() {
     if (!transcript.trim() || isProcessing) return;
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError('Add your API key in Settings.');
+      setError('Connect your account in Settings.');
       return;
     }
     setIsProcessing(true);

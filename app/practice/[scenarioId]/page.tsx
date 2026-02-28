@@ -39,9 +39,9 @@ export default function ScenarioChatPage({
     setSelectedReply(reply);
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError('Add your API key in Settings to get feedback.');
+      setError('Connect your account in Settings to get feedback.');
       setStep('result');
-      setEvaluation({ natural: true, feedback: 'Add your API key in Settings to receive AI evaluation.' });
+      setEvaluation({ natural: true, feedback: 'Connect your account in Settings to receive AI evaluation.' });
       completeScenario(scenarioId);
       setCompleted(true);
       return;
