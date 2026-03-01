@@ -2,7 +2,6 @@
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
 import { fetchReplies } from '@/lib/claude';
-import { getApiKey } from '@/lib/storage';
 import { useProgress } from '@/hooks/useProgress';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
@@ -41,18 +40,12 @@ export default function QuickReplyPage() {
     const text = (promptText ?? input).trim();
     if (!text) return;
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError('Connect your account in Settings to get started.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     setCurrentPrompt(text);
 
     try {
-      const result = await fetchReplies(text, context, apiKey);
+      const result = await fetchReplies(text, context);
       setReplies(result);
       addPrompt(text);
     } catch (e) {

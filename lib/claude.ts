@@ -2,15 +2,11 @@ import type { Context, EvaluationResult, PhraseExplanation, Reply, Tone, Workpla
 
 const TONES: Tone[] = ['Casual', 'Funny', 'Warm', 'Safe'];
 
-export async function fetchReplies(
-  prompt: string,
-  context: Context,
-  apiKey: string
-): Promise<Reply[]> {
+export async function fetchReplies(prompt: string, context: Context): Promise<Reply[]> {
   const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'replies', prompt, context, apiKey }),
+    body: JSON.stringify({ mode: 'replies', prompt, context }),
   });
 
   if (!res.ok) {
@@ -26,15 +22,11 @@ export async function fetchReplies(
   }));
 }
 
-export async function evaluateResponse(
-  openingLine: string,
-  userReply: string,
-  apiKey: string
-): Promise<EvaluationResult> {
+export async function evaluateResponse(openingLine: string, userReply: string): Promise<EvaluationResult> {
   const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'evaluate', openingLine, userReply, apiKey }),
+    body: JSON.stringify({ mode: 'evaluate', openingLine, userReply }),
   });
 
   if (!res.ok) {
@@ -45,14 +37,11 @@ export async function evaluateResponse(
   return res.json() as Promise<EvaluationResult>;
 }
 
-export async function explainPhrases(
-  text: string,
-  apiKey: string
-): Promise<PhraseExplanation[]> {
+export async function explainPhrases(text: string): Promise<PhraseExplanation[]> {
   const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'explain', text, apiKey }),
+    body: JSON.stringify({ mode: 'explain', text }),
   });
 
   if (!res.ok) {
@@ -66,15 +55,11 @@ export async function explainPhrases(
 
 const STRATEGY_LABELS = ['A', 'B', 'C'];
 
-export async function fetchWorkReplies(
-  message: string,
-  preset: WorkplacePreset,
-  apiKey: string
-): Promise<WorkReplyResult> {
+export async function fetchWorkReplies(message: string, preset: WorkplacePreset): Promise<WorkReplyResult> {
   const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ mode: 'work-reply', message, preset, apiKey }),
+    body: JSON.stringify({ mode: 'work-reply', message, preset }),
   });
 
   if (!res.ok) {

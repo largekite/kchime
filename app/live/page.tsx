@@ -1,7 +1,6 @@
 'use client';
 
 import { fetchReplies, explainPhrases } from '@/lib/claude';
-import { getApiKey } from '@/lib/storage';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import type { Context, ConversationRound, Reply, SavedPhrase } from '@/types';
@@ -30,15 +29,10 @@ export default function LivePage() {
   const handleSilence = useCallback(
     async (transcript: string) => {
       if (!autoMode || !transcript.trim() || isProcessing) return;
-      const apiKey = getApiKey();
-      if (!apiKey) {
-        setError('Connect your account in Settings to use Live mode.');
-        return;
-      }
       setIsProcessing(true);
       setLoading(true);
       try {
-        const replies = await fetchReplies(transcript, 'Any', apiKey);
+        const replies = await fetchReplies(transcript, 'Any');
         const round: ConversationRound = {
           id: `round-${Date.now()}`,
           transcript,
@@ -69,16 +63,11 @@ export default function LivePage() {
 
   async function handleManualSend() {
     if (!transcript.trim() || isProcessing) return;
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError('Connect your account in Settings.');
-      return;
-    }
     setIsProcessing(true);
     setLoading(true);
     const text = transcript;
     try {
-      const replies = await fetchReplies(text, 'Any', apiKey);
+      const replies = await fetchReplies(text, 'Any');
       setRounds((prev) => [...prev, { id: `round-${Date.now()}`, transcript: text, replies }]);
       resetTranscript();
     } catch (e) {
@@ -92,11 +81,9 @@ export default function LivePage() {
   async function handleExplainPhrases() {
     const lastRound = rounds[rounds.length - 1];
     if (!lastRound) return;
-    const apiKey = getApiKey();
-    if (!apiKey) return;
     setExplaining(true);
     try {
-      const phrases = await explainPhrases(lastRound.transcript, apiKey);
+      const phrases = await explainPhrases(lastRound.transcript);
       setRounds((prev) =>
         prev.map((r, i) =>
           i === prev.length - 1 ? { ...r, phraseExplanations: phrases } : r

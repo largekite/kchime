@@ -1,7 +1,6 @@
 'use client';
 
 import { evaluateResponse } from '@/lib/claude';
-import { getApiKey } from '@/lib/storage';
 import { getScenarioById, categoryMeta } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
 import { use, useState } from 'react';
@@ -37,21 +36,11 @@ export default function ScenarioChatPage({
 
   async function handleReply(reply: string) {
     setSelectedReply(reply);
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError('Connect your account in Settings to get feedback.');
-      setStep('result');
-      setEvaluation({ natural: true, feedback: 'Connect your account in Settings to receive AI evaluation.' });
-      completeScenario(scenarioId);
-      setCompleted(true);
-      return;
-    }
-
     setStep('evaluating');
     setError('');
 
     try {
-      const result = await evaluateResponse(scenario!.openingLine, reply, apiKey);
+      const result = await evaluateResponse(scenario!.openingLine, reply);
       setEvaluation(result);
       setStep('result');
       if (!alreadyDone) {

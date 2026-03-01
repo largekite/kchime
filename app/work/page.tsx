@@ -2,7 +2,6 @@
 
 import { WorkReplyCard } from '@/components/work-reply/WorkReplyCard';
 import { fetchWorkReplies } from '@/lib/claude';
-import { getApiKey } from '@/lib/storage';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
 import { useState } from 'react';
@@ -42,11 +41,6 @@ export default function WorkPage() {
   const [error, setError] = useState('');
 
   async function handleAnalyze() {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError('Connect your account in Settings to get started.');
-      return;
-    }
     if (!preset) {
       setError('Select a reply context above.');
       return;
@@ -61,7 +55,7 @@ export default function WorkPage() {
     setResult(null);
 
     try {
-      const data = await fetchWorkReplies(message.trim(), preset, apiKey);
+      const data = await fetchWorkReplies(message.trim(), preset);
       setResult(data);
       incrementWorkReplyCount();
     } catch (err) {

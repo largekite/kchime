@@ -7,11 +7,12 @@ function parseJson<T>(raw: string): T {
   return JSON.parse(cleaned) as T;
 }
 
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
       mode: 'replies' | 'evaluate' | 'explain' | 'work-reply';
-      apiKey: string;
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -21,13 +22,7 @@ export async function POST(req: NextRequest) {
       preset?: string;
     };
 
-    const { mode, apiKey } = body;
-
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key is required. Add yours in Settings.' }, { status: 401 });
-    }
-
-    const client = new Anthropic({ apiKey });
+    const { mode } = body;
 
     if (mode === 'replies') {
       const { prompt, context } = body;
@@ -132,7 +127,6 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = message.includes('401') || message.includes('api_key') ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
