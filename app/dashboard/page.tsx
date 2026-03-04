@@ -9,6 +9,7 @@ import {
 import clsx from 'clsx';
 import type { ScenarioCategory } from '@/types';
 import { useRef, useCallback } from 'react';
+import { getDailyGoal } from '@/lib/storage';
 
 function getLast7Days() {
   const days = [];
@@ -44,7 +45,7 @@ export default function DashboardPage() {
     return { done, total: all.length, pct: Math.round((done / all.length) * 100) };
   }
 
-  const DAILY_GOAL = 3;
+  const DAILY_GOAL = getDailyGoal();
 
   const handleShare = useCallback(async () => {
     try {

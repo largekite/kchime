@@ -6,6 +6,11 @@ import type { PronunciationScore } from '@/lib/pronunciation';
 import { getScenarioById, categoryMeta } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { recordNaturalReply } from '@/lib/storage';
+import { getLevel } from '@/lib/gamification';
+import { BadgeToast } from '@/components/BadgeToast';
+import { LevelUpToast } from '@/components/LevelUpToast';
+import { XpPopup } from '@/components/XpPopup';
 import { use, useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -28,12 +33,18 @@ export default function ScenarioChatPage({
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
 
+  // XP / level-up feedback
+  const [xpGained, setXpGained] = useState(0);
+  const [showXp, setShowXp] = useState(false);
+  const [levelUp, setLevelUp] = useState<{ level: number; name: string } | null>(null);
+  const prevXpRef = useRef(0);
+
   // Pronunciation state
   const [pronunciationTarget, setPronunciationTarget] = useState('');
   const pronunciationTargetRef = useRef('');
   const [pronunciationScore, setPronunciationScore] = useState<PronunciationScore | null>(null);
 
-  const { completeScenario, completedScenarios } = useProgress();
+  const { completeScenario, completedScenarios, newBadges, dismissBadges, xp } = useProgress();
   const alreadyDone = completedScenarios.includes(scenarioId);
 
   // Speech recognition for pronunciation drill
@@ -63,12 +74,42 @@ export default function ScenarioChatPage({
     setError('');
 
     try {
+      const prevLevel = getLevel(xp).level;
+      prevXpRef.current = xp;
+
       const result = await evaluateResponse(scenario!.openingLine, reply);
       setEvaluation(result);
       setStep('result');
+
+      let totalXpGained = 0;
+
       if (!alreadyDone) {
-        completeScenario(scenarioId);
+        const updated = completeScenario(scenarioId);
         setCompleted(true);
+        totalXpGained += 50;
+
+        // Check level up
+        const newLevel = getLevel(updated.xp ?? xp + 50);
+        if (newLevel.level > prevLevel) {
+          setLevelUp({ level: newLevel.level, name: newLevel.name });
+        }
+      }
+
+      if (result.natural) {
+        const { progress: naturalProgress } = recordNaturalReply();
+        totalXpGained += 25;
+
+        // Check level up after natural reply XP
+        const newLevel = getLevel(naturalProgress.xp);
+        const prevLvl = getLevel(prevXpRef.current).level;
+        if (newLevel.level > prevLvl && !levelUp) {
+          setLevelUp({ level: newLevel.level, name: newLevel.name });
+        }
+      }
+
+      if (totalXpGained > 0) {
+        setXpGained(totalXpGained);
+        setShowXp(true);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not evaluate reply.');
@@ -147,6 +188,20 @@ export default function ScenarioChatPage({
 
   return (
     <div className="space-y-4 max-w-xl mx-auto">
+      {/* Badge toast */}
+      {newBadges.length > 0 && (
+        <BadgeToast newBadges={newBadges} onDismiss={dismissBadges} />
+      )}
+
+      {/* Level-up toast */}
+      {levelUp && (
+        <LevelUpToast
+          level={levelUp.level}
+          levelName={levelUp.name}
+          onDone={() => setLevelUp(null)}
+        />
+      )}
+
       {/* Back + category */}
       <div className="flex items-center gap-2">
         <Link href="/practice" className="text-sm text-gray-500 hover:text-gray-800 transition">
@@ -273,7 +328,14 @@ export default function ScenarioChatPage({
                 <span className="text-sm font-semibold text-gray-800">
                   {evaluation.natural ? 'Sounds natural!' : 'Could be more natural'}
                 </span>
-                {completed && <span className="ml-auto text-xs text-emerald-600 font-semibold">+1 practice</span>}
+                <div className="ml-auto flex items-center gap-2">
+                  {showXp && (
+                    <XpPopup amount={xpGained} onDone={() => setShowXp(false)} />
+                  )}
+                  {completed && !showXp && (
+                    <span className="text-xs text-emerald-600 font-semibold">+1 practice</span>
+                  )}
+                </div>
               </div>
               <p className="text-sm text-gray-700">{evaluation.feedback}</p>
               {evaluation.suggestion && (

@@ -12,11 +12,17 @@ const ServiceWorkerRegistrar = dynamic(
   { ssr: false }
 );
 
+const InstallPrompt = dynamic(
+  () => import('./InstallPrompt').then((m) => m.InstallPrompt),
+  { ssr: false }
+);
+
 export function ClientInit() {
   return (
     <>
       <OnboardingGuard />
       <ServiceWorkerRegistrar />
+      <InstallPrompt />
     </>
   );
 }
