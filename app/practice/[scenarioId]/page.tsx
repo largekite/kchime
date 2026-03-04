@@ -1,14 +1,17 @@
 'use client';
 
 import { evaluateResponse } from '@/lib/claude';
+import { scorePronunciation } from '@/lib/pronunciation';
+import type { PronunciationScore } from '@/lib/pronunciation';
 import { getScenarioById, categoryMeta } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
-import { use, useState } from 'react';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { use, useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import clsx from 'clsx';
 
-type Step = 'choose' | 'custom' | 'evaluating' | 'result';
+type Step = 'choose' | 'custom' | 'evaluating' | 'result' | 'pronouncing';
 
 export default function ScenarioChatPage({
   params,
@@ -25,8 +28,28 @@ export default function ScenarioChatPage({
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
 
+  // Pronunciation state
+  const [pronunciationTarget, setPronunciationTarget] = useState('');
+  const pronunciationTargetRef = useRef('');
+  const [pronunciationScore, setPronunciationScore] = useState<PronunciationScore | null>(null);
+
   const { completeScenario, completedScenarios } = useProgress();
   const alreadyDone = completedScenarios.includes(scenarioId);
+
+  // Speech recognition for pronunciation drill
+  const handleSilence = useCallback((text: string) => {
+    if (!text.trim()) return;
+    setPronunciationScore(scorePronunciation(pronunciationTargetRef.current, text));
+  }, []);
+
+  const {
+    isListening,
+    isSupported: speechSupported,
+    start: startMic,
+    stop: stopMic,
+    transcript,
+    reset: resetTranscript,
+  } = useSpeechRecognition({ onSilence: handleSilence, silenceMs: 1500 });
 
   if (!scenario) {
     notFound();
@@ -60,6 +83,67 @@ export default function ScenarioChatPage({
     setEvaluation(null);
     setError('');
   }
+
+  function handlePronounce(reply: string) {
+    pronunciationTargetRef.current = reply;
+    setPronunciationTarget(reply);
+    setPronunciationScore(null);
+    resetTranscript();
+    setStep('pronouncing');
+  }
+
+  function handleMicToggle() {
+    if (isListening) {
+      stopMic();
+      if (transcript.trim()) {
+        setPronunciationScore(scorePronunciation(pronunciationTargetRef.current, transcript));
+      }
+    } else {
+      setPronunciationScore(null);
+      resetTranscript();
+      startMic();
+    }
+  }
+
+  function handlePronounceReset() {
+    stopMic();
+    setPronunciationScore(null);
+    resetTranscript();
+  }
+
+  function handlePronounceBack() {
+    stopMic();
+    setPronunciationScore(null);
+    resetTranscript();
+    setStep('choose');
+  }
+
+  const scoreColor =
+    pronunciationScore
+      ? pronunciationScore.score >= 90
+        ? 'text-emerald-600'
+        : pronunciationScore.score >= 70
+        ? 'text-amber-600'
+        : 'text-red-500'
+      : '';
+
+  const scoreBg =
+    pronunciationScore
+      ? pronunciationScore.score >= 90
+        ? 'bg-emerald-50 border-emerald-200'
+        : pronunciationScore.score >= 70
+        ? 'bg-amber-50 border-amber-200'
+        : 'bg-red-50 border-red-200'
+      : '';
+
+  const scoreLabel =
+    pronunciationScore
+      ? pronunciationScore.score >= 90
+        ? 'Excellent!'
+        : pronunciationScore.score >= 70
+        ? 'Pretty good!'
+        : 'Keep practicing!'
+      : '';
 
   return (
     <div className="space-y-4 max-w-xl mx-auto">
@@ -98,13 +182,23 @@ export default function ScenarioChatPage({
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700 mb-2">How would you reply?</p>
             {scenario.suggestedReplies.map((reply, i) => (
-              <button
-                key={i}
-                onClick={() => handleReply(reply)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
-              >
-                {reply}
-              </button>
+              <div key={i} className="flex items-center gap-2">
+                <button
+                  onClick={() => handleReply(reply)}
+                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
+                >
+                  {reply}
+                </button>
+                <button
+                  onClick={() => handlePronounce(reply)}
+                  title="Practice pronunciation"
+                  className="flex-shrink-0 h-10 w-10 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm6 9a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
+                  </svg>
+                </button>
+              </div>
             ))}
             <button
               onClick={() => setStep('custom')}
@@ -190,6 +284,17 @@ export default function ScenarioChatPage({
               )}
             </div>
 
+            {/* Practice pronunciation of the reply */}
+            <button
+              onClick={() => handlePronounce(selectedReply)}
+              className="w-full rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm6 9a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
+              </svg>
+              Practice saying this
+            </button>
+
             {/* Actions */}
             <div className="flex gap-2 pt-1">
               <button
@@ -204,6 +309,117 @@ export default function ScenarioChatPage({
               >
                 Next scenario →
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Pronunciation drill */}
+        {step === 'pronouncing' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">Say this out loud:</p>
+              {!speechSupported && (
+                <span className="text-xs text-amber-600">Speech not supported in this browser</span>
+              )}
+            </div>
+
+            {/* Target phrase — plain before score, word-highlighted after */}
+            <div className={clsx(
+              'rounded-xl px-4 py-3 border',
+              pronunciationScore ? 'bg-gray-50 border-gray-200' : 'bg-indigo-50 border-indigo-200'
+            )}>
+              {pronunciationScore ? (
+                <div className="flex flex-wrap gap-x-1 gap-y-0.5">
+                  {pronunciationScore.targetWords.map((w, i) => (
+                    <span
+                      key={i}
+                      className={clsx(
+                        'text-sm font-medium',
+                        w.matched ? 'text-emerald-600' : 'text-red-500'
+                      )}
+                    >
+                      {w.word}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm font-medium text-gray-800">{pronunciationTarget}</p>
+              )}
+            </div>
+
+            {/* Score badge */}
+            {pronunciationScore && (
+              <div className={clsx('flex items-center gap-3 rounded-xl p-3 border', scoreBg)}>
+                <p className={clsx('text-3xl font-bold tabular-nums', scoreColor)}>
+                  {pronunciationScore.score}%
+                </p>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{scoreLabel}</p>
+                  <p className="text-xs text-gray-500">
+                    {pronunciationScore.targetWords.filter((w) => w.matched).length} of{' '}
+                    {pronunciationScore.targetWords.length} words recognized
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* What the user said */}
+            {transcript && (
+              <div className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
+                <p className="text-xs text-gray-400 mb-0.5">You said:</p>
+                <p className="text-sm text-gray-700 italic">&ldquo;{transcript}&rdquo;</p>
+              </div>
+            )}
+
+            {/* Mic button */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={handleMicToggle}
+                disabled={!speechSupported}
+                className={clsx(
+                  'h-14 w-14 rounded-full shadow-lg transition-all duration-200',
+                  isListening
+                    ? 'bg-red-500 shadow-red-200 scale-110'
+                    : 'bg-indigo-600 shadow-indigo-200 hover:scale-105',
+                  !speechSupported && 'opacity-40 cursor-not-allowed'
+                )}
+                aria-label={isListening ? 'Stop recording' : 'Start recording'}
+              >
+                {isListening ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm6 9a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
+                  </svg>
+                )}
+              </button>
+              <p className="text-xs text-gray-400">
+                {isListening
+                  ? 'Listening… tap to stop'
+                  : pronunciationScore
+                  ? 'Tap to record again'
+                  : 'Tap mic to start'}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              {pronunciationScore && (
+                <button
+                  onClick={handlePronounceReset}
+                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+                >
+                  Try again
+                </button>
+              )}
+              <button
+                onClick={handlePronounceBack}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                ← Back
+              </button>
             </div>
           </div>
         )}
