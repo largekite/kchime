@@ -1,4 +1,5 @@
-import type { AccentCode, Progress, SavedPhrase } from '@/types';
+import type { AccentCode, BadgeId, Progress, SavedPhrase } from '@/types';
+import { checkNewBadges, BADGE_MAP } from '@/lib/gamification';
 
 const KEYS = {
   API_KEY: 'kchime_api_key',
@@ -6,6 +7,9 @@ const KEYS = {
   SAVED_PHRASES: 'kchime_saved_phrases',
   WORK_REPLY_USAGE: 'kchime_work_reply_usage',
   ACCENT: 'kchime_accent',
+  ONBOARDED: 'kchime_onboarded',
+  ONBOARD_LEVEL: 'kchime_onboard_level',
+  ONBOARD_GOAL: 'kchime_onboard_goal',
 } as const;
 
 function getToday(): string {
@@ -23,6 +27,24 @@ export function setApiKey(key: string): void {
   localStorage.setItem(KEYS.API_KEY, key);
 }
 
+// --- Onboarding ---
+
+export function isOnboarded(): boolean {
+  if (typeof window === 'undefined') return true;
+  return localStorage.getItem(KEYS.ONBOARDED) === 'true';
+}
+
+export function setOnboarded(level: string, goal: number): void {
+  localStorage.setItem(KEYS.ONBOARDED, 'true');
+  localStorage.setItem(KEYS.ONBOARD_LEVEL, level);
+  localStorage.setItem(KEYS.ONBOARD_GOAL, String(goal));
+}
+
+export function getDailyGoal(): number {
+  if (typeof window === 'undefined') return 3;
+  return parseInt(localStorage.getItem(KEYS.ONBOARD_GOAL) ?? '3', 10);
+}
+
 // --- Progress ---
 
 const DEFAULT_PROGRESS: Progress = {
@@ -31,6 +53,9 @@ const DEFAULT_PROGRESS: Progress = {
   lastActiveDate: '',
   daily: [],
   recentPrompts: [],
+  xp: 0,
+  earnedBadges: [],
+  naturalReplies: 0,
 };
 
 export function getProgress(): Progress {
@@ -38,7 +63,9 @@ export function getProgress(): Progress {
   try {
     const raw = localStorage.getItem(KEYS.PROGRESS);
     if (!raw) return DEFAULT_PROGRESS;
-    return JSON.parse(raw) as Progress;
+    const parsed = JSON.parse(raw) as Partial<Progress>;
+    // Merge with defaults to handle old data
+    return { ...DEFAULT_PROGRESS, ...parsed };
   } catch {
     return DEFAULT_PROGRESS;
   }
@@ -48,12 +75,14 @@ export function saveProgress(progress: Progress): void {
   localStorage.setItem(KEYS.PROGRESS, JSON.stringify(progress));
 }
 
-export function markScenarioComplete(scenarioId: string): Progress {
+export function markScenarioComplete(scenarioId: string): { progress: Progress; newBadges: BadgeId[] } {
   const progress = getProgress();
   const today = getToday();
 
-  if (!progress.completedScenarios.includes(scenarioId)) {
+  const isNew = !progress.completedScenarios.includes(scenarioId);
+  if (isNew) {
     progress.completedScenarios.push(scenarioId);
+    progress.xp += 50; // 50 XP per new scenario
   }
 
   // Update daily count
@@ -62,7 +91,6 @@ export function markScenarioComplete(scenarioId: string): Progress {
     todayEntry.scenariosCompleted += 1;
   } else {
     progress.daily.push({ date: today, scenariosCompleted: 1 });
-    // Keep only last 30 days
     if (progress.daily.length > 30) {
       progress.daily = progress.daily.slice(-30);
     }
@@ -74,7 +102,7 @@ export function markScenarioComplete(scenarioId: string): Progress {
   const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   if (progress.lastActiveDate === today) {
-    // Already active today, streak stays
+    // already active today
   } else if (progress.lastActiveDate === yesterdayStr) {
     progress.streak += 1;
   } else {
@@ -82,8 +110,39 @@ export function markScenarioComplete(scenarioId: string): Progress {
   }
   progress.lastActiveDate = today;
 
+  // Check badges
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { progress, newBadges };
+}
+
+export function awardXP(amount: number): Progress {
+  const progress = getProgress();
+  progress.xp += amount;
   saveProgress(progress);
   return progress;
+}
+
+export function recordNaturalReply(): { progress: Progress; newBadges: BadgeId[] } {
+  const progress = getProgress();
+  progress.naturalReplies = (progress.naturalReplies ?? 0) + 1;
+  progress.xp += 25; // bonus XP for natural reply
+
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { progress, newBadges };
 }
 
 export function addRecentPrompt(prompt: string): void {
@@ -119,6 +178,18 @@ export function savePhrase(phrase: SavedPhrase): void {
   const phrases = getSavedPhrases();
   phrases.unshift(phrase);
   localStorage.setItem(KEYS.SAVED_PHRASES, JSON.stringify(phrases));
+
+  // Check collector badge after saving
+  const progress = getProgress();
+  const count = phrases.length;
+  const newBadges = checkNewBadges(progress, count);
+  if (newBadges.length > 0) {
+    for (const bid of newBadges) {
+      progress.earnedBadges.push(bid);
+      progress.xp += BADGE_MAP[bid].xpReward;
+    }
+    saveProgress(progress);
+  }
 }
 
 export function deletePhrase(phraseId: string): void {
