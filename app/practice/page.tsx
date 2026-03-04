@@ -2,14 +2,14 @@
 
 import { allCategories, categoryMeta, getDailyPicks, getScenariosByCategory } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
+import { getDailyGoal } from '@/lib/storage';
 import Link from 'next/link';
 import clsx from 'clsx';
 import type { ScenarioCategory } from '@/types';
 
-const DAILY_GOAL = 3;
-
 export default function PracticePage() {
   const { streak, completedScenarios, todayCount } = useProgress();
+  const DAILY_GOAL = getDailyGoal();
 
   function getCompletionForCategory(cat: ScenarioCategory) {
     const all = getScenariosByCategory(cat);

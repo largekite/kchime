@@ -48,12 +48,35 @@ export interface DailyProgress {
   scenariosCompleted: number;
 }
 
+export type BadgeId =
+  | 'first_step'
+  | 'quick_learner'
+  | 'streak_3'
+  | 'streak_7'
+  | 'streak_30'
+  | 'collector'
+  | 'explorer'
+  | 'halfway'
+  | 'master'
+  | 'natural';
+
+export interface Badge {
+  id: BadgeId;
+  name: string;
+  description: string;
+  emoji: string;
+  xpReward: number;
+}
+
 export interface Progress {
   completedScenarios: string[]; // scenario IDs
   streak: number;
   lastActiveDate: string; // YYYY-MM-DD
   daily: DailyProgress[]; // last 30 days
   recentPrompts: string[];
+  xp: number;
+  earnedBadges: BadgeId[];
+  naturalReplies: number; // count of natural feedback ratings
 }
 
 export interface ConversationRound {
