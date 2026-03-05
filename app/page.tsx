@@ -10,13 +10,6 @@ import clsx from 'clsx';
 import { useState } from 'react';
 
 const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
-const CONTEXT_ICONS: Record<Context, string> = {
-  Any: '🌐',
-  Office: '🏢',
-  Text: '💬',
-  Party: '🎉',
-  Family: '🏠',
-};
 
 export default function QuickReplyPage() {
   const [input, setInput] = useState('');
@@ -87,7 +80,7 @@ export default function QuickReplyPage() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
-              {CONTEXT_ICONS[c]} {c}
+              {c}
             </button>
           ))}
         </div>
@@ -208,7 +201,6 @@ export default function QuickReplyPage() {
       {/* Empty state */}
       {!loading && replies.length === 0 && recentPrompts.length === 0 && (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center">
-          <p className="text-4xl mb-3">💬</p>
           <p className="font-semibold text-gray-700">What did someone say?</p>
           <p className="text-sm text-gray-400 mt-1">Type or speak a phrase and get 4 natural ways to reply.</p>
         </div>

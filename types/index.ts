@@ -64,7 +64,6 @@ export interface Badge {
   id: BadgeId;
   name: string;
   description: string;
-  emoji: string;
   xpReward: number;
 }
 

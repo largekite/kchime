@@ -53,16 +53,16 @@ export const scenarios: Scenario[] = [
   { id: 'cp-5', title: 'Receiving thanks', category: 'Compliments', openingLine: "Thank you so much — I really couldn't have done it without your help.", context: 'Someone genuinely thanking you for help you gave them.', suggestedReplies: ['Of course! Happy to help anytime.', "Aw, it was nothing. Seriously, glad it worked out.", "That's so kind of you to say — it was really a team effort.", "Anytime! That's what we're here for."] },
 ];
 
-export const categoryMeta: Record<ScenarioCategory, { icon: string; color: string }> = {
-  'Small Talk': { icon: '💬', color: 'bg-blue-100 text-blue-700' },
-  'Weekend Plans': { icon: '🌅', color: 'bg-orange-100 text-orange-700' },
-  'Workplace Banter': { icon: '💼', color: 'bg-purple-100 text-purple-700' },
-  'Sports Talk': { icon: '🏆', color: 'bg-green-100 text-green-700' },
-  'American Humor': { icon: '😂', color: 'bg-yellow-100 text-yellow-700' },
-  'Holiday Greetings': { icon: '🎉', color: 'bg-red-100 text-red-700' },
-  'Food & Dining': { icon: '🍜', color: 'bg-amber-100 text-amber-700' },
-  'Social Events': { icon: '🎊', color: 'bg-pink-100 text-pink-700' },
-  'Compliments': { icon: '✨', color: 'bg-indigo-100 text-indigo-700' },
+export const categoryMeta: Record<ScenarioCategory, { color: string }> = {
+  'Small Talk':        { color: 'bg-blue-100 text-blue-700' },
+  'Weekend Plans':     { color: 'bg-orange-100 text-orange-700' },
+  'Workplace Banter':  { color: 'bg-purple-100 text-purple-700' },
+  'Sports Talk':       { color: 'bg-green-100 text-green-700' },
+  'American Humor':    { color: 'bg-yellow-100 text-yellow-700' },
+  'Holiday Greetings': { color: 'bg-red-100 text-red-700' },
+  'Food & Dining':     { color: 'bg-amber-100 text-amber-700' },
+  'Social Events':     { color: 'bg-pink-100 text-pink-700' },
+  'Compliments':       { color: 'bg-indigo-100 text-indigo-700' },
 };
 
 export const allCategories: ScenarioCategory[] = Object.keys(categoryMeta) as ScenarioCategory[];

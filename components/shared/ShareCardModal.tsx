@@ -81,7 +81,6 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
           className="p-6"
         >
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-2xl">🔔</span>
             <span className="font-bold text-gray-800">KChime</span>
             <span
               className="ml-auto rounded-full px-2 py-0.5 text-xs font-semibold text-white"

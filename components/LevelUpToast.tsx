@@ -27,7 +27,6 @@ export function LevelUpToast({ level, levelName, onDone }: Props) {
       }`}
     >
       <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3.5 shadow-2xl text-white min-w-[260px]">
-        <span className="text-3xl">⬆️</span>
         <div>
           <p className="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Level Up!</p>
           <p className="font-bold">Level {level} — {levelName}</p>

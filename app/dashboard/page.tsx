@@ -102,7 +102,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 p-4 text-white shadow-sm">
           <p className="text-3xl font-bold">{streak}</p>
-          <p className="text-sm text-orange-100 mt-0.5">Day Streak 🔥</p>
+          <p className="text-sm text-orange-100 mt-0.5">Day Streak</p>
         </div>
         <div className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
           <p className="text-3xl font-bold text-gray-900">{totalCompleted}</p>
@@ -129,7 +129,6 @@ export default function DashboardPage() {
                   earned ? 'bg-indigo-50' : 'opacity-30 grayscale'
                 )}
               >
-                <span className="text-2xl">{badge.emoji}</span>
                 <p className="text-[10px] font-medium text-gray-700 leading-tight">{badge.name}</p>
               </div>
             );
@@ -175,7 +174,6 @@ export default function DashboardPage() {
             const meta = categoryMeta[cat];
             return (
               <div key={cat} className="flex items-center gap-3">
-                <span className="text-xl w-7 text-center">{meta.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm text-gray-700 truncate">{cat}</p>
@@ -224,7 +222,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-1">
             {earnedBadges.slice(0, 5).map((bid) => (
-              <span key={bid} className="text-xl">{BADGE_MAP[bid].emoji}</span>
+              <span key={bid} className="text-xs font-semibold text-white/80">{BADGE_MAP[bid].name}</span>
             ))}
           </div>
         </div>
@@ -245,7 +243,6 @@ export default function DashboardPage() {
       {/* Motivation */}
       {totalCompleted === 0 && (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
-          <p className="text-4xl mb-3">📊</p>
           <p className="font-semibold text-gray-700">No practice yet</p>
           <p className="text-sm text-gray-400 mt-1">Complete scenarios in Practice to see your stats here.</p>
         </div>

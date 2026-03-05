@@ -209,7 +209,7 @@ export default function ScenarioChatPage({
         </Link>
         <span className="text-gray-300">/</span>
         <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', meta.color)}>
-          {meta.icon} {scenario.category}
+          {scenario.category}
         </span>
       </div>
 
@@ -220,8 +220,8 @@ export default function ScenarioChatPage({
 
         {/* Opening line bubble */}
         <div className="flex items-start gap-3 mb-4">
-          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-base flex-shrink-0">
-            👤
+          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
           </div>
           <div className="rounded-2xl rounded-tl-none bg-gray-100 px-4 py-3">
             <p className="text-sm font-medium text-gray-800">{scenario.openingLine}</p>
@@ -259,7 +259,7 @@ export default function ScenarioChatPage({
               onClick={() => setStep('custom')}
               className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
             >
-              ✏️ Write my own…
+              Write my own…
             </button>
           </div>
         )}
@@ -313,8 +313,8 @@ export default function ScenarioChatPage({
               <div className="rounded-2xl rounded-tr-none bg-indigo-600 px-4 py-3 max-w-xs">
                 <p className="text-sm text-white">{selectedReply}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-base flex-shrink-0">
-                🙋
+              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
               </div>
             </div>
 
@@ -324,7 +324,6 @@ export default function ScenarioChatPage({
               evaluation.natural ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'
             )}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{evaluation.natural ? '✅' : '💡'}</span>
                 <span className="text-sm font-semibold text-gray-800">
                   {evaluation.natural ? 'Sounds natural!' : 'Could be more natural'}
                 </span>

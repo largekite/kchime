@@ -174,7 +174,6 @@ export default function LivePage() {
       <div className="min-h-48 space-y-4">
         {rounds.length === 0 && !isListening && !transcript && (
           <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center">
-            <p className="text-4xl mb-3">🎙️</p>
             <p className="font-semibold text-gray-700">Start listening</p>
             <p className="text-sm text-gray-400 mt-1">Hit the mic button and start talking. KChime will suggest replies.</p>
           </div>
@@ -184,7 +183,9 @@ export default function LivePage() {
           <div key={round.id} className="space-y-2">
             {/* Transcript bubble */}
             <div className="flex items-start gap-2">
-              <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-sm flex-shrink-0">👤</div>
+              <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+              </div>
               <div className="rounded-2xl rounded-tl-none bg-white border border-gray-100 px-4 py-2.5 shadow-sm max-w-lg">
                 <p className="text-sm text-gray-800">{round.transcript}</p>
               </div>
@@ -248,7 +249,7 @@ export default function LivePage() {
                   disabled={explaining}
                   className="text-xs text-indigo-600 hover:underline disabled:opacity-50"
                 >
-                  {explaining ? 'Explaining…' : '🔍 Explain phrases'}
+                  {explaining ? 'Explaining…' : 'Explain phrases'}
                 </button>
               </div>
             )}
@@ -258,7 +259,9 @@ export default function LivePage() {
         {/* Live transcript */}
         {(isListening || transcript) && (
           <div className="flex items-start gap-2">
-            <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-sm flex-shrink-0">👤</div>
+            <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            </div>
             <div className="rounded-2xl rounded-tl-none bg-gray-50 border border-gray-200 px-4 py-2.5 max-w-lg">
               {transcript ? (
                 <p className="text-sm text-gray-700">{transcript}</p>

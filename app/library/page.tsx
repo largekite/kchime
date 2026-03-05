@@ -104,7 +104,7 @@ export default function LibraryPage() {
                     onClick={() => handleCopy(phrase)}
                     className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
                   >
-                    {copied === phrase.id ? '✓ Copied' : '📋 Copy'}
+                    {copied === phrase.id ? '✓ Copied' : 'Copy'}
                   </button>
                   <button
                     onClick={() => setSharePhrase(phrase)}
@@ -124,7 +124,6 @@ export default function LibraryPage() {
           </div>
         ) : phrases.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
-            <p className="text-4xl mb-3">📌</p>
             <p className="font-semibold text-gray-700">No saved phrases yet</p>
             <p className="text-sm text-gray-400 mt-1">
               Save replies from Quick Reply or Live Listen and they&apos;ll appear here.

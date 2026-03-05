@@ -31,7 +31,7 @@ export default function PracticePage() {
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold">{streak}</p>
-            <p className="text-sm text-indigo-100">day streak 🔥</p>
+            <p className="text-sm text-indigo-100">day streak</p>
           </div>
         </div>
         <div className="mt-3 h-2 w-full rounded-full bg-white/20">
@@ -61,7 +61,6 @@ export default function PracticePage() {
                 {done && (
                   <span className="absolute right-3 top-3 text-emerald-500 text-lg">✓</span>
                 )}
-                <span className="text-2xl">{meta.icon}</span>
                 <p className="mt-2 font-semibold text-gray-900 text-sm leading-snug">{scenario.title}</p>
                 <span className={clsx('mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium', meta.color)}>
                   {scenario.category}
@@ -87,7 +86,6 @@ export default function PracticePage() {
                 href={`/practice?category=${encodeURIComponent(cat)}`}
                 className="flex items-center gap-4 rounded-xl bg-white border border-gray-100 p-4 hover:border-indigo-200 hover:shadow-md transition"
               >
-                <span className="text-3xl">{meta.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-sm">{cat}</p>
                   <p className="text-xs text-gray-400 mb-1.5">{done}/{total} completed</p>
