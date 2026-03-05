@@ -10,30 +10,21 @@ interface Props {
   onClose: () => void;
 }
 
-export function UpgradePrompt({ reason, onClose }: Props) {
-  const { user, session } = useAuth();
-  const [showAuth, setShowAuth] = useState(false);
-  const [loading, setLoading] = useState(false);
+const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/4gM28lfhk5zy18X2m85sA00';
 
-  async function handleUpgrade() {
+export function UpgradePrompt({ reason, onClose }: Props) {
+  const { user } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
+
+  function handleUpgrade() {
     if (!user || !session) {
       setShowAuth(true);
       return;
     }
-    setLoading(true);
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-    const data = await res.json() as { url?: string; error?: string };
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      setLoading(false);
-    }
+    const url = new URL(STRIPE_PAYMENT_LINK);
+    url.searchParams.set('client_reference_id', user.id);
+    if (user.email) url.searchParams.set('prefilled_email', user.email);
+    window.location.href = url.toString();
   }
 
   if (showAuth) {
@@ -71,10 +62,9 @@ export function UpgradePrompt({ reason, onClose }: Props) {
         <div className="mt-5 space-y-2">
           <button
             onClick={handleUpgrade}
-            disabled={loading}
-            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
           >
-            {loading ? 'Redirecting…' : 'Upgrade — $7 / month'}
+            Upgrade — $7 / month
           </button>
           <button
             onClick={onClose}

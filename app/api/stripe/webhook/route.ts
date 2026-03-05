@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       if (session.mode !== 'subscription') break;
       const sub = await stripe.subscriptions.retrieve(session.subscription as string);
       const userId = sub.metadata?.supabase_user_id
+        ?? session.client_reference_id
         ?? (await getSupabaseUserId(session.customer as string));
       if (!userId) break;
       await upsertSubscription(userId, sub, 'pro');
