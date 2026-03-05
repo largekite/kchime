@@ -1,6 +1,6 @@
 'use client';
 
-import { evaluateResponse } from '@/lib/claude';
+import { evaluateResponse, continueConversation } from '@/lib/claude';
 import { scorePronunciation } from '@/lib/pronunciation';
 import type { PronunciationScore } from '@/lib/pronunciation';
 import { getScenarioById, categoryMeta } from '@/lib/scenarios';
@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import clsx from 'clsx';
 
-type Step = 'choose' | 'custom' | 'evaluating' | 'result' | 'pronouncing';
+type Step = 'choose' | 'custom' | 'evaluating' | 'result' | 'pronouncing' | 'continuing' | 'follow-up';
 
 export default function ScenarioChatPage({
   params,
@@ -44,6 +44,11 @@ export default function ScenarioChatPage({
   const pronunciationTargetRef = useRef('');
   const [pronunciationScore, setPronunciationScore] = useState<PronunciationScore | null>(null);
 
+  // Multi-turn state
+  const [turnHistory, setTurnHistory] = useState<{ speaker: 'other' | 'user'; text: string }[]>([]);
+  const [followUpLine, setFollowUpLine] = useState('');
+  const [turnCount, setTurnCount] = useState(0);
+
   const { completeScenario, completedScenarios, newBadges, dismissBadges, xp } = useProgress();
   const alreadyDone = completedScenarios.includes(scenarioId);
 
@@ -67,6 +72,44 @@ export default function ScenarioChatPage({
   }
 
   const meta = categoryMeta[scenario.category];
+
+  async function handleContinueConversation() {
+    setStep('continuing');
+    const history: { speaker: 'other' | 'user'; text: string }[] = turnCount === 0
+      ? [
+          { speaker: 'other', text: scenario!.openingLine },
+          { speaker: 'user', text: selectedReply },
+        ]
+      : [...turnHistory];
+
+    try {
+      const followUp = await continueConversation(scenario!.context, history);
+      setFollowUpLine(followUp);
+      setTurnHistory([...history, { speaker: 'other', text: followUp }]);
+      setTurnCount((n) => n + 1);
+      setStep('follow-up');
+      setCustomReply('');
+      setEvaluation(null);
+    } catch {
+      setStep('result');
+    }
+  }
+
+  async function handleFollowUpReply(reply: string) {
+    setSelectedReply(reply);
+    setStep('evaluating');
+    setError('');
+
+    try {
+      const result = await evaluateResponse(followUpLine, reply);
+      setEvaluation(result);
+      setTurnHistory((h) => [...h, { speaker: 'user', text: reply }]);
+      setStep('result');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      setStep('follow-up');
+    }
+  }
 
   async function handleReply(reply: string) {
     setSelectedReply(reply);
@@ -209,7 +252,7 @@ export default function ScenarioChatPage({
         </Link>
         <span className="text-gray-300">/</span>
         <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', meta.color)}>
-          {meta.icon} {scenario.category}
+          {scenario.category}
         </span>
       </div>
 
@@ -220,8 +263,8 @@ export default function ScenarioChatPage({
 
         {/* Opening line bubble */}
         <div className="flex items-start gap-3 mb-4">
-          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-base flex-shrink-0">
-            👤
+          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
           </div>
           <div className="rounded-2xl rounded-tl-none bg-gray-100 px-4 py-3">
             <p className="text-sm font-medium text-gray-800">{scenario.openingLine}</p>
@@ -259,7 +302,7 @@ export default function ScenarioChatPage({
               onClick={() => setStep('custom')}
               className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
             >
-              ✏️ Write my own…
+              Write my own…
             </button>
           </div>
         )}
@@ -294,14 +337,55 @@ export default function ScenarioChatPage({
           </div>
         )}
 
-        {/* Evaluating */}
-        {step === 'evaluating' && (
+        {/* Evaluating / continuing spinners */}
+        {(step === 'evaluating' || step === 'continuing') && (
           <div className="flex items-center gap-3 py-4">
             <svg className="h-5 w-5 animate-spin text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <p className="text-sm text-gray-500">Evaluating your reply…</p>
+            <p className="text-sm text-gray-500">
+              {step === 'continuing' ? 'Getting follow-up…' : 'Evaluating your reply…'}
+            </p>
+          </div>
+        )}
+
+        {/* Follow-up turn */}
+        {step === 'follow-up' && followUpLine && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Turn {turnCount + 1}</p>
+
+            {/* Follow-up bubble */}
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+              </div>
+              <div className="rounded-2xl rounded-tl-none bg-gray-100 px-4 py-3">
+                <p className="text-sm font-medium text-gray-800">{followUpLine}</p>
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+
+            {/* Reply options */}
+            <p className="text-sm font-medium text-gray-700">How would you reply?</p>
+            <div className="space-y-2">
+              {scenario!.suggestedReplies.slice(0, 3).map((reply, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleFollowUpReply(reply)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
+                >
+                  {reply}
+                </button>
+              ))}
+              <button
+                onClick={() => setStep('custom')}
+                className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
+              >
+                Write my own…
+              </button>
+            </div>
           </div>
         )}
 
@@ -313,8 +397,8 @@ export default function ScenarioChatPage({
               <div className="rounded-2xl rounded-tr-none bg-indigo-600 px-4 py-3 max-w-xs">
                 <p className="text-sm text-white">{selectedReply}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-base flex-shrink-0">
-                🙋
+              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
               </div>
             </div>
 
@@ -324,7 +408,6 @@ export default function ScenarioChatPage({
               evaluation.natural ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'
             )}>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{evaluation.natural ? '✅' : '💡'}</span>
                 <span className="text-sm font-semibold text-gray-800">
                   {evaluation.natural ? 'Sounds natural!' : 'Could be more natural'}
                 </span>
@@ -358,13 +441,21 @@ export default function ScenarioChatPage({
             </button>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2 pt-1 flex-wrap">
               <button
                 onClick={handleReset}
                 className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
               >
                 Try again
               </button>
+              {turnCount < 3 && (
+                <button
+                  onClick={handleContinueConversation}
+                  className="flex-1 rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                >
+                  Continue conversation →
+                </button>
+              )}
               <Link
                 href="/practice"
                 className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-700 transition"

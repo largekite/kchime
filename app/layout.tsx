@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { ClientInit } from '@/components/layout/ClientInit';
+import { Providers } from '@/components/layout/Providers';
+import { NotificationPrompt } from '@/components/layout/NotificationPrompt';
 
 export const metadata: Metadata = {
   title: 'KChime — Daily Conversation Coach',
@@ -30,9 +32,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
       <body className="min-h-screen bg-gray-50 antialiased">
-        <ClientInit />
-        <Navbar />
-        <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+        <Providers>
+          <ClientInit />
+          <Navbar />
+          <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+          <NotificationPrompt />
+        </Providers>
       </body>
     </html>
   );

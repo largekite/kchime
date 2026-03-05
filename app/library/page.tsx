@@ -2,9 +2,14 @@
 
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
-import type { SavedPhrase, Tone } from '@/types';
+import type { Collection, SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  getDueForReview, getCollections, createCollection,
+  deleteCollection, togglePhraseInCollection,
+} from '@/lib/storage';
+import Link from 'next/link';
 
 const TONE_STYLES: Record<Tone, string> = {
   Casual: 'bg-indigo-100 text-indigo-700',
@@ -13,12 +18,33 @@ const TONE_STYLES: Record<Tone, string> = {
   Safe: 'bg-emerald-100 text-emerald-700',
 };
 
+function SrsChip({ srs }: { srs?: SavedPhrase['srs'] }) {
+  const reps = srs?.repetitions ?? 0;
+  if (reps === 0) return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">New</span>;
+  if (reps <= 2) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Learning</span>;
+  if (reps <= 5) return <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Mature</span>;
+  return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Expert</span>;
+}
+
 export default function LibraryPage() {
   const { phrases, remove } = useSavedPhrases();
   const [search, setSearch] = useState('');
   const [filterTone, setFilterTone] = useState<Tone | 'All'>('All');
+  const [filterCollection, setFilterCollection] = useState<string | 'All'>('All');
   const [sharePhrase, setSharePhrase] = useState<SavedPhrase | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [dueCount, setDueCount] = useState(0);
+
+  // Collections state
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [newColName, setNewColName] = useState('');
+  const [showNewCol, setShowNewCol] = useState(false);
+  const [colMenuPhrase, setColMenuPhrase] = useState<string | null>(null); // phraseId whose menu is open
+
+  useEffect(() => {
+    setDueCount(getDueForReview().length);
+    setCollections(getCollections());
+  }, [phrases]);
 
   const tones: (Tone | 'All')[] = ['All', 'Casual', 'Funny', 'Warm', 'Safe'];
 
@@ -28,8 +54,32 @@ export default function LibraryPage() {
       !search ||
       p.text.toLowerCase().includes(search.toLowerCase()) ||
       p.prompt.toLowerCase().includes(search.toLowerCase());
-    return matchTone && matchSearch;
+    const matchCollection =
+      filterCollection === 'All' ||
+      collections.find((c) => c.id === filterCollection)?.phraseIds.includes(p.id);
+    return matchTone && matchSearch && matchCollection;
   });
+
+  function handleExportCsv() {
+    const header = 'Text,Tone,Context,Prompt,Saved,Next Review,Repetitions';
+    const rows = phrases.map((p) => {
+      const cols = [
+        p.text, p.tone, p.context, p.prompt,
+        p.savedAt.split('T')[0],
+        p.srs?.nextReview ?? '',
+        String(p.srs?.repetitions ?? 0),
+      ].map((c) => `"${c.replace(/"/g, '""')}"`);
+      return cols.join(',');
+    });
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kchime-phrases.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleCopy(phrase: SavedPhrase) {
     await navigator.clipboard.writeText(phrase.text);
@@ -41,14 +91,116 @@ export default function LibraryPage() {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  function handleCreateCollection() {
+    if (!newColName.trim()) return;
+    const col = createCollection(newColName);
+    setCollections((prev) => [...prev, col]);
+    setNewColName('');
+    setShowNewCol(false);
+  }
+
+  function handleDeleteCollection(id: string) {
+    deleteCollection(id);
+    setCollections((prev) => prev.filter((c) => c.id !== id));
+    if (filterCollection === id) setFilterCollection('All');
+  }
+
+  function handleTogglePhrase(collectionId: string, phraseId: string) {
+    togglePhraseInCollection(collectionId, phraseId);
+    setCollections(getCollections());
+    setColMenuPhrase(null);
+  }
+
+  function isPhraseInCollection(colId: string, phraseId: string) {
+    return collections.find((c) => c.id === colId)?.phraseIds.includes(phraseId) ?? false;
+  }
+
   return (
     <>
       <div className="space-y-5">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Saved Phrases</h1>
-          <p className="text-sm text-gray-500 mt-1">{phrases.length} phrase{phrases.length !== 1 ? 's' : ''} saved</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Saved Phrases</h1>
+            <p className="text-sm text-gray-500 mt-1">{phrases.length} phrase{phrases.length !== 1 ? 's' : ''} saved</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {phrases.length > 0 && (
+              <button
+                onClick={handleExportCsv}
+                title="Export phrases as CSV"
+                className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                Export CSV
+              </button>
+            )}
+            {dueCount > 0 && (
+              <Link
+                href="/review"
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+              >
+                Review
+                <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
+              </Link>
+            )}
+          </div>
         </div>
+
+        {/* Collections row */}
+        {phrases.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Collections</span>
+              <button
+                onClick={() => setFilterCollection('All')}
+                className={clsx('rounded-full px-3 py-1 text-xs font-medium transition', filterCollection === 'All' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}
+              >
+                All
+              </button>
+              {collections.map((col) => (
+                <div key={col.id} className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => setFilterCollection(col.id)}
+                    className={clsx('rounded-l-full px-3 py-1 text-xs font-medium transition', filterCollection === col.id ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')}
+                  >
+                    {col.name}
+                    <span className="ml-1 opacity-60">{col.phraseIds.length}</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCollection(col.id)}
+                    className="rounded-r-full bg-gray-100 px-1.5 py-1 text-xs text-gray-400 hover:bg-red-100 hover:text-red-500 transition"
+                    title="Delete collection"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setShowNewCol((v) => !v)}
+                className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs font-medium text-gray-400 hover:border-indigo-400 hover:text-indigo-600 transition"
+              >
+                + New
+              </button>
+            </div>
+
+            {showNewCol && (
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newColName}
+                  onChange={(e) => setNewColName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCollection(); if (e.key === 'Escape') { setShowNewCol(false); setNewColName(''); } }}
+                  placeholder="Collection name…"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
+                />
+                <button onClick={handleCreateCollection} disabled={!newColName.trim()} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition">
+                  Create
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filters */}
         {phrases.length > 0 && (
@@ -67,9 +219,7 @@ export default function LibraryPage() {
                   onClick={() => setFilterTone(t)}
                   className={clsx(
                     'rounded-full px-3 py-1 text-sm font-medium transition',
-                    filterTone === t
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    filterTone === t ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                 >
                   {t}
@@ -88,9 +238,12 @@ export default function LibraryPage() {
                 className="rounded-xl bg-white border border-gray-100 p-4 shadow-sm hover:shadow-md transition"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[phrase.tone])}>
-                    {phrase.tone}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[phrase.tone])}>
+                      {phrase.tone}
+                    </span>
+                    <SrsChip srs={phrase.srs} />
+                  </div>
                   <span className="text-xs text-gray-400">{formatDate(phrase.savedAt)}</span>
                 </div>
 
@@ -99,12 +252,12 @@ export default function LibraryPage() {
                   Re: &ldquo;{phrase.prompt}&rdquo;
                 </p>
 
-                <div className="mt-3 flex gap-1.5">
+                <div className="mt-3 flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => handleCopy(phrase)}
                     className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
                   >
-                    {copied === phrase.id ? '✓ Copied' : '📋 Copy'}
+                    {copied === phrase.id ? '✓ Copied' : 'Copy'}
                   </button>
                   <button
                     onClick={() => setSharePhrase(phrase)}
@@ -112,6 +265,36 @@ export default function LibraryPage() {
                   >
                     ↗ Share
                   </button>
+
+                  {/* Collections dropdown */}
+                  {collections.length > 0 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setColMenuPhrase(colMenuPhrase === phrase.id ? null : phrase.id)}
+                        className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+                      >
+                        + Collection
+                      </button>
+                      {colMenuPhrase === phrase.id && (
+                        <div className="absolute left-0 top-7 z-10 min-w-[140px] rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                          {collections.map((col) => {
+                            const inCol = isPhraseInCollection(col.id, phrase.id);
+                            return (
+                              <button
+                                key={col.id}
+                                onClick={() => handleTogglePhrase(col.id, phrase.id)}
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 transition"
+                              >
+                                <span className={clsx('h-3 w-3 rounded-sm border', inCol ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300')} />
+                                {col.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={() => remove(phrase.id)}
                     className="ml-auto rounded-md px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-50 transition"
@@ -124,7 +307,6 @@ export default function LibraryPage() {
           </div>
         ) : phrases.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
-            <p className="text-4xl mb-3">📌</p>
             <p className="font-semibold text-gray-700">No saved phrases yet</p>
             <p className="text-sm text-gray-400 mt-1">
               Save replies from Quick Reply or Live Listen and they&apos;ll appear here.

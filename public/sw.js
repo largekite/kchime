@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kchime-v1';
+const CACHE_NAME = 'kchime-v2';
 const STATIC_ASSETS = ['/', '/practice', '/work', '/live', '/library', '/dashboard'];
 
 self.addEventListener('install', (event) => {
@@ -15,6 +15,39 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'Time to practice! 💬', body: 'Your daily English practice is waiting.', url: '/practice' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch { /* ignore */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      tag: 'kchime-daily',
+      data: { url: data.url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? '/practice';
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {

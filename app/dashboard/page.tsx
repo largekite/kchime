@@ -7,9 +7,59 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import clsx from 'clsx';
-import type { ScenarioCategory } from '@/types';
+import type { DailyProgress, ScenarioCategory } from '@/types';
 import { useRef, useCallback } from 'react';
-import { getDailyGoal } from '@/lib/storage';
+import { getDailyGoal, getStreakFreezes } from '@/lib/storage';
+
+function ActivityHeatmap({ daily }: { daily: DailyProgress[] }) {
+  // Build a map of date → count for the last 30 days
+  const map = new Map(daily.map((d) => [d.date, d.scenariosCompleted]));
+
+  const days: { date: string; count: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    days.push({ date: key, count: map.get(key) ?? 0 });
+  }
+
+  function cellColor(count: number) {
+    if (count === 0) return 'bg-gray-100';
+    if (count <= 1) return 'bg-indigo-200';
+    if (count <= 3) return 'bg-indigo-400';
+    return 'bg-indigo-600';
+  }
+
+  function shortDate(iso: string) {
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  return (
+    <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-bold text-gray-900">30-Day Activity</h2>
+        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span>Less</span>
+          <span className="h-3 w-3 rounded-sm bg-gray-100" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-200" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-400" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-600" />
+          <span>More</span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {days.map(({ date, count }) => (
+          <div
+            key={date}
+            title={`${shortDate(date)}: ${count} scenario${count !== 1 ? 's' : ''}`}
+            className={clsx('h-6 w-6 rounded-md transition-colors', cellColor(count))}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function getLast7Days() {
   const days = [];
@@ -46,6 +96,7 @@ export default function DashboardPage() {
   }
 
   const DAILY_GOAL = getDailyGoal();
+  const streakFreezes = getStreakFreezes();
 
   const handleShare = useCallback(async () => {
     try {
@@ -102,7 +153,12 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 p-4 text-white shadow-sm">
           <p className="text-3xl font-bold">{streak}</p>
-          <p className="text-sm text-orange-100 mt-0.5">Day Streak 🔥</p>
+          <p className="text-sm text-orange-100 mt-0.5">Day Streak</p>
+          {streakFreezes > 0 && (
+            <p className="text-xs text-orange-200 mt-1" title="Streak freezes protect your streak on missed days">
+              {streakFreezes} freeze{streakFreezes !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
         <div className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
           <p className="text-3xl font-bold text-gray-900">{totalCompleted}</p>
@@ -123,14 +179,17 @@ export default function DashboardPage() {
             return (
               <div
                 key={badge.id}
-                title={`${badge.name}: ${badge.description}`}
+                title={earned ? `${badge.name}: ${badge.description}` : `Locked — ${badge.description}`}
                 className={clsx(
-                  'flex flex-col items-center gap-1 rounded-xl p-2 text-center transition',
-                  earned ? 'bg-indigo-50' : 'opacity-30 grayscale'
+                  'flex flex-col items-center gap-1 rounded-xl p-2 text-center transition cursor-default',
+                  earned ? 'bg-indigo-50 ring-1 ring-indigo-100' : 'opacity-35 grayscale'
                 )}
               >
-                <span className="text-2xl">{badge.emoji}</span>
+                <span className="text-2xl leading-none" role="img" aria-label={badge.name}>{badge.emoji}</span>
                 <p className="text-[10px] font-medium text-gray-700 leading-tight">{badge.name}</p>
+                {earned && (
+                  <span className="text-[9px] text-indigo-500 font-semibold">+{badge.xpReward} XP</span>
+                )}
               </div>
             );
           })}
@@ -157,6 +216,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* 30-day heatmap */}
+      <ActivityHeatmap daily={progress?.daily ?? []} />
+
       {/* Overall progress */}
       <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
@@ -175,7 +237,6 @@ export default function DashboardPage() {
             const meta = categoryMeta[cat];
             return (
               <div key={cat} className="flex items-center gap-3">
-                <span className="text-xl w-7 text-center">{meta.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm text-gray-700 truncate">{cat}</p>
@@ -224,7 +285,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-1">
             {earnedBadges.slice(0, 5).map((bid) => (
-              <span key={bid} className="text-xl">{BADGE_MAP[bid].emoji}</span>
+              <span key={bid} className="text-xs font-semibold text-white/80">{BADGE_MAP[bid].name}</span>
             ))}
           </div>
         </div>
@@ -245,7 +306,6 @@ export default function DashboardPage() {
       {/* Motivation */}
       {totalCompleted === 0 && (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
-          <p className="text-4xl mb-3">📊</p>
           <p className="font-semibold text-gray-700">No practice yet</p>
           <p className="text-sm text-gray-400 mt-1">Complete scenarios in Practice to see your stats here.</p>
         </div>

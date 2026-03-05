@@ -15,6 +15,29 @@ export interface SavedPhrase {
   context: Context;
   prompt: string;
   savedAt: string; // ISO date string
+  srs?: {
+    nextReview: string; // ISO date YYYY-MM-DD
+    interval: number;   // days until next review
+    repetitions: number;
+    ease: number;       // SM-2 ease factor, starts at 2.5
+  };
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  phraseIds: string[];
+}
+
+export interface CustomScenario {
+  id: string;
+  title: string;
+  category: ScenarioCategory;
+  openingLine: string;
+  context: string;
+  suggestedReplies: string[];
+  createdAt: string;
+  isCustom: true;
 }
 
 export interface Scenario {
@@ -64,8 +87,8 @@ export interface Badge {
   id: BadgeId;
   name: string;
   description: string;
-  emoji: string;
   xpReward: number;
+  emoji: string;
 }
 
 export interface Progress {
@@ -77,6 +100,8 @@ export interface Progress {
   xp: number;
   earnedBadges: BadgeId[];
   naturalReplies: number; // count of natural feedback ratings
+  streakFreezes: number; // available streak freeze tokens
+  frozeStreak?: boolean; // true if the current streak was saved by a freeze today
 }
 
 export interface ConversationRound {

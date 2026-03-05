@@ -8,10 +8,10 @@ import clsx from 'clsx';
 type Level = 'Beginner' | 'Intermediate' | 'Advanced';
 type GoalOption = 3 | 5 | 10;
 
-const LEVELS: { value: Level; emoji: string; label: string; desc: string }[] = [
-  { value: 'Beginner',     emoji: '🌱', label: 'Beginner',     desc: 'I struggle with everyday phrases' },
-  { value: 'Intermediate', emoji: '🔥', label: 'Intermediate', desc: 'I get by but sound formal or awkward' },
-  { value: 'Advanced',     emoji: '⚡', label: 'Advanced',     desc: 'I want to sound more natural & confident' },
+const LEVELS: { value: Level; label: string; desc: string }[] = [
+  { value: 'Beginner',     label: 'Beginner',     desc: 'I struggle with everyday phrases' },
+  { value: 'Intermediate', label: 'Intermediate', desc: 'I get by but sound formal or awkward' },
+  { value: 'Advanced',     label: 'Advanced',     desc: 'I want to sound more natural & confident' },
 ];
 
 const GOALS: { value: GoalOption; label: string; desc: string }[] = [
@@ -53,9 +53,8 @@ export default function OnboardingPage() {
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center text-sm">
-              {[['💬', 'Smart Replies'], ['🎯', 'Real Scenarios'], ['🔥', 'Daily Streaks']].map(([icon, label]) => (
+              {['Smart Replies', 'Real Scenarios', 'Daily Streaks'].map((label) => (
                 <div key={label} className="rounded-xl bg-white border border-gray-100 p-3 shadow-sm">
-                  <p className="text-2xl mb-1">{icon}</p>
                   <p className="font-medium text-gray-700 text-xs">{label}</p>
                 </div>
               ))}
@@ -89,7 +88,6 @@ export default function OnboardingPage() {
                       : 'border-gray-100 bg-white hover:border-indigo-200'
                   )}
                 >
-                  <span className="text-3xl">{l.emoji}</span>
                   <div>
                     <p className="font-semibold text-gray-900">{l.label}</p>
                     <p className="text-sm text-gray-500">{l.desc}</p>
@@ -144,7 +142,7 @@ export default function OnboardingPage() {
                 Back
               </button>
               <button onClick={finish} className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
-                Start Learning 🚀
+                Start Learning
               </button>
             </div>
           </div>

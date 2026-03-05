@@ -1,18 +1,19 @@
 'use client';
 
 import { WorkReplyCard } from '@/components/work-reply/WorkReplyCard';
-import { fetchWorkReplies } from '@/lib/claude';
+import { fetchWorkReplies, LimitReachedError } from '@/lib/claude';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
 import { useState } from 'react';
+import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
-const PRESETS: { label: WorkplacePreset; icon: string }[] = [
-  { label: 'Reply to Manager', icon: '👔' },
-  { label: 'Reply to Direct Report', icon: '🤝' },
-  { label: 'Reply to Client', icon: '💼' },
-  { label: 'Push Back Politely', icon: '🛑' },
-  { label: 'Deliver Constructive Feedback', icon: '💬' },
-  { label: 'Escalate Issue Professionally', icon: '📢' },
+const PRESETS: WorkplacePreset[] = [
+  'Reply to Manager',
+  'Reply to Direct Report',
+  'Reply to Client',
+  'Push Back Politely',
+  'Deliver Constructive Feedback',
+  'Escalate Issue Professionally',
 ];
 
 function SkeletonCard() {
@@ -39,6 +40,7 @@ export default function WorkPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WorkReplyResult | null>(null);
   const [error, setError] = useState('');
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   async function handleAnalyze() {
     if (!preset) {
@@ -59,7 +61,11 @@ export default function WorkPage() {
       setResult(data);
       incrementWorkReplyCount();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+      if (err instanceof LimitReachedError) {
+        setShowUpgrade(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -78,18 +84,17 @@ export default function WorkPage() {
       <div className="mb-5">
         <p className="mb-2 text-sm font-medium text-gray-700">Reply context</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {PRESETS.map(({ label, icon }) => (
+          {PRESETS.map((label) => (
             <button
               key={label}
               onClick={() => setPreset(label)}
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
+              className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
                 preset === label
                   ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <span>{icon}</span>
-              <span className="leading-tight">{label}</span>
+              {label}
             </button>
           ))}
         </div>
@@ -145,6 +150,13 @@ export default function WorkPage() {
             </>
           ) : null}
         </div>
+      )}
+
+      {showUpgrade && (
+        <UpgradePrompt
+          reason="You've used your 2 free Work Replies for today. Upgrade for unlimited access."
+          onClose={() => setShowUpgrade(false)}
+        />
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import type { AccentCode, BadgeId, Progress, SavedPhrase } from '@/types';
+import type { AccentCode, BadgeId, Collection, CustomScenario, Progress, SavedPhrase } from '@/types';
 import { checkNewBadges, BADGE_MAP } from '@/lib/gamification';
 
 const KEYS = {
@@ -10,6 +10,8 @@ const KEYS = {
   ONBOARDED: 'kchime_onboarded',
   ONBOARD_LEVEL: 'kchime_onboard_level',
   ONBOARD_GOAL: 'kchime_onboard_goal',
+  CUSTOM_SCENARIOS: 'kchime_custom_scenarios',
+  COLLECTIONS: 'kchime_collections',
 } as const;
 
 function getToday(): string {
@@ -45,6 +47,10 @@ export function getDailyGoal(): number {
   return parseInt(localStorage.getItem(KEYS.ONBOARD_GOAL) ?? '3', 10);
 }
 
+export function setDailyGoal(goal: number): void {
+  localStorage.setItem(KEYS.ONBOARD_GOAL, String(goal));
+}
+
 // --- Progress ---
 
 const DEFAULT_PROGRESS: Progress = {
@@ -56,6 +62,7 @@ const DEFAULT_PROGRESS: Progress = {
   xp: 0,
   earnedBadges: [],
   naturalReplies: 0,
+  streakFreezes: 0,
 };
 
 export function getProgress(): Progress {
@@ -102,13 +109,38 @@ export function markScenarioComplete(scenarioId: string): { progress: Progress; 
   const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   if (progress.lastActiveDate === today) {
-    // already active today
+    // already active today — no change
   } else if (progress.lastActiveDate === yesterdayStr) {
+    // consecutive day
     progress.streak += 1;
+    progress.frozeStreak = false;
+  } else if (progress.lastActiveDate) {
+    // missed at least one day — check for freeze
+    const freezes = progress.streakFreezes ?? 0;
+    if (freezes > 0 && progress.streak > 0) {
+      progress.streakFreezes = freezes - 1;
+      progress.frozeStreak = true;
+      // streak continues — don't increment (we're resuming after a gap)
+    } else {
+      progress.streak = 1;
+      progress.frozeStreak = false;
+    }
   } else {
     progress.streak = 1;
+    progress.frozeStreak = false;
   }
   progress.lastActiveDate = today;
+
+  // Award a freeze token at every 7-day streak milestone (max 3 held)
+  const prevStreakBeforeUpdate = progress.streak - 1;
+  if (
+    progress.streak > 0 &&
+    progress.streak % 7 === 0 &&
+    prevStreakBeforeUpdate % 7 !== 0 &&
+    (progress.streakFreezes ?? 0) < 3
+  ) {
+    progress.streakFreezes = (progress.streakFreezes ?? 0) + 1;
+  }
 
   // Check badges
   const savedPhrasesCount = getSavedPhrases().length;
@@ -152,6 +184,10 @@ export function addRecentPrompt(prompt: string): void {
     ...progress.recentPrompts.filter((p) => p !== prompt),
   ].slice(0, 5);
   saveProgress(progress);
+}
+
+export function getStreakFreezes(): number {
+  return getProgress().streakFreezes ?? 0;
 }
 
 export function getTodayScenarioCount(): number {
@@ -220,6 +256,116 @@ export function getWorkReplyUsage(): WorkReplyUsage {
 export function incrementWorkReplyCount(): void {
   const usage = getWorkReplyUsage();
   localStorage.setItem(KEYS.WORK_REPLY_USAGE, JSON.stringify({ date: getToday(), count: usage.count + 1 }));
+}
+
+// --- Spaced Repetition (SM-2) ---
+
+/**
+ * Update a phrase's SRS schedule based on whether the user recalled it.
+ * quality: 1 = recalled, 0 = forgot
+ */
+export function updateSRS(phraseId: string, quality: 0 | 1): void {
+  const phrases = getSavedPhrases();
+  const idx = phrases.findIndex((p) => p.id === phraseId);
+  if (idx === -1) return;
+
+  const phrase = phrases[idx];
+  const srs = phrase.srs ?? { nextReview: getToday(), interval: 1, repetitions: 0, ease: 2.5 };
+
+  if (quality === 0) {
+    // Forgot: reset repetitions, review again tomorrow
+    srs.repetitions = 0;
+    srs.interval = 1;
+  } else {
+    // Recalled: advance schedule
+    if (srs.repetitions === 0) {
+      srs.interval = 1;
+    } else if (srs.repetitions === 1) {
+      srs.interval = 6;
+    } else {
+      srs.interval = Math.round(srs.interval * srs.ease);
+    }
+    srs.repetitions += 1;
+    srs.ease = Math.max(1.3, srs.ease + 0.1 - (1 - quality) * (0.08 + (1 - quality) * 0.02));
+  }
+
+  const next = new Date();
+  next.setDate(next.getDate() + srs.interval);
+  srs.nextReview = next.toISOString().split('T')[0];
+
+  phrases[idx] = { ...phrase, srs };
+  localStorage.setItem(KEYS.SAVED_PHRASES, JSON.stringify(phrases));
+}
+
+export function getDueForReview(): SavedPhrase[] {
+  const today = getToday();
+  return getSavedPhrases().filter((p) => {
+    if (!p.srs) return true; // never reviewed → always due
+    return p.srs.nextReview <= today;
+  });
+}
+
+// --- Custom Scenarios ---
+
+export function getCustomScenarios(): CustomScenario[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(KEYS.CUSTOM_SCENARIOS);
+    return raw ? (JSON.parse(raw) as CustomScenario[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomScenario(scenario: CustomScenario): void {
+  const list = getCustomScenarios();
+  list.unshift(scenario);
+  localStorage.setItem(KEYS.CUSTOM_SCENARIOS, JSON.stringify(list));
+}
+
+export function deleteCustomScenario(id: string): void {
+  const list = getCustomScenarios().filter((s) => s.id !== id);
+  localStorage.setItem(KEYS.CUSTOM_SCENARIOS, JSON.stringify(list));
+}
+
+// --- Collections ---
+
+export function getCollections(): Collection[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(KEYS.COLLECTIONS);
+    return raw ? (JSON.parse(raw) as Collection[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCollections(collections: Collection[]): void {
+  localStorage.setItem(KEYS.COLLECTIONS, JSON.stringify(collections));
+}
+
+export function createCollection(name: string): Collection {
+  const collections = getCollections();
+  const col: Collection = { id: `col-${Date.now()}`, name: name.trim(), phraseIds: [] };
+  collections.push(col);
+  saveCollections(collections);
+  return col;
+}
+
+export function deleteCollection(id: string): void {
+  saveCollections(getCollections().filter((c) => c.id !== id));
+}
+
+export function togglePhraseInCollection(collectionId: string, phraseId: string): void {
+  const collections = getCollections();
+  const col = collections.find((c) => c.id === collectionId);
+  if (!col) return;
+  if (col.phraseIds.includes(phraseId)) {
+    col.phraseIds = col.phraseIds.filter((id) => id !== phraseId);
+  } else {
+    col.phraseIds.push(phraseId);
+  }
+  saveCollections(collections);
 }
 
 // --- Accent ---
