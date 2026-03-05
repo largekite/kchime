@@ -53,6 +53,53 @@ export async function fetchReplies(prompt: string, context: Context): Promise<Re
   }));
 }
 
+export async function* fetchRepliesStream(prompt: string, context: Context): AsyncGenerator<Reply> {
+  const authHeader = await getAuthHeader();
+  const res = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeader },
+    body: JSON.stringify({ mode: 'replies-stream', prompt, context }),
+  });
+
+  if (res.status === 429) {
+    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 5);
+  }
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  if (!res.body) throw new Error('No response body');
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let index = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const parsed = JSON.parse(trimmed) as { tone: string; text: string };
+          yield {
+            id: `reply-${Date.now()}-${index++}`,
+            tone: (parsed.tone as Tone) ?? TONES[index - 1],
+            text: parsed.text,
+          };
+        } catch {
+          // skip malformed lines
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 export async function evaluateResponse(openingLine: string, userReply: string): Promise<EvaluationResult> {
   const res = await post({ mode: 'evaluate', openingLine, userReply });
 

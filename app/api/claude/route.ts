@@ -82,7 +82,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief';
+      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     const { mode } = body;
 
     // Rate-limited modes
-    if (mode === 'replies' || mode === 'work-reply') {
+    if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply') {
       const { isPro, userId } = await getSubscription(req);
 
       if (!isPro) {
@@ -346,6 +346,57 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const raw = message.content[0].type === 'text' ? message.content[0].text : '';
       const parsed = parseJson<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }>(raw);
       return NextResponse.json(parsed);
+    }
+
+    if (mode === 'replies-stream') {
+      const { prompt, context } = body;
+      if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+
+      const contextNote = context && context !== 'Any'
+        ? `Context: ${context} setting.`
+        : 'Context: general/any setting.';
+
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            const stream = getAnthropic().messages.stream({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 512,
+              system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies. Output each reply as a separate JSON object on its own line (NDJSON), in this exact order, with no other text before or after:
+{"tone":"Casual","text":"reply here"}
+{"tone":"Funny","text":"reply here"}
+{"tone":"Warm","text":"reply here"}
+{"tone":"Safe","text":"reply here"}
+Each reply must be under 20 words, use contractions, and sound like a real American would say it.`,
+              messages: [{
+                role: 'user',
+                content: `Someone said: "${prompt}"\n${contextNote}`,
+              }],
+            });
+
+            let buffer = '';
+            for await (const event of stream) {
+              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+                buffer += event.delta.text;
+                const lines = buffer.split('\n');
+                buffer = lines.pop() ?? '';
+                for (const line of lines) {
+                  const trimmed = line.trim();
+                  if (trimmed) controller.enqueue(encoder.encode(trimmed + '\n'));
+                }
+              }
+            }
+            if (buffer.trim()) controller.enqueue(encoder.encode(buffer.trim() + '\n'));
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(readable, {
+        headers: { 'Content-Type': 'application/x-ndjson' },
+      });
     }
 
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
