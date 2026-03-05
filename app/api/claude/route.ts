@@ -78,7 +78,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario';
+      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -87,8 +87,13 @@ export async function POST(req: NextRequest) {
       message?: string;
       preset?: string;
       scenarioContext?: string;
-      history?: { speaker: 'other' | 'user'; text: string }[];
+      history?: { speaker: 'other' | 'user' | 'ai'; text: string }[];
       conversation?: string;
+      draft?: string;
+      messageType?: string;
+      relationship?: string;
+      persona?: string;
+      userMessage?: string;
     };
 
     const { mode } = body;
@@ -270,6 +275,50 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
         context: string;
         suggestedReplies: string[];
       }>(raw);
+      return NextResponse.json(parsed);
+    }
+
+    if (mode === 'fix-message') {
+      const { draft, messageType, relationship } = body;
+      if (!draft) return NextResponse.json({ error: 'Missing draft' }, { status: 400 });
+
+      const ctx = [messageType && `Message type: ${messageType}`, relationship && `Relationship: ${relationship}`]
+        .filter(Boolean).join('. ');
+
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: `You are an American English writing coach helping non-native speakers sound natural and professional. Given a draft message, rewrite it in 3 ways: Polished (clean and professional), Friendly (warm and approachable), and Confident (direct and assertive). For each, list 2-3 short bullet improvements. Return ONLY valid JSON, no markdown:
+{"fixes":[{"tone":"Polished","text":"...","improvements":["...","..."]},{"tone":"Friendly","text":"...","improvements":["...","..."]},{"tone":"Confident","text":"...","improvements":["...","..."]}]}`,
+        messages: [{
+          role: 'user',
+          content: `Draft: "${draft}"\n${ctx ? `\nContext: ${ctx}` : ''}\n\nRewrite in 3 tones.`,
+        }],
+      });
+
+      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const parsed = parseJson<{ fixes: { tone: string; text: string; improvements: string[] }[] }>(raw);
+      return NextResponse.json(parsed);
+    }
+
+    if (mode === 'ai-converse') {
+      const { persona, history, userMessage } = body;
+      if (!persona || !history || !userMessage) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+
+      const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'Learner'}: "${h.text}"`).join('\n');
+
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 128,
+        system: `You are roleplaying as a ${persona} in a realistic American English conversation. Respond naturally and briefly (under 25 words). Keep the conversation moving forward naturally. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
+        messages: [{
+          role: 'user',
+          content: `Conversation so far:\n${historyText}\nLearner: "${userMessage}"\n\nWhat does the ${persona} say next?`,
+        }],
+      });
+
+      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const parsed = parseJson<{ aiReply: string }>(raw);
       return NextResponse.json(parsed);
     }
 

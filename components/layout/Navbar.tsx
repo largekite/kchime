@@ -2,20 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart2, BookOpen, Briefcase, Dumbbell, Mic, MessageSquare } from 'lucide-react';
+import { BarChart2, BookOpen, Briefcase, Dumbbell, Gift, Mic, MessageSquare, Wand2, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/shared/AuthModal';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
+import { NotificationToggle } from '@/components/layout/NotificationPrompt';
 
 const tabs = [
   { href: '/', label: 'Quick Reply', Icon: MessageSquare },
+  { href: '/fix', label: 'Fix Message', Icon: Wand2 },
   { href: '/work', label: 'Work', Icon: Briefcase },
+  { href: '/converse', label: 'Converse', Icon: Users },
   { href: '/live', label: 'Live', Icon: Mic },
   { href: '/practice', label: 'Practice', Icon: Dumbbell },
   { href: '/library', label: 'Library', Icon: BookOpen },
   { href: '/dashboard', label: 'Dashboard', Icon: BarChart2 },
+  { href: '/refer', label: 'Refer', Icon: Gift },
 ];
 
 export function Navbar() {
@@ -64,7 +68,7 @@ export function Navbar() {
 
               {showMenu && user && (
                 <div
-                  className="absolute right-0 top-full mt-1 w-48 rounded-xl bg-white border border-gray-100 shadow-lg py-1 z-50"
+                  className="absolute right-0 top-full mt-1 w-52 rounded-xl bg-white border border-gray-100 shadow-lg py-1 z-50"
                   onBlur={() => setShowMenu(false)}
                 >
                   <p className="px-4 py-2 text-xs text-gray-400 truncate">{user.email}</p>
@@ -77,6 +81,7 @@ export function Navbar() {
                       Upgrade to Pro
                     </button>
                   )}
+                  <NotificationToggle />
                   <button
                     onClick={() => { setShowMenu(false); signOut(); }}
                     className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition"

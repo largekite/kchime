@@ -98,6 +98,41 @@ export async function generateScenario(conversation: string): Promise<{
   return res.json();
 }
 
+export interface MessageFix {
+  tone: string;
+  text: string;
+  improvements: string[];
+}
+
+export async function fixMessage(
+  draft: string,
+  messageType: string,
+  relationship: string,
+): Promise<MessageFix[]> {
+  const res = await post({ mode: 'fix-message', draft, messageType, relationship });
+  if (res.status === 429) {
+    const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 3);
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
+    throw new Error(err.error ?? `Request failed: ${res.status}`);
+  }
+  const data = await res.json() as { fixes: MessageFix[] };
+  return data.fixes;
+}
+
+export async function aiConverse(
+  persona: string,
+  history: { speaker: 'ai' | 'user'; text: string }[],
+  userMessage: string,
+): Promise<string> {
+  const res = await post({ mode: 'ai-converse', persona, history, userMessage });
+  if (!res.ok) throw new Error('Failed to get AI response');
+  const data = await res.json() as { aiReply: string };
+  return data.aiReply;
+}
+
 const STRATEGY_LABELS = ['A', 'B', 'C'];
 
 export async function fetchWorkReplies(message: string, preset: WorkplacePreset): Promise<WorkReplyResult> {
