@@ -3,6 +3,7 @@
 import { getApiKey, setApiKey, getDailyGoal, setDailyGoal, getAccent, setAccent } from '@/lib/storage';
 import type { AccentCode } from '@/types';
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const ACCENTS: { code: AccentCode; label: string; flag: string }[] = [
   { code: 'en-US', label: 'American', flag: '🇺🇸' },
@@ -17,12 +18,15 @@ interface Props {
 }
 
 export function SettingsModal({ open, onClose }: Props) {
+  const { session } = useAuth();
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [hasExistingKey, setHasExistingKey] = useState(false);
   const [goal, setGoal] = useState(3);
   const [goalSaved, setGoalSaved] = useState(false);
   const [accent, setAccentState] = useState<AccentCode>('en-US');
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
+  const [digestSaving, setDigestSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -34,6 +38,35 @@ export function SettingsModal({ open, onClose }: Props) {
       setAccentState(getAccent());
     }
   }, [open]);
+
+  // Load current digest preference when modal opens with a session
+  useEffect(() => {
+    if (!open || !session) return;
+    fetch('/api/email/preference', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then((r) => r.json())
+      .then((d: { weekly_digest?: boolean }) => setWeeklyDigest(d.weekly_digest ?? false))
+      .catch(() => {});
+  }, [open, session]);
+
+  async function handleDigestToggle(enabled: boolean) {
+    if (!session) return;
+    setDigestSaving(true);
+    setWeeklyDigest(enabled);
+    try {
+      await fetch('/api/email/preference', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ enabled }),
+      });
+    } finally {
+      setDigestSaving(false);
+    }
+  }
 
   function handleSave() {
     const trimmed = key.trim();
@@ -133,6 +166,36 @@ export function SettingsModal({ open, onClose }: Props) {
             {saved ? 'Saved!' : 'Save'}
           </button>
         </div>
+
+        {/* Weekly email digest — only shown when signed in */}
+        {session && (
+          <>
+            <hr className="border-gray-100" />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Weekly Recap Email</label>
+                  <p className="text-xs text-gray-400 mt-0.5">Get your streak, XP, and practice summary every Monday.</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={weeklyDigest}
+                  onClick={() => handleDigestToggle(!weeklyDigest)}
+                  disabled={digestSaving}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 ${
+                    weeklyDigest ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      weeklyDigest ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className="flex justify-end">
           <button
