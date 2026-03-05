@@ -1,6 +1,6 @@
 'use client';
 
-import { fetchReplies, explainPhrases } from '@/lib/claude';
+import { fetchRepliesStream, explainPhrases } from '@/lib/claude';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import type { Context, ConversationRound, Reply, SavedPhrase } from '@/types';
@@ -35,15 +35,16 @@ export default function LivePage() {
       if (!autoMode || !transcript.trim() || isProcessing) return;
       setIsProcessing(true);
       setLoading(true);
+      const roundId = `round-${Date.now()}`;
+      setRounds((prev) => [...prev, { id: roundId, transcript, replies: [] }]);
+      resetTranscript();
       try {
-        const replies = await fetchReplies(transcript, 'Any');
-        const round: ConversationRound = {
-          id: `round-${Date.now()}`,
-          transcript,
-          replies,
-        };
-        setRounds((prev) => [...prev, round]);
-        resetTranscript();
+        for await (const reply of fetchRepliesStream(transcript, 'Any')) {
+          setLoading(false);
+          setRounds((prev) =>
+            prev.map((r) => r.id === roundId ? { ...r, replies: [...r.replies, reply] } : r)
+          );
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error generating replies.');
       } finally {
@@ -57,7 +58,7 @@ export default function LivePage() {
   const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } =
     useSpeechRecognition({
       onSilence: handleSilence,
-      silenceMs: 2000,
+      silenceMs: 1200,
       continuous: true,
     });
 
@@ -70,10 +71,16 @@ export default function LivePage() {
     setIsProcessing(true);
     setLoading(true);
     const text = transcript;
+    const roundId = `round-${Date.now()}`;
+    setRounds((prev) => [...prev, { id: roundId, transcript: text, replies: [] }]);
+    resetTranscript();
     try {
-      const replies = await fetchReplies(text, 'Any');
-      setRounds((prev) => [...prev, { id: `round-${Date.now()}`, transcript: text, replies }]);
-      resetTranscript();
+      for await (const reply of fetchRepliesStream(text, 'Any')) {
+        setLoading(false);
+        setRounds((prev) =>
+          prev.map((r) => r.id === roundId ? { ...r, replies: [...r.replies, reply] } : r)
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error.');
     } finally {
@@ -146,7 +153,7 @@ export default function LivePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Live Listen</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Speak — get reply suggestions after 2 seconds of silence.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Speak — get reply suggestions after 1 second of silence.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -181,7 +188,7 @@ export default function LivePage() {
           Manual
         </button>
         <span className="text-xs text-gray-400 ml-auto">
-          {autoMode ? 'Replies after 2s silence' : 'Press Send when ready'}
+          {autoMode ? 'Replies after 1s silence' : 'Press Send when ready'}
         </span>
       </div>
 
