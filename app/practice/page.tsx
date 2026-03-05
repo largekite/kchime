@@ -20,6 +20,27 @@ export default function PracticePage() {
   const dailyPicks = getDailyPicks();
   const goalPercent = Math.min((todayCount / DAILY_GOAL) * 100, 100);
 
+  // "For You" — pick up to 3 undone scenarios from the weakest category
+  const forYouScenarios = (() => {
+    if (completedScenarios.length === 0) return [];
+    // Sort categories by ascending completion %
+    const ranked = allCategories
+      .map((cat) => {
+        const all = getScenariosByCategory(cat);
+        const done = all.filter((s) => completedScenarios.includes(s.id)).length;
+        return { cat, pct: done / all.length, scenarios: all };
+      })
+      .sort((a, b) => a.pct - b.pct);
+
+    // Take undone scenarios from the weakest category (skip fully done categories)
+    for (const { cat, pct, scenarios } of ranked) {
+      if (pct >= 1) continue; // skip complete categories
+      const undone = scenarios.filter((s) => !completedScenarios.includes(s.id));
+      if (undone.length > 0) return { cat, picks: undone.slice(0, 3) };
+    }
+    return null;
+  })();
+
   return (
     <div className="space-y-6">
       {/* Header stats */}
@@ -41,6 +62,37 @@ export default function PracticePage() {
           />
         </div>
       </div>
+
+      {/* For You — personalized weak-spot recommendations */}
+      {forYouScenarios && 'cat' in forYouScenarios && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-lg font-bold text-gray-900">For You</h2>
+            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+              {forYouScenarios.cat}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-3 -mt-2">Based on your lowest-completion category</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {forYouScenarios.picks.map((scenario) => {
+              const meta = categoryMeta[scenario.category];
+              return (
+                <Link
+                  key={scenario.id}
+                  href={`/practice/${scenario.id}`}
+                  className="relative rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 transition hover:shadow-md hover:border-indigo-300"
+                >
+                  <p className="mt-2 font-semibold text-gray-900 text-sm leading-snug">{scenario.title}</p>
+                  <span className={clsx('mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium', meta.color)}>
+                    {scenario.category}
+                  </span>
+                  <p className="mt-2 text-xs text-gray-500 line-clamp-2">{scenario.openingLine}</p>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Today's Picks */}
       <div>

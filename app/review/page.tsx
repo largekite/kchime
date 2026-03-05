@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { getDueForReview, updateSRS } from '@/lib/storage';
-import type { SavedPhrase, Tone } from '@/types';
+import { explainPhrases } from '@/lib/claude';
+import type { PhraseExplanation, SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
 import Link from 'next/link';
 
@@ -20,6 +21,10 @@ export default function ReviewPage() {
   const [done, setDone] = useState(false);
   const [stats, setStats] = useState({ remembered: 0, missed: 0 });
 
+  // Inline explanation state
+  const [explanations, setExplanations] = useState<PhraseExplanation[] | null>(null);
+  const [explaining, setExplaining] = useState(false);
+
   useEffect(() => {
     const due = getDueForReview();
     // Shuffle
@@ -36,11 +41,25 @@ export default function ReviewPage() {
       remembered: quality === 1 ? s.remembered + 1 : s.remembered,
       missed: quality === 0 ? s.missed + 1 : s.missed,
     }));
+    setExplanations(null);
     if (index + 1 >= queue.length) {
       setDone(true);
     } else {
       setIndex((i) => i + 1);
       setRevealed(false);
+    }
+  }
+
+  async function handleExplain() {
+    if (explanations || explaining) return;
+    setExplaining(true);
+    try {
+      const result = await explainPhrases(current.text);
+      setExplanations(result);
+    } catch {
+      setExplanations([]);
+    } finally {
+      setExplaining(false);
     }
   }
 
@@ -72,7 +91,6 @@ export default function ReviewPage() {
 
   if (!current) return null;
 
-  const nextReview = current.srs?.nextReview;
   const interval = current.srs?.interval;
 
   return (
@@ -100,18 +118,58 @@ export default function ReviewPage() {
         </div>
 
         {/* Response — hidden until revealed */}
-        <div className="p-6">
+        <div className="p-6 space-y-3">
           {revealed ? (
             <>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Your saved reply:</p>
-              <p className="text-base text-gray-900 font-semibold mb-3">{current.text}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Your saved reply:</p>
+              <p className="text-base text-gray-900 font-semibold">{current.text}</p>
               <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[current.tone])}>
                 {current.tone}
               </span>
               {interval && (
-                <p className="mt-3 text-xs text-gray-400">
+                <p className="text-xs text-gray-400">
                   Next review in {interval} day{interval !== 1 ? 's' : ''} if you got it right.
                 </p>
+              )}
+
+              {/* Why this works */}
+              {!explanations && (
+                <button
+                  onClick={handleExplain}
+                  disabled={explaining}
+                  className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition disabled:opacity-50"
+                >
+                  {explaining ? (
+                    <>
+                      <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Explaining…
+                    </>
+                  ) : (
+                    <>💡 Why does this work?</>
+                  )}
+                </button>
+              )}
+
+              {explanations && explanations.length > 0 && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Why it works</p>
+                  {explanations.map((exp, i) => (
+                    <div key={i}>
+                      <p className="text-sm font-semibold text-gray-800">&ldquo;{exp.phrase}&rdquo;</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{exp.meaning}</p>
+                      {exp.tip && (
+                        <p className="text-xs text-amber-700 mt-0.5 italic">Tip: {exp.tip}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {explanations && explanations.length === 0 && (
+                <p className="text-xs text-gray-400">No idioms or cultural phrases detected in this reply.</p>
               )}
             </>
           ) : (

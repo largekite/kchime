@@ -179,13 +179,17 @@ export default function DashboardPage() {
             return (
               <div
                 key={badge.id}
-                title={`${badge.name}: ${badge.description}`}
+                title={earned ? `${badge.name}: ${badge.description}` : `Locked — ${badge.description}`}
                 className={clsx(
-                  'flex flex-col items-center gap-1 rounded-xl p-2 text-center transition',
-                  earned ? 'bg-indigo-50' : 'opacity-30 grayscale'
+                  'flex flex-col items-center gap-1 rounded-xl p-2 text-center transition cursor-default',
+                  earned ? 'bg-indigo-50 ring-1 ring-indigo-100' : 'opacity-35 grayscale'
                 )}
               >
+                <span className="text-2xl leading-none" role="img" aria-label={badge.name}>{badge.emoji}</span>
                 <p className="text-[10px] font-medium text-gray-700 leading-tight">{badge.name}</p>
+                {earned && (
+                  <span className="text-[9px] text-indigo-500 font-semibold">+{badge.xpReward} XP</span>
+                )}
               </div>
             );
           })}

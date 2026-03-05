@@ -1,7 +1,15 @@
 'use client';
 
-import { getApiKey, setApiKey, getDailyGoal, setDailyGoal } from '@/lib/storage';
+import { getApiKey, setApiKey, getDailyGoal, setDailyGoal, getAccent, setAccent } from '@/lib/storage';
+import type { AccentCode } from '@/types';
 import { useEffect, useState } from 'react';
+
+const ACCENTS: { code: AccentCode; label: string; flag: string }[] = [
+  { code: 'en-US', label: 'American', flag: '🇺🇸' },
+  { code: 'en-GB', label: 'British', flag: '🇬🇧' },
+  { code: 'en-AU', label: 'Australian', flag: '🇦🇺' },
+  { code: 'en-IN', label: 'Indian', flag: '🇮🇳' },
+];
 
 interface Props {
   open: boolean;
@@ -14,6 +22,7 @@ export function SettingsModal({ open, onClose }: Props) {
   const [hasExistingKey, setHasExistingKey] = useState(false);
   const [goal, setGoal] = useState(3);
   const [goalSaved, setGoalSaved] = useState(false);
+  const [accent, setAccentState] = useState<AccentCode>('en-US');
 
   useEffect(() => {
     if (open) {
@@ -22,6 +31,7 @@ export function SettingsModal({ open, onClose }: Props) {
       setGoalSaved(false);
       setHasExistingKey(!!getApiKey());
       setGoal(getDailyGoal());
+      setAccentState(getAccent());
     }
   }, [open]);
 
@@ -37,6 +47,11 @@ export function SettingsModal({ open, onClose }: Props) {
     setDailyGoal(goal);
     setGoalSaved(true);
     setTimeout(() => setGoalSaved(false), 1500);
+  }
+
+  function handleAccentChange(code: AccentCode) {
+    setAccentState(code);
+    setAccent(code);
   }
 
   if (!open) return null;
@@ -67,6 +82,30 @@ export function SettingsModal({ open, onClose }: Props) {
           >
             {goalSaved ? 'Saved!' : 'Update goal'}
           </button>
+        </div>
+
+        <hr className="border-gray-100" />
+
+        {/* Accent */}
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700">Voice Accent</label>
+          <p className="text-xs text-gray-400">Sets the accent for text-to-speech playback.</p>
+          <div className="grid grid-cols-2 gap-2">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.code}
+                onClick={() => handleAccentChange(a.code)}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                  accent === a.code
+                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <span>{a.flag}</span>
+                <span>{a.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <hr className="border-gray-100" />
