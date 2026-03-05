@@ -109,10 +109,11 @@ export async function POST(req: NextRequest) {
       if (!isPro) {
         if (userId) {
           // Authenticated free user — enforce server-side
-          const blocked = await isRateLimited(userId, mode);
+          const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply';
+          const blocked = await isRateLimited(userId, rateLimitMode);
           if (blocked) {
             return NextResponse.json(
-              { error: 'limit_reached', limit: LIMITS[mode] },
+              { error: 'limit_reached', limit: LIMITS[rateLimitMode] },
               { status: 429 },
             );
           }

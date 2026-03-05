@@ -17,7 +17,7 @@ export function UpgradePrompt({ reason, onClose }: Props) {
   const [showAuth, setShowAuth] = useState(false);
 
   function handleUpgrade() {
-    if (!user || !session) {
+    if (!user) {
       setShowAuth(true);
       return;
     }
