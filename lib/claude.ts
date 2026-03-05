@@ -76,6 +76,28 @@ export async function explainPhrases(text: string): Promise<PhraseExplanation[]>
   return data.phrases;
 }
 
+export async function continueConversation(
+  scenarioContext: string,
+  history: { speaker: 'other' | 'user'; text: string }[],
+): Promise<string> {
+  const res = await post({ mode: 'continue-conversation', scenarioContext, history });
+  if (!res.ok) throw new Error('Failed to continue conversation');
+  const data = await res.json() as { followUp: string };
+  return data.followUp;
+}
+
+export async function generateScenario(conversation: string): Promise<{
+  title: string;
+  category: string;
+  openingLine: string;
+  context: string;
+  suggestedReplies: string[];
+}> {
+  const res = await post({ mode: 'generate-scenario', conversation });
+  if (!res.ok) throw new Error('Failed to generate scenario');
+  return res.json();
+}
+
 const STRATEGY_LABELS = ['A', 'B', 'C'];
 
 export async function fetchWorkReplies(message: string, preset: WorkplacePreset): Promise<WorkReplyResult> {

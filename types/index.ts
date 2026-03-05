@@ -15,6 +15,23 @@ export interface SavedPhrase {
   context: Context;
   prompt: string;
   savedAt: string; // ISO date string
+  srs?: {
+    nextReview: string; // ISO date YYYY-MM-DD
+    interval: number;   // days until next review
+    repetitions: number;
+    ease: number;       // SM-2 ease factor, starts at 2.5
+  };
+}
+
+export interface CustomScenario {
+  id: string;
+  title: string;
+  category: ScenarioCategory;
+  openingLine: string;
+  context: string;
+  suggestedReplies: string[];
+  createdAt: string;
+  isCustom: true;
 }
 
 export interface Scenario {

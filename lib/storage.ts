@@ -1,4 +1,4 @@
-import type { AccentCode, BadgeId, Progress, SavedPhrase } from '@/types';
+import type { AccentCode, BadgeId, CustomScenario, Progress, SavedPhrase } from '@/types';
 import { checkNewBadges, BADGE_MAP } from '@/lib/gamification';
 
 const KEYS = {
@@ -10,6 +10,7 @@ const KEYS = {
   ONBOARDED: 'kchime_onboarded',
   ONBOARD_LEVEL: 'kchime_onboard_level',
   ONBOARD_GOAL: 'kchime_onboard_goal',
+  CUSTOM_SCENARIOS: 'kchime_custom_scenarios',
 } as const;
 
 function getToday(): string {
@@ -220,6 +221,76 @@ export function getWorkReplyUsage(): WorkReplyUsage {
 export function incrementWorkReplyCount(): void {
   const usage = getWorkReplyUsage();
   localStorage.setItem(KEYS.WORK_REPLY_USAGE, JSON.stringify({ date: getToday(), count: usage.count + 1 }));
+}
+
+// --- Spaced Repetition (SM-2) ---
+
+/**
+ * Update a phrase's SRS schedule based on whether the user recalled it.
+ * quality: 1 = recalled, 0 = forgot
+ */
+export function updateSRS(phraseId: string, quality: 0 | 1): void {
+  const phrases = getSavedPhrases();
+  const idx = phrases.findIndex((p) => p.id === phraseId);
+  if (idx === -1) return;
+
+  const phrase = phrases[idx];
+  const srs = phrase.srs ?? { nextReview: getToday(), interval: 1, repetitions: 0, ease: 2.5 };
+
+  if (quality === 0) {
+    // Forgot: reset repetitions, review again tomorrow
+    srs.repetitions = 0;
+    srs.interval = 1;
+  } else {
+    // Recalled: advance schedule
+    if (srs.repetitions === 0) {
+      srs.interval = 1;
+    } else if (srs.repetitions === 1) {
+      srs.interval = 6;
+    } else {
+      srs.interval = Math.round(srs.interval * srs.ease);
+    }
+    srs.repetitions += 1;
+    srs.ease = Math.max(1.3, srs.ease + 0.1 - (1 - quality) * (0.08 + (1 - quality) * 0.02));
+  }
+
+  const next = new Date();
+  next.setDate(next.getDate() + srs.interval);
+  srs.nextReview = next.toISOString().split('T')[0];
+
+  phrases[idx] = { ...phrase, srs };
+  localStorage.setItem(KEYS.SAVED_PHRASES, JSON.stringify(phrases));
+}
+
+export function getDueForReview(): SavedPhrase[] {
+  const today = getToday();
+  return getSavedPhrases().filter((p) => {
+    if (!p.srs) return true; // never reviewed → always due
+    return p.srs.nextReview <= today;
+  });
+}
+
+// --- Custom Scenarios ---
+
+export function getCustomScenarios(): CustomScenario[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(KEYS.CUSTOM_SCENARIOS);
+    return raw ? (JSON.parse(raw) as CustomScenario[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomScenario(scenario: CustomScenario): void {
+  const list = getCustomScenarios();
+  list.unshift(scenario);
+  localStorage.setItem(KEYS.CUSTOM_SCENARIOS, JSON.stringify(list));
+}
+
+export function deleteCustomScenario(id: string): void {
+  const list = getCustomScenarios().filter((s) => s.id !== id);
+  localStorage.setItem(KEYS.CUSTOM_SCENARIOS, JSON.stringify(list));
 }
 
 // --- Accent ---

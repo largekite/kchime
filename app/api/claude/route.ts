@@ -78,7 +78,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply';
+      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -86,6 +86,9 @@ export async function POST(req: NextRequest) {
       text?: string;
       message?: string;
       preset?: string;
+      scenarioContext?: string;
+      history?: { speaker: 'other' | 'user'; text: string }[];
+      conversation?: string;
     };
 
     const { mode } = body;
@@ -215,6 +218,57 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const parsed = parseJson<{
         variations: { strategy: string; text: string; risk: string; powerPosition: string; assertiveness: number; warmth: number }[];
         bestChoiceIndex: number;
+      }>(raw);
+      return NextResponse.json(parsed);
+    }
+
+    if (mode === 'continue-conversation') {
+      const { scenarioContext, history } = body;
+      if (!scenarioContext || !history) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+
+      const historyText = history.map((h) => `${h.speaker === 'other' ? 'Other person' : 'Learner'}: "${h.text}"`).join('\n');
+
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 256,
+        system: `You are simulating a natural American English conversation partner. Given the conversation history, generate a short, realistic follow-up line that the OTHER person would naturally say next. Keep it under 20 words, casual and authentic. Return ONLY valid JSON: {"followUp":"..."}. No markdown.`,
+        messages: [
+          {
+            role: 'user',
+            content: `Scenario: ${scenarioContext}\n\nConversation so far:\n${historyText}\n\nWhat does the other person say next?`,
+          },
+        ],
+      });
+
+      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const parsed = parseJson<{ followUp: string }>(raw);
+      return NextResponse.json(parsed);
+    }
+
+    if (mode === 'generate-scenario') {
+      const { conversation } = body;
+      if (!conversation) return NextResponse.json({ error: 'Missing conversation' }, { status: 400 });
+
+      const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 512,
+        system: `You are creating English conversation practice scenarios. Given a real conversation snippet, extract the key conversational moment and create a practice scenario. Return ONLY valid JSON with NO markdown:
+{"title":"short title under 6 words","category":"one of: Small Talk|Weekend Plans|Workplace Banter|Sports Talk|American Humor|Holiday Greetings|Food & Dining|Social Events|Compliments","openingLine":"the first thing the other person said, as a single sentence","context":"brief description of the situation, 1 sentence","suggestedReplies":["4 natural reply options, each under 20 words"]}`,
+        messages: [
+          {
+            role: 'user',
+            content: `Create a practice scenario from this conversation:\n\n"${conversation}"`,
+          },
+        ],
+      });
+
+      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const parsed = parseJson<{
+        title: string;
+        category: string;
+        openingLine: string;
+        context: string;
+        suggestedReplies: string[];
       }>(raw);
       return NextResponse.json(parsed);
     }

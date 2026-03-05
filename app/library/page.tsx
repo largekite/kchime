@@ -4,7 +4,9 @@ import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
 import type { SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getDueForReview } from '@/lib/storage';
+import Link from 'next/link';
 
 const TONE_STYLES: Record<Tone, string> = {
   Casual: 'bg-indigo-100 text-indigo-700',
@@ -19,6 +21,11 @@ export default function LibraryPage() {
   const [filterTone, setFilterTone] = useState<Tone | 'All'>('All');
   const [sharePhrase, setSharePhrase] = useState<SavedPhrase | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [dueCount, setDueCount] = useState(0);
+
+  useEffect(() => {
+    setDueCount(getDueForReview().length);
+  }, [phrases]);
 
   const tones: (Tone | 'All')[] = ['All', 'Casual', 'Funny', 'Warm', 'Safe'];
 
@@ -45,9 +52,20 @@ export default function LibraryPage() {
     <>
       <div className="space-y-5">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Saved Phrases</h1>
-          <p className="text-sm text-gray-500 mt-1">{phrases.length} phrase{phrases.length !== 1 ? 's' : ''} saved</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Saved Phrases</h1>
+            <p className="text-sm text-gray-500 mt-1">{phrases.length} phrase{phrases.length !== 1 ? 's' : ''} saved</p>
+          </div>
+          {dueCount > 0 && (
+            <Link
+              href="/review"
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            >
+              Review
+              <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
+            </Link>
+          )}
         </div>
 
         {/* Filters */}
