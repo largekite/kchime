@@ -27,6 +27,7 @@ export function SettingsModal({ open, onClose }: Props) {
   const [accent, setAccentState] = useState<AccentCode>('en-US');
   const [weeklyDigest, setWeeklyDigest] = useState(false);
   const [digestSaving, setDigestSaving] = useState(false);
+  const [digestConfirmed, setDigestConfirmed] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -54,6 +55,7 @@ export function SettingsModal({ open, onClose }: Props) {
     if (!session) return;
     setDigestSaving(true);
     setWeeklyDigest(enabled);
+    setDigestConfirmed(false);
     try {
       await fetch('/api/email/preference', {
         method: 'POST',
@@ -63,6 +65,8 @@ export function SettingsModal({ open, onClose }: Props) {
         },
         body: JSON.stringify({ enabled }),
       });
+      setDigestConfirmed(true);
+      setTimeout(() => setDigestConfirmed(false), 2000);
     } finally {
       setDigestSaving(false);
     }
@@ -172,27 +176,39 @@ export function SettingsModal({ open, onClose }: Props) {
           <>
             <hr className="border-gray-100" />
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
                   <label className="text-sm font-semibold text-gray-700">Weekly Recap Email</label>
-                  <p className="text-xs text-gray-400 mt-0.5">Get your streak, XP, and practice summary every Monday.</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Streak, XP &amp; practice summary every Monday.</p>
+                  <p className="text-xs text-gray-400 truncate">{session.user?.email}</p>
                 </div>
                 <button
                   role="switch"
                   aria-checked={weeklyDigest}
                   onClick={() => handleDigestToggle(!weeklyDigest)}
                   disabled={digestSaving}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 ${
+                  className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 ${
                     weeklyDigest ? 'bg-indigo-600' : 'bg-gray-200'
                   }`}
                 >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      weeklyDigest ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
+                  {digestSaving ? (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                        weeklyDigest ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  )}
                 </button>
               </div>
+              {digestConfirmed && (
+                <p className="text-xs font-medium text-indigo-600">
+                  {weeklyDigest ? 'Subscribed — first email arrives Monday.' : 'Unsubscribed.'}
+                </p>
+              )}
             </div>
           </>
         )}
