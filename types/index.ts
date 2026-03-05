@@ -23,6 +23,12 @@ export interface SavedPhrase {
   };
 }
 
+export interface Collection {
+  id: string;
+  name: string;
+  phraseIds: string[];
+}
+
 export interface CustomScenario {
   id: string;
   title: string;

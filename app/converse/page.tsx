@@ -1,6 +1,6 @@
 'use client';
 
-import { aiConverse } from '@/lib/claude';
+import { aiConverse, converseDebrief } from '@/lib/claude';
 import { speakText } from '@/lib/speech';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useAuth } from '@/context/AuthContext';
@@ -31,6 +31,12 @@ interface Turn {
   text: string;
 }
 
+interface Debrief {
+  highlight: string;
+  tip: string;
+  fluency: 'Excellent' | 'Good' | 'Keep practicing';
+}
+
 export default function ConversePage() {
   const { plan, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -39,6 +45,8 @@ export default function ConversePage() {
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [debrief, setDebrief] = useState<Debrief | null>(null);
+  const [isDebriefing, setIsDebriefing] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const handleUserSpeech = useCallback(
@@ -84,8 +92,8 @@ export default function ConversePage() {
     setSelectedPersona(persona);
     setHistory([{ speaker: 'ai', text: persona.opener }]);
     setError('');
+    setDebrief(null);
     reset();
-    // Speak the opener
     setIsAiSpeaking(true);
     speakText(persona.opener, () => setIsAiSpeaking(false));
   }
@@ -96,6 +104,7 @@ export default function ConversePage() {
     setSelectedPersona(null);
     setHistory([]);
     setError('');
+    setDebrief(null);
     reset();
     setIsAiSpeaking(false);
   }
@@ -108,6 +117,37 @@ export default function ConversePage() {
       start();
     }
   }
+
+  async function handleFinishSession() {
+    stop();
+    window.speechSynthesis.cancel();
+    setIsAiSpeaking(false);
+    setIsDebriefing(true);
+    try {
+      const result = await converseDebrief(
+        selectedPersona!.name,
+        history.map((t) => ({ speaker: t.speaker, text: t.text })),
+      );
+      setDebrief(result);
+    } catch {
+      // Show debrief without AI feedback on error
+      setDebrief({ highlight: 'Great effort!', tip: 'Keep practicing to build fluency.', fluency: 'Good' });
+    } finally {
+      setIsDebriefing(false);
+    }
+  }
+
+  // Count user turns only
+  const userTurns = history.filter((t) => t.speaker === 'user').length;
+  const userWords = history
+    .filter((t) => t.speaker === 'user')
+    .reduce((acc, t) => acc + t.text.trim().split(/\s+/).length, 0);
+
+  const fluencyColor: Record<string, string> = {
+    'Excellent': 'text-emerald-600',
+    'Good': 'text-indigo-600',
+    'Keep practicing': 'text-amber-600',
+  };
 
   // Pro gate
   if (!authLoading && plan !== 'pro') {
@@ -174,8 +214,42 @@ export default function ConversePage() {
         </div>
       )}
 
+      {/* Session debrief */}
+      {debrief && selectedPersona && (
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{selectedPersona.emoji}</span>
+            <div>
+              <p className="font-bold text-gray-900">Session Complete</p>
+              <p className="text-sm text-gray-400">{userTurns} exchange{userTurns !== 1 ? 's' : ''} · {userWords} words spoken</p>
+            </div>
+            <span className={clsx('ml-auto text-sm font-bold', fluencyColor[debrief.fluency] ?? 'text-gray-600')}>
+              {debrief.fluency}
+            </span>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+              <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1">What you did well</p>
+              <p className="text-sm text-gray-800">{debrief.highlight}</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">Try next time</p>
+              <p className="text-sm text-gray-800">{debrief.tip}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleReset}
+            className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          >
+            Start new conversation
+          </button>
+        </div>
+      )}
+
       {/* Conversation */}
-      {selectedPersona && (
+      {selectedPersona && !debrief && (
         <>
           {!isSupported && (
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
@@ -243,8 +317,8 @@ export default function ConversePage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Mic button */}
-          <div className="sticky bottom-6 flex flex-col items-center gap-2 pt-2">
+          {/* Mic button + Finish session */}
+          <div className="sticky bottom-6 flex flex-col items-center gap-3 pt-2">
             <button
               onClick={handleToggleMic}
               disabled={!isSupported || isProcessing || isAiSpeaking}
@@ -265,6 +339,17 @@ export default function ConversePage() {
             <p className="text-xs text-gray-400">
               {isAiSpeaking ? `${selectedPersona.name} is speaking…` : isListening ? 'Listening…' : 'Tap to speak'}
             </p>
+
+            {/* Finish session — shown after at least 2 user turns */}
+            {userTurns >= 2 && !isProcessing && !isAiSpeaking && (
+              <button
+                onClick={handleFinishSession}
+                disabled={isDebriefing}
+                className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
+              >
+                {isDebriefing ? 'Getting feedback…' : 'Finish session →'}
+              </button>
+            )}
           </div>
         </>
       )}

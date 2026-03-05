@@ -1,4 +1,4 @@
-import type { AccentCode, BadgeId, CustomScenario, Progress, SavedPhrase } from '@/types';
+import type { AccentCode, BadgeId, Collection, CustomScenario, Progress, SavedPhrase } from '@/types';
 import { checkNewBadges, BADGE_MAP } from '@/lib/gamification';
 
 const KEYS = {
@@ -11,6 +11,7 @@ const KEYS = {
   ONBOARD_LEVEL: 'kchime_onboard_level',
   ONBOARD_GOAL: 'kchime_onboard_goal',
   CUSTOM_SCENARIOS: 'kchime_custom_scenarios',
+  COLLECTIONS: 'kchime_collections',
 } as const;
 
 function getToday(): string {
@@ -325,6 +326,46 @@ export function saveCustomScenario(scenario: CustomScenario): void {
 export function deleteCustomScenario(id: string): void {
   const list = getCustomScenarios().filter((s) => s.id !== id);
   localStorage.setItem(KEYS.CUSTOM_SCENARIOS, JSON.stringify(list));
+}
+
+// --- Collections ---
+
+export function getCollections(): Collection[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(KEYS.COLLECTIONS);
+    return raw ? (JSON.parse(raw) as Collection[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCollections(collections: Collection[]): void {
+  localStorage.setItem(KEYS.COLLECTIONS, JSON.stringify(collections));
+}
+
+export function createCollection(name: string): Collection {
+  const collections = getCollections();
+  const col: Collection = { id: `col-${Date.now()}`, name: name.trim(), phraseIds: [] };
+  collections.push(col);
+  saveCollections(collections);
+  return col;
+}
+
+export function deleteCollection(id: string): void {
+  saveCollections(getCollections().filter((c) => c.id !== id));
+}
+
+export function togglePhraseInCollection(collectionId: string, phraseId: string): void {
+  const collections = getCollections();
+  const col = collections.find((c) => c.id === collectionId);
+  if (!col) return;
+  if (col.phraseIds.includes(phraseId)) {
+    col.phraseIds = col.phraseIds.filter((id) => id !== phraseId);
+  } else {
+    col.phraseIds.push(phraseId);
+  }
+  saveCollections(collections);
 }
 
 // --- Accent ---

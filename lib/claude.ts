@@ -122,6 +122,15 @@ export async function fixMessage(
   return data.fixes;
 }
 
+export async function converseDebrief(
+  persona: string,
+  history: { speaker: 'ai' | 'user'; text: string }[],
+): Promise<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }> {
+  const res = await post({ mode: 'converse-debrief', persona, history });
+  if (!res.ok) throw new Error('Failed to get debrief');
+  return res.json();
+}
+
 export async function aiConverse(
   persona: string,
   history: { speaker: 'ai' | 'user'; text: string }[],

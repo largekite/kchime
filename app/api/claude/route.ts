@@ -82,7 +82,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse';
+      mode: 'replies' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -323,6 +323,28 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
 
       const raw = message.content[0].type === 'text' ? message.content[0].text : '';
       const parsed = parseJson<{ aiReply: string }>(raw);
+      return NextResponse.json(parsed);
+    }
+
+    if (mode === 'converse-debrief') {
+      const { persona, history } = body;
+      if (!persona || !history) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+
+      const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'You'}: "${h.text}"`).join('\n');
+
+      const message = await getAnthropic().messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 256,
+        system: `You are a supportive American English coach. Review this conversation practice session and give brief, encouraging feedback. Return ONLY valid JSON, no markdown:
+{"highlight":"one specific thing they did well, max 20 words","tip":"one concrete improvement tip, max 20 words","fluency":"Excellent"|"Good"|"Keep practicing"}`,
+        messages: [{
+          role: 'user',
+          content: `Persona: ${persona}\n\nConversation:\n${historyText}\n\nGive encouraging feedback on this practice session.`,
+        }],
+      });
+
+      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const parsed = parseJson<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }>(raw);
       return NextResponse.json(parsed);
     }
 
