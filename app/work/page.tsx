@@ -1,10 +1,11 @@
 'use client';
 
 import { WorkReplyCard } from '@/components/work-reply/WorkReplyCard';
-import { fetchWorkReplies } from '@/lib/claude';
+import { fetchWorkReplies, LimitReachedError } from '@/lib/claude';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
 import { useState } from 'react';
+import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
 const PRESETS: WorkplacePreset[] = [
   'Reply to Manager',
@@ -39,6 +40,7 @@ export default function WorkPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<WorkReplyResult | null>(null);
   const [error, setError] = useState('');
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   async function handleAnalyze() {
     if (!preset) {
@@ -59,7 +61,11 @@ export default function WorkPage() {
       setResult(data);
       incrementWorkReplyCount();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+      if (err instanceof LimitReachedError) {
+        setShowUpgrade(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -144,6 +150,13 @@ export default function WorkPage() {
             </>
           ) : null}
         </div>
+      )}
+
+      {showUpgrade && (
+        <UpgradePrompt
+          reason="You've used your 2 free Work Replies for today. Upgrade for unlimited access."
+          onClose={() => setShowUpgrade(false)}
+        />
       )}
     </div>
   );

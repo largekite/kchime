@@ -7,6 +7,8 @@ import type { Context, ConversationRound, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
+import { useAuth } from '@/context/AuthContext';
+import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
 const TONE_COLORS: Record<string, string> = {
   Casual: 'text-indigo-700',
@@ -16,6 +18,8 @@ const TONE_COLORS: Record<string, string> = {
 };
 
 export default function LivePage() {
+  const { plan, loading: authLoading } = useAuth();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [rounds, setRounds] = useState<ConversationRound[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -112,6 +116,28 @@ export default function LivePage() {
     resetTranscript();
     setError('');
     setShowExplain(false);
+  }
+
+  // Pro gate — show upgrade wall if not Pro and auth is resolved
+  if (!authLoading && plan !== 'pro') {
+    return (
+      <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
+        <p className="font-semibold text-gray-700 text-lg">Live Listen is a Pro feature</p>
+        <p className="text-sm text-gray-400">Upgrade to get real-time reply suggestions while you listen.</p>
+        <button
+          onClick={() => setShowUpgrade(true)}
+          className="mx-auto block rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+        >
+          Upgrade to Pro — $7/mo
+        </button>
+        {showUpgrade && (
+          <UpgradePrompt
+            reason="Live Listen is available on Pro."
+            onClose={() => setShowUpgrade(false)}
+          />
+        )}
+      </div>
+    );
   }
 
   return (

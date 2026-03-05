@@ -1,13 +1,14 @@
 'use client';
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
-import { fetchReplies } from '@/lib/claude';
+import { fetchReplies, LimitReachedError } from '@/lib/claude';
 import { useProgress } from '@/hooks/useProgress';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import type { Context, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
+import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
 const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
 
@@ -18,6 +19,7 @@ export default function QuickReplyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentPrompt, setCurrentPrompt] = useState('');
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
@@ -42,7 +44,11 @@ export default function QuickReplyPage() {
       setReplies(result);
       addPrompt(text);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      if (e instanceof LimitReachedError) {
+        setShowUpgrade(true);
+      } else {
+        setError(e instanceof Error ? e.message : 'Something went wrong.');
+      }
     } finally {
       setLoading(false);
     }
@@ -204,6 +210,13 @@ export default function QuickReplyPage() {
           <p className="font-semibold text-gray-700">What did someone say?</p>
           <p className="text-sm text-gray-400 mt-1">Type or speak a phrase and get 4 natural ways to reply.</p>
         </div>
+      )}
+
+      {showUpgrade && (
+        <UpgradePrompt
+          reason="You've used your 5 free Quick Replies for today. Upgrade for unlimited access."
+          onClose={() => setShowUpgrade(false)}
+        />
       )}
     </div>
   );
