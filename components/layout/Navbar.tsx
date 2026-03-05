@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart2, BookOpen, Briefcase, Dumbbell, Gift, Mic, MessageSquare, Wand2, Users } from 'lucide-react';
+import { BarChart2, BookOpen, Briefcase, Dumbbell, Gift, Mic, MessageSquare, RefreshCw, Wand2, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -16,8 +16,9 @@ const tabs = [
   { href: '/work', label: 'Work', Icon: Briefcase },
   { href: '/converse', label: 'Converse', Icon: Users },
   { href: '/live', label: 'Live', Icon: Mic },
-  { href: '/practice', label: 'Practice', Icon: Dumbbell },
+  { href: '/practice', label: 'Practice', Icon: Dumbbell, alsoActive: ['/custom'] },
   { href: '/library', label: 'Library', Icon: BookOpen },
+  { href: '/review', label: 'Review', Icon: RefreshCw },
   { href: '/dashboard', label: 'Dashboard', Icon: BarChart2 },
   { href: '/refer', label: 'Refer', Icon: Gift },
 ];
@@ -97,10 +98,10 @@ export function Navbar() {
         {/* Tab nav */}
         <nav className="mx-auto max-w-4xl overflow-x-auto px-4">
           <div className="flex gap-1 pb-0">
-            {tabs.map(({ href, label, Icon }) => {
+            {tabs.map(({ href, label, Icon, alsoActive }) => {
               const active = href === '/'
                 ? pathname === '/'
-                : pathname.startsWith(href);
+                : pathname.startsWith(href) || (alsoActive?.some((p) => pathname.startsWith(p)) ?? false);
               return (
                 <Link
                   key={href}
