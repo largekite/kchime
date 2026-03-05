@@ -8,12 +8,16 @@ const LIMITS = {
   'work-reply': 2,
 } as const;
 
+export const dynamic = 'force-dynamic';
+
 function parseJson<T>(raw: string): T {
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   return JSON.parse(cleaned) as T;
 }
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getAnthropic() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 /** Returns { isPro, userId } from the Bearer token if present. */
 async function getSubscription(req: NextRequest): Promise<{ isPro: boolean; userId: string | null }> {
@@ -135,7 +139,7 @@ export async function POST(req: NextRequest) {
         ? `Context: ${context} setting.`
         : 'Context: general/any setting.';
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must be under 20 words, use contractions, and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown, no extra text.`,
@@ -156,7 +160,7 @@ export async function POST(req: NextRequest) {
       const { openingLine, userReply } = body;
       if (!openingLine || !userReply) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 256,
         system: `You are a warm, encouraging American English coach. Evaluate if a reply sounds natural in a casual American English conversation. Return ONLY valid JSON: {"natural":true/false,"feedback":"1-2 sentence warm feedback","suggestion":"optional better phrasing if not natural"}. No markdown.`,
@@ -177,7 +181,7 @@ export async function POST(req: NextRequest) {
       const { text } = body;
       if (!text) return NextResponse.json({ error: 'Missing text' }, { status: 400 });
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: `You are an American English coach. Extract idioms, slang, and cultural references from the text. Return ONLY valid JSON: {"phrases":[{"phrase":"...","meaning":"simple meaning under 15 words","tip":"optional short usage tip"}]}. If no special phrases, return {"phrases":[]}. No markdown.`,
@@ -198,7 +202,7 @@ export async function POST(req: NextRequest) {
       const { message, preset } = body;
       if (!message || !preset) return NextResponse.json({ error: 'Missing message or preset' }, { status: 400 });
 
-      const response = await anthropic.messages.create({
+      const response = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: `You are an expert workplace communication strategist. Given a workplace message and the context of how to reply, generate exactly 3 strategic reply variations: one safe/diplomatic, one balanced/direct, one bold/assertive. Each reply should be professional and appropriate for the workplace. Return ONLY valid JSON with this exact shape, no markdown:
@@ -233,7 +237,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
 
       const historyText = history.map((h) => `${h.speaker === 'other' ? 'Other person' : 'Learner'}: "${h.text}"`).join('\n');
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 256,
         system: `You are simulating a natural American English conversation partner. Given the conversation history, generate a short, realistic follow-up line that the OTHER person would naturally say next. Keep it under 20 words, casual and authentic. Return ONLY valid JSON: {"followUp":"..."}. No markdown.`,
@@ -254,7 +258,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const { conversation } = body;
       if (!conversation) return NextResponse.json({ error: 'Missing conversation' }, { status: 400 });
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: `You are creating English conversation practice scenarios. Given a real conversation snippet, extract the key conversational moment and create a practice scenario. Return ONLY valid JSON with NO markdown:
@@ -285,7 +289,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const ctx = [messageType && `Message type: ${messageType}`, relationship && `Relationship: ${relationship}`]
         .filter(Boolean).join('. ');
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: `You are an American English writing coach helping non-native speakers sound natural and professional. Given a draft message, rewrite it in 3 ways: Polished (clean and professional), Friendly (warm and approachable), and Confident (direct and assertive). For each, list 2-3 short bullet improvements. Return ONLY valid JSON, no markdown:
@@ -307,7 +311,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
 
       const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'Learner'}: "${h.text}"`).join('\n');
 
-      const message = await anthropic.messages.create({
+      const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 128,
         system: `You are roleplaying as a ${persona} in a realistic American English conversation. Respond naturally and briefly (under 25 words). Keep the conversation moving forward naturally. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,

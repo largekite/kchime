@@ -82,6 +82,7 @@ export interface Badge {
   name: string;
   description: string;
   xpReward: number;
+  emoji: string;
 }
 
 export interface Progress {

@@ -2,9 +2,10 @@ import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const body = await req.text();
   const sig = req.headers.get('stripe-signature');
   if (!sig) return NextResponse.json({ error: 'No signature' }, { status: 400 });
@@ -44,12 +45,12 @@ export async function POST(req: NextRequest) {
 
   switch (event.type) {
     case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.CheckoutSession;
+      const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode !== 'subscription') break;
-      const userId = session.subscription_data?.metadata?.supabase_user_id
+      const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+      const userId = sub.metadata?.supabase_user_id
         ?? (await getSupabaseUserId(session.customer as string));
       if (!userId) break;
-      const sub = await stripe.subscriptions.retrieve(session.subscription as string);
       await upsertSubscription(userId, sub, 'pro');
       break;
     }
