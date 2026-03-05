@@ -13,6 +13,7 @@ interface AuthContextValue {
   plan: Plan;
   loading: boolean;
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshPlan: () => Promise<void>;
 }
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextValue>({
   plan: 'free',
   loading: true,
   signInWithEmail: async () => ({ error: null }),
+  signInWithGoogle: async () => ({ error: null }),
   signOut: async () => {},
   refreshPlan: async () => {},
 });
@@ -120,6 +122,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }, [supabase]);
 
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    return { error: error?.message ?? null };
+  }, [supabase]);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, [supabase]);
@@ -129,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchPlan]);
 
   return (
-    <AuthContext.Provider value={{ user, session, plan, loading, signInWithEmail, signOut, refreshPlan }}>
+    <AuthContext.Provider value={{ user, session, plan, loading, signInWithEmail, signInWithGoogle, signOut, refreshPlan }}>
       {children}
     </AuthContext.Provider>
   );
