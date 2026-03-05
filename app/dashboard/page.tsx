@@ -7,9 +7,59 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import clsx from 'clsx';
-import type { ScenarioCategory } from '@/types';
+import type { DailyProgress, ScenarioCategory } from '@/types';
 import { useRef, useCallback } from 'react';
-import { getDailyGoal } from '@/lib/storage';
+import { getDailyGoal, getStreakFreezes } from '@/lib/storage';
+
+function ActivityHeatmap({ daily }: { daily: DailyProgress[] }) {
+  // Build a map of date → count for the last 30 days
+  const map = new Map(daily.map((d) => [d.date, d.scenariosCompleted]));
+
+  const days: { date: string; count: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    days.push({ date: key, count: map.get(key) ?? 0 });
+  }
+
+  function cellColor(count: number) {
+    if (count === 0) return 'bg-gray-100';
+    if (count <= 1) return 'bg-indigo-200';
+    if (count <= 3) return 'bg-indigo-400';
+    return 'bg-indigo-600';
+  }
+
+  function shortDate(iso: string) {
+    const d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  return (
+    <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-bold text-gray-900">30-Day Activity</h2>
+        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          <span>Less</span>
+          <span className="h-3 w-3 rounded-sm bg-gray-100" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-200" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-400" />
+          <span className="h-3 w-3 rounded-sm bg-indigo-600" />
+          <span>More</span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {days.map(({ date, count }) => (
+          <div
+            key={date}
+            title={`${shortDate(date)}: ${count} scenario${count !== 1 ? 's' : ''}`}
+            className={clsx('h-6 w-6 rounded-md transition-colors', cellColor(count))}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function getLast7Days() {
   const days = [];
@@ -46,6 +96,7 @@ export default function DashboardPage() {
   }
 
   const DAILY_GOAL = getDailyGoal();
+  const streakFreezes = getStreakFreezes();
 
   const handleShare = useCallback(async () => {
     try {
@@ -103,6 +154,11 @@ export default function DashboardPage() {
         <div className="rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 p-4 text-white shadow-sm">
           <p className="text-3xl font-bold">{streak}</p>
           <p className="text-sm text-orange-100 mt-0.5">Day Streak</p>
+          {streakFreezes > 0 && (
+            <p className="text-xs text-orange-200 mt-1" title="Streak freezes protect your streak on missed days">
+              {streakFreezes} freeze{streakFreezes !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
         <div className="rounded-2xl bg-white border border-gray-100 p-4 shadow-sm">
           <p className="text-3xl font-bold text-gray-900">{totalCompleted}</p>
@@ -155,6 +211,9 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* 30-day heatmap */}
+      <ActivityHeatmap daily={progress?.daily ?? []} />
 
       {/* Overall progress */}
       <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">

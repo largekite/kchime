@@ -46,6 +46,10 @@ export function getDailyGoal(): number {
   return parseInt(localStorage.getItem(KEYS.ONBOARD_GOAL) ?? '3', 10);
 }
 
+export function setDailyGoal(goal: number): void {
+  localStorage.setItem(KEYS.ONBOARD_GOAL, String(goal));
+}
+
 // --- Progress ---
 
 const DEFAULT_PROGRESS: Progress = {
@@ -57,6 +61,7 @@ const DEFAULT_PROGRESS: Progress = {
   xp: 0,
   earnedBadges: [],
   naturalReplies: 0,
+  streakFreezes: 0,
 };
 
 export function getProgress(): Progress {
@@ -103,13 +108,38 @@ export function markScenarioComplete(scenarioId: string): { progress: Progress; 
   const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   if (progress.lastActiveDate === today) {
-    // already active today
+    // already active today — no change
   } else if (progress.lastActiveDate === yesterdayStr) {
+    // consecutive day
     progress.streak += 1;
+    progress.frozeStreak = false;
+  } else if (progress.lastActiveDate) {
+    // missed at least one day — check for freeze
+    const freezes = progress.streakFreezes ?? 0;
+    if (freezes > 0 && progress.streak > 0) {
+      progress.streakFreezes = freezes - 1;
+      progress.frozeStreak = true;
+      // streak continues — don't increment (we're resuming after a gap)
+    } else {
+      progress.streak = 1;
+      progress.frozeStreak = false;
+    }
   } else {
     progress.streak = 1;
+    progress.frozeStreak = false;
   }
   progress.lastActiveDate = today;
+
+  // Award a freeze token at every 7-day streak milestone (max 3 held)
+  const prevStreakBeforeUpdate = progress.streak - 1;
+  if (
+    progress.streak > 0 &&
+    progress.streak % 7 === 0 &&
+    prevStreakBeforeUpdate % 7 !== 0 &&
+    (progress.streakFreezes ?? 0) < 3
+  ) {
+    progress.streakFreezes = (progress.streakFreezes ?? 0) + 1;
+  }
 
   // Check badges
   const savedPhrasesCount = getSavedPhrases().length;
@@ -153,6 +183,10 @@ export function addRecentPrompt(prompt: string): void {
     ...progress.recentPrompts.filter((p) => p !== prompt),
   ].slice(0, 5);
   saveProgress(progress);
+}
+
+export function getStreakFreezes(): number {
+  return getProgress().streakFreezes ?? 0;
 }
 
 export function getTodayScenarioCount(): number {

@@ -94,6 +94,8 @@ export interface Progress {
   xp: number;
   earnedBadges: BadgeId[];
   naturalReplies: number; // count of natural feedback ratings
+  streakFreezes: number; // available streak freeze tokens
+  frozeStreak?: boolean; // true if the current streak was saved by a freeze today
 }
 
 export interface ConversationRound {

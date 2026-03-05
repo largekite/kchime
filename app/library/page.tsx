@@ -15,6 +15,14 @@ const TONE_STYLES: Record<Tone, string> = {
   Safe: 'bg-emerald-100 text-emerald-700',
 };
 
+function SrsChip({ srs }: { srs?: SavedPhrase['srs'] }) {
+  const reps = srs?.repetitions ?? 0;
+  if (reps === 0) return <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">New</span>;
+  if (reps <= 2) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Learning</span>;
+  if (reps <= 5) return <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Mature</span>;
+  return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Expert</span>;
+}
+
 export default function LibraryPage() {
   const { phrases, remove } = useSavedPhrases();
   const [search, setSearch] = useState('');
@@ -38,6 +46,30 @@ export default function LibraryPage() {
     return matchTone && matchSearch;
   });
 
+  function handleExportCsv() {
+    const header = 'Text,Tone,Context,Prompt,Saved,Next Review,Repetitions';
+    const rows = phrases.map((p) => {
+      const cols = [
+        p.text,
+        p.tone,
+        p.context,
+        p.prompt,
+        p.savedAt.split('T')[0],
+        p.srs?.nextReview ?? '',
+        String(p.srs?.repetitions ?? 0),
+      ].map((c) => `"${c.replace(/"/g, '""')}"`);
+      return cols.join(',');
+    });
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kchime-phrases.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleCopy(phrase: SavedPhrase) {
     await navigator.clipboard.writeText(phrase.text);
     setCopied(phrase.id);
@@ -57,15 +89,26 @@ export default function LibraryPage() {
             <h1 className="text-2xl font-bold text-gray-900">Saved Phrases</h1>
             <p className="text-sm text-gray-500 mt-1">{phrases.length} phrase{phrases.length !== 1 ? 's' : ''} saved</p>
           </div>
-          {dueCount > 0 && (
-            <Link
-              href="/review"
-              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
-            >
-              Review
-              <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {phrases.length > 0 && (
+              <button
+                onClick={handleExportCsv}
+                title="Export phrases as CSV"
+                className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+              >
+                Export CSV
+              </button>
+            )}
+            {dueCount > 0 && (
+              <Link
+                href="/review"
+                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+              >
+                Review
+                <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
@@ -106,9 +149,12 @@ export default function LibraryPage() {
                 className="rounded-xl bg-white border border-gray-100 p-4 shadow-sm hover:shadow-md transition"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[phrase.tone])}>
-                    {phrase.tone}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[phrase.tone])}>
+                      {phrase.tone}
+                    </span>
+                    <SrsChip srs={phrase.srs} />
+                  </div>
                   <span className="text-xs text-gray-400">{formatDate(phrase.savedAt)}</span>
                 </div>
 
