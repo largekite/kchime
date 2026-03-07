@@ -21,6 +21,7 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -31,18 +32,28 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
   async function handleDownload() {
     if (!cardRef.current) return;
     setDownloading(true);
+    setDownloadError(false);
     try {
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true });
-      const link = document.createElement('a');
-      link.download = 'kchime-reply.png';
-      link.href = canvas.toDataURL('image/png');
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await new Promise<void>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (!blob) { reject(new Error('toBlob returned null')); return; }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = 'kchime-reply.png';
+          link.href = url;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          resolve();
+        }, 'image/png');
+      });
     } catch (err) {
       console.error('Download failed:', err);
+      setDownloadError(true);
     } finally {
       setDownloading(false);
     }
@@ -52,18 +63,24 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
     if (!cardRef.current) return;
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(cardRef.current, { scale: 2, backgroundColor: null });
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+      const canvas = await html2canvas(cardRef.current, { scale: 2, useCORS: true });
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => b ? resolve(b) : reject(new Error('toBlob returned null')), 'image/png');
       });
-    } catch {
-      // fallback: copy text
-      await navigator.clipboard.writeText(reply.text);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy image failed:', err);
+      // Only fall back to text if clipboard image API is unsupported
+      if (err instanceof Error && err.name === 'NotAllowedError') {
+        alert('Clipboard image access denied. Try downloading instead.');
+      } else {
+        // Likely unsupported browser — fall back gracefully
+        await navigator.clipboard.writeText(reply.text).catch(() => {});
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     }
   }
 
@@ -97,17 +114,17 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
         {/* Actions */}
         <div className="flex gap-2 p-4">
           <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
-          >
-            {downloading ? 'Saving…' : 'Download PNG'}
-          </button>
-          <button
             onClick={handleCopyImage}
-            className="flex-1 rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
           >
             {copied ? 'Copied!' : 'Copy Image'}
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="flex-1 rounded-lg border border-gray-200 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+          >
+            {downloading ? 'Saving…' : downloadError ? 'Failed — try again' : 'Download PNG'}
           </button>
           <button
             onClick={onClose}

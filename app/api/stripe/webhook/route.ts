@@ -4,14 +4,26 @@ import sql from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-async function setProStatus(appleUserID: string, isPro: boolean, periodEnd: Date | null) {
+async function setTierStatus(
+  appleUserID: string,
+  isPro: boolean,
+  isMax: boolean,
+  periodEnd: Date | null
+) {
   await sql`
     UPDATE users
     SET
       is_pro         = ${isPro},
+      is_max         = ${isMax},
       pro_expires_at = ${periodEnd ? periodEnd.toISOString() : null}
     WHERE apple_user_id = ${appleUserID}
   `;
+}
+
+function getTier(sub: Stripe.Subscription): { isPro: boolean; isMax: boolean } {
+  const priceId = sub.items?.data?.[0]?.price?.id;
+  const isMax = !!process.env.STRIPE_MAX_PRICE_ID && priceId === process.env.STRIPE_MAX_PRICE_ID;
+  return { isPro: true, isMax };
 }
 
 export async function POST(req: NextRequest) {
@@ -36,10 +48,10 @@ export async function POST(req: NextRequest) {
         if (!appleUserID) break;
 
         const isActive = sub.status === 'active' || sub.status === 'trialing';
-        // In Stripe v20, current_period_end is on the SubscriptionItem, not Subscription
         const rawEnd = sub.items?.data?.[0]?.current_period_end;
         const periodEnd = rawEnd ? new Date(rawEnd * 1000) : null;
-        await setProStatus(appleUserID, isActive, isActive ? periodEnd : null);
+        const { isPro, isMax } = isActive ? getTier(sub) : { isPro: false, isMax: false };
+        await setTierStatus(appleUserID, isPro, isMax, isActive ? periodEnd : null);
         break;
       }
 
@@ -48,13 +60,12 @@ export async function POST(req: NextRequest) {
         const appleUserID = sub.metadata?.apple_user_id;
         if (!appleUserID) break;
 
-        await setProStatus(appleUserID, false, null);
+        await setTierStatus(appleUserID, false, false, null);
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        // In Stripe v20, subscription lives at invoice.parent.subscription_details.subscription
         const subRef = invoice.parent?.subscription_details?.subscription;
         const subscriptionId = typeof subRef === 'string' ? subRef : subRef?.id;
         if (!subscriptionId) break;
@@ -63,7 +74,7 @@ export async function POST(req: NextRequest) {
         const appleUserID = sub.metadata?.apple_user_id;
         if (!appleUserID) break;
 
-        await setProStatus(appleUserID, false, null);
+        await setTierStatus(appleUserID, false, false, null);
         break;
       }
     }

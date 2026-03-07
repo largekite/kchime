@@ -164,10 +164,10 @@ export default function LandingPage() {
               ))}
             </ul>
             <a
-              href="https://apps.apple.com"
+              href="/reply"
               className="block text-center rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
             >
-              Get Pro on App Store
+              Get Pro — $7/month
             </a>
           </div>
           {/* Max */}
@@ -191,10 +191,10 @@ export default function LandingPage() {
               ))}
             </ul>
             <a
-              href="https://apps.apple.com"
+              href="mailto:hello@kchime.app?subject=KChime Max"
               className="block text-center rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
             >
-              Get Max on App Store
+              Join Waitlist
             </a>
           </div>
         </div>

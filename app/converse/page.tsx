@@ -22,7 +22,7 @@ const PERSONAS: Persona[] = [
   { id: 'coworker', name: 'Coworker', emoji: '💼', scene: 'Monday morning chat', opener: "Hey, how was your weekend? Do anything fun?" },
   { id: 'receptionist', name: 'Receptionist', emoji: '🏥', scene: 'Scheduling appointment', opener: "Good afternoon! How can I help you today?" },
   { id: 'neighbor', name: 'Neighbor', emoji: '🏠', scene: 'Friendly hallway run-in', opener: "Oh hey! I keep meaning to ask — have you tried that new restaurant on the corner?" },
-  { id: 'interviewer', name: 'Job Interviewer', emoji: '🎯', scene: 'Job interview', opener: "Great to meet you! Tell me a little bit about yourself." },
+  { id: 'interviewer', name: 'Job Interviewer', emoji: '👔', scene: 'Job interview', opener: "Great to meet you! Tell me a little bit about yourself." },
   { id: 'server', name: 'Restaurant Server', emoji: '🍽️', scene: 'Ordering food', opener: "Welcome in! Can I start you off with something to drink?" },
 ];
 

@@ -5,13 +5,13 @@ export const BADGES: Badge[] = [
   { id: 'first_step',    name: 'First Step',            description: 'Complete your first scenario',                xpReward: 50,   emoji: '👣' },
   { id: 'quick_learner', name: 'Quick Learner',          description: 'Complete 5 scenarios in one day',             xpReward: 100,  emoji: '⚡' },
   { id: 'streak_3',      name: 'On a Roll',              description: 'Keep a 3-day practice streak',                xpReward: 75,   emoji: '🔥' },
-  { id: 'streak_7',      name: 'Week Warrior',           description: 'Keep a 7-day practice streak',                xpReward: 200,  emoji: '🗓️' },
+  { id: 'streak_7',      name: 'Week Warrior',           description: 'Keep a 7-day practice streak',                xpReward: 200,  emoji: '📆' },
   { id: 'streak_30',     name: 'Iron Will',              description: 'Keep a 30-day practice streak',               xpReward: 1000, emoji: '💪' },
-  { id: 'collector',     name: 'Collector',              description: 'Save 10 phrases to your library',             xpReward: 100,  emoji: '📚' },
-  { id: 'explorer',      name: 'Explorer',               description: 'Complete at least one scenario per category', xpReward: 250,  emoji: '🗺️' },
-  { id: 'halfway',       name: 'Halfway There',          description: 'Complete 25 scenarios',                       xpReward: 200,  emoji: '🎯' },
+  { id: 'collector',     name: 'Collector',              description: 'Save 10 phrases to your library',             xpReward: 100,  emoji: '📖' },
+  { id: 'explorer',      name: 'Explorer',               description: 'Complete at least one scenario per category', xpReward: 250,  emoji: '🧭' },
+  { id: 'halfway',       name: 'Halfway There',          description: 'Complete 25 scenarios',                       xpReward: 200,  emoji: '⭐' },
   { id: 'master',        name: 'Conversation Master',    description: 'Complete all 47 scenarios',                   xpReward: 1000, emoji: '🏆' },
-  { id: 'natural',       name: 'Natural Speaker',        description: 'Receive 10 "natural" feedback ratings',       xpReward: 150,  emoji: '🗣️' },
+  { id: 'natural',       name: 'Natural Speaker',        description: 'Receive 10 "natural" feedback ratings',       xpReward: 150,  emoji: '🎤' },
 ];
 
 export const BADGE_MAP = Object.fromEntries(BADGES.map((b) => [b.id, b])) as Record<BadgeId, Badge>;

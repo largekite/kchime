@@ -8,14 +8,16 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import type { Context, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
+import { Briefcase, Home, MessageSquare, Music, Globe } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
-const CONTEXT_ICONS: Record<Context, string> = {
-  Any: '🌐',
-  Office: '🏢',
-  Text: '💬',
-  Party: '🎉',
-  Family: '🏠',
+const CONTEXT_ICONS: Record<Context, LucideIcon> = {
+  Any: Globe,
+  Office: Briefcase,
+  Text: MessageSquare,
+  Party: Music,
+  Family: Home,
 };
 
 export default function QuickReplyPage() {
@@ -81,13 +83,14 @@ export default function QuickReplyPage() {
               key={c}
               onClick={() => setContext(c)}
               className={clsx(
-                'rounded-full px-3 py-1 text-sm font-medium transition',
+                'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
                 context === c
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )}
             >
-              {CONTEXT_ICONS[c]} {c}
+              {(() => { const Icon = CONTEXT_ICONS[c]; return <Icon className="h-3.5 w-3.5" />; })()}
+              {c}
             </button>
           ))}
         </div>
@@ -106,8 +109,20 @@ export default function QuickReplyPage() {
               }}
               placeholder='What did someone say? e.g. "TGIF, am I right?"'
               rows={2}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
+            {(input || transcript) && !isListening && (
+              <button
+                type="button"
+                onClick={() => { setInput(''); setReplies([]); setError(''); }}
+                className="absolute right-2.5 top-2.5 rounded-full p-0.5 text-gray-400 hover:text-gray-600 transition"
+                title="Clear"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
             {isListening && (
               <div className="absolute right-3 top-3 flex items-center gap-1.5">
                 <span className="h-2 w-2 animate-ping rounded-full bg-red-500" />
@@ -208,7 +223,6 @@ export default function QuickReplyPage() {
       {/* Empty state */}
       {!loading && replies.length === 0 && recentPrompts.length === 0 && (
         <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center">
-          <p className="text-4xl mb-3">💬</p>
           <p className="font-semibold text-gray-700">What did someone say?</p>
           <p className="text-sm text-gray-400 mt-1">Type or speak a phrase and get 4 natural ways to reply.</p>
         </div>
