@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import sql from '@/lib/db';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+export const dynamic = 'force-dynamic';
 
 async function setProStatus(appleUserID: string, isPro: boolean, periodEnd: Date | null) {
   await sql`
@@ -15,6 +15,7 @@ async function setProStatus(appleUserID: string, isPro: boolean, periodEnd: Date
 }
 
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const body = await req.text();
   const sig = req.headers.get('stripe-signature') ?? '';
 
