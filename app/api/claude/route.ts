@@ -82,7 +82,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief';
+      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'daily-phrase';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -98,6 +98,9 @@ export async function POST(req: NextRequest) {
       relationship?: string;
       persona?: string;
       userMessage?: string;
+      toneProfile?: { formality: number; lengthPreference: string; emojiEnabled: boolean; customInstructions?: string };
+      relationshipProfile?: { name: string; formality: number; warmth: number; brevity: number; directness: number; emojiAllowed: boolean };
+      contactNotes?: string;
     };
 
     const { mode } = body;
@@ -133,17 +136,36 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === 'replies') {
-      const { prompt, context } = body;
+      const { prompt, context, toneProfile, relationshipProfile, contactNotes } = body;
       if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
       const contextNote = context && context !== 'Any'
         ? `Context: ${context} setting.`
         : 'Context: general/any setting.';
 
+      // Build personalization instructions from tone profile, relationship, and contact
+      const personalization: string[] = [];
+      if (toneProfile) {
+        const formalityDesc = toneProfile.formality < 0.3 ? 'casual' : toneProfile.formality > 0.65 ? 'formal' : 'balanced';
+        const lengthDesc = toneProfile.lengthPreference === 'short' ? 'very brief (under 10 words)' : toneProfile.lengthPreference === 'verbose' ? 'detailed (20+ words)' : 'medium length (10-20 words)';
+        personalization.push(`User prefers ${formalityDesc} tone, ${lengthDesc} replies.`);
+        if (toneProfile.emojiEnabled) personalization.push('Include emojis where natural.');
+        else personalization.push('Do NOT include emojis.');
+        if (toneProfile.customInstructions) personalization.push(`User note: ${toneProfile.customInstructions}`);
+      }
+      if (relationshipProfile) {
+        personalization.push(`Replying to their ${relationshipProfile.name}. Formality: ${relationshipProfile.formality}/10, Warmth: ${relationshipProfile.warmth}/10, Brevity: ${relationshipProfile.brevity}/10, Directness: ${relationshipProfile.directness}/10.`);
+        if (relationshipProfile.emojiAllowed) personalization.push('Emojis are appropriate for this relationship.');
+      }
+      if (contactNotes) {
+        personalization.push(`Notes about the person: ${contactNotes}`);
+      }
+      const personalizationNote = personalization.length > 0 ? `\nPersonalization: ${personalization.join(' ')}` : '';
+
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 512,
-        system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must be under 20 words, use contractions, and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown, no extra text.`,
+        system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown, no extra text.${personalizationNote}`,
         messages: [
           {
             role: 'user',

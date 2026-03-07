@@ -2,13 +2,15 @@
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
 import { fetchReplies } from '@/lib/claude';
+import type { ReplyPersonalization } from '@/lib/claude';
 import { useProgress } from '@/hooks/useProgress';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import type { Context, Reply, SavedPhrase } from '@/types';
+import { getToneProfile, getContacts, getAllRelationships } from '@/lib/storage';
+import type { Context, Reply, SavedPhrase, Contact } from '@/types';
 import clsx from 'clsx';
-import { useState } from 'react';
-import { Briefcase, Home, MessageSquare, Music, Globe } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Briefcase, Home, MessageSquare, Music, Globe, UserCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
@@ -27,9 +29,13 @@ export default function QuickReplyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentPrompt, setCurrentPrompt] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState<string>('');
 
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
+
+  const contacts = useMemo(() => getContacts(), []);
+  const relationships = useMemo(() => getAllRelationships(), []);
 
   const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } = useSpeechRecognition({
     onSilence: (t) => {
@@ -47,7 +53,38 @@ export default function QuickReplyPage() {
     setCurrentPrompt(text);
 
     try {
-      const result = await fetchReplies(text, context);
+      // Build personalization from tone profile, selected contact, and relationship
+      const toneProfile = getToneProfile();
+      const personalization: ReplyPersonalization = {
+        toneProfile: {
+          formality: toneProfile.formality,
+          lengthPreference: toneProfile.lengthPreference,
+          emojiEnabled: toneProfile.emojiEnabled,
+          customInstructions: toneProfile.customInstructions,
+        },
+      };
+
+      if (selectedContactId) {
+        const contact = contacts.find((c) => c.id === selectedContactId);
+        if (contact) {
+          if (contact.notes) personalization.contactNotes = contact.notes;
+          if (contact.relationshipId) {
+            const rel = relationships.find((r) => r.id === contact.relationshipId);
+            if (rel) {
+              personalization.relationshipProfile = {
+                name: rel.name,
+                formality: rel.formality,
+                warmth: rel.warmth,
+                brevity: rel.brevity,
+                directness: rel.directness,
+                emojiAllowed: rel.emojiAllowed,
+              };
+            }
+          }
+        }
+      }
+
+      const result = await fetchReplies(text, context, personalization);
       setReplies(result);
       addPrompt(text);
     } catch (e) {
@@ -94,6 +131,32 @@ export default function QuickReplyPage() {
             </button>
           ))}
         </div>
+
+        {/* Contact picker */}
+        {contacts.length > 0 && (
+          <div className="mb-3 flex items-center gap-2">
+            <UserCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <select
+              value={selectedContactId}
+              onChange={(e) => setSelectedContactId(e.target.value)}
+              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 focus:border-indigo-400 focus:outline-none"
+            >
+              <option value="">Replying to anyone</option>
+              {contacts.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {selectedContactId && (
+              <span className="text-xs text-indigo-600">
+                {(() => {
+                  const c = contacts.find((ct) => ct.id === selectedContactId);
+                  const r = c?.relationshipId ? relationships.find((rl) => rl.id === c.relationshipId) : null;
+                  return r ? `${r.emoji} ${r.name}` : 'Personalized';
+                })()}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Text input */}
         <div className="flex gap-2">

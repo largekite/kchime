@@ -148,3 +148,55 @@ export interface WorkReplyResult {
   variations: WorkReplyVariation[];
   bestChoiceIndex: number;
 }
+
+// --- Tone Profile (synced from iOS) ---
+
+export type LengthPreference = 'short' | 'medium' | 'verbose';
+
+export interface ToneProfile {
+  id: string;
+  label: string;
+  formality: number;      // 0.0 = casual, 1.0 = formal
+  emojiEnabled: boolean;
+  lengthPreference: LengthPreference;
+  customInstructions?: string;
+}
+
+// --- Relationship Profiles (synced from iOS) ---
+
+export interface RelationshipProfile {
+  id: string;
+  name: string;
+  emoji: string;
+  formality: number;   // 0–10
+  warmth: number;       // 0–10
+  brevity: number;      // 0–10
+  directness: number;   // 0–10
+  emojiAllowed: boolean;
+  isCustom: boolean;
+}
+
+// --- Contacts (synced from iOS) ---
+
+export interface Contact {
+  id: string;
+  name: string;
+  notes: string;
+  relationshipId?: string; // links to RelationshipProfile
+  createdAt: string;
+}
+
+// --- Phrase of the Day ---
+
+export interface DailyPhrase {
+  phrase: string;
+  meaning: string;
+  example: string;
+  culturalNote: string;
+  category: 'idiom' | 'slang' | 'filler' | 'cultural';
+  quiz: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+  };
+}

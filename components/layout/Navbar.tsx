@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart2, BookOpen, Briefcase, Dumbbell, Gift, Mic, MessageSquare, RefreshCw, Wand2, Users } from 'lucide-react';
+import { BarChart2, BookOpen, Briefcase, Dumbbell, Gift, Mic, MessageSquare, RefreshCw, Wand2, Users, Lightbulb, Sliders, UserCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
@@ -19,7 +19,10 @@ const tabs = [
   { href: '/practice', label: 'Practice', Icon: Dumbbell, alsoActive: ['/custom'] },
   { href: '/library', label: 'Library', Icon: BookOpen },
   { href: '/review', label: 'Review', Icon: RefreshCw },
+  { href: '/daily', label: 'Daily', Icon: Lightbulb },
   { href: '/dashboard', label: 'Dashboard', Icon: BarChart2 },
+  { href: '/contacts', label: 'Contacts', Icon: UserCircle },
+  { href: '/tone', label: 'Tone', Icon: Sliders },
   { href: '/refer', label: 'Refer', Icon: Gift },
 ];
 
