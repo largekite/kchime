@@ -29,9 +29,11 @@ export async function POST(req: NextRequest) {
 
   let appleUserID: string;
   try {
+    // Web tokens use the Services ID as audience; fall back to the iOS bundle ID if not set.
+    const audience = process.env.APPLE_WEB_CLIENT_ID ?? process.env.APPLE_CLIENT_ID;
     const { payload } = await jwtVerify(identityToken, APPLE_JWKS, {
       issuer: 'https://appleid.apple.com',
-      audience: process.env.APPLE_CLIENT_ID,
+      audience,
     });
     appleUserID = payload.sub as string;
   } catch (err) {

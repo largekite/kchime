@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { MessageSquare, Keyboard, Zap, Infinity } from 'lucide-react';
+import { MessageSquare, Keyboard, Zap } from 'lucide-react';
 
 export const metadata = {
   title: 'KChime — AI Reply Assistant',
@@ -117,7 +117,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 mx-auto max-w-5xl px-6">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Simple, honest pricing</h2>
         <p className="text-center text-gray-500 mb-14">Start free. Upgrade when you need more.</p>
-        <div className="grid gap-8 sm:grid-cols-2 max-w-2xl mx-auto">
+        <div className="grid gap-8 sm:grid-cols-3 max-w-4xl mx-auto">
           {/* Free */}
           <div className="rounded-2xl border border-gray-200 p-8">
             <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Free</p>
@@ -140,20 +140,20 @@ export default function LandingPage() {
               Download Free
             </a>
           </div>
-          {/* Pro */}
+          {/* Pro — most popular */}
           <div className="rounded-2xl border-2 border-indigo-600 p-8 relative shadow-lg shadow-indigo-100">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
               <span className="rounded-full bg-indigo-600 px-3 py-1 text-xs font-bold text-white">MOST POPULAR</span>
             </div>
             <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider mb-2">Pro</p>
-            <p className="text-4xl font-extrabold text-gray-900 mb-1">$12</p>
+            <p className="text-4xl font-extrabold text-gray-900 mb-1">$7</p>
             <p className="text-sm text-gray-400 mb-8">per month</p>
             <ul className="space-y-3 mb-8">
               {[
-                'Unlimited AI replies',
+                '50 AI replies per day',
                 'Everything in Free',
-                'Priority responses',
                 'Works on iOS + web',
+                'Priority responses',
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -168,6 +168,33 @@ export default function LandingPage() {
               className="block text-center rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
             >
               Get Pro on App Store
+            </a>
+          </div>
+          {/* Max */}
+          <div className="rounded-2xl border border-gray-200 p-8">
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Max</p>
+            <p className="text-4xl font-extrabold text-gray-900 mb-1">$12</p>
+            <p className="text-sm text-gray-400 mb-8">per month</p>
+            <ul className="space-y-3 mb-8">
+              {[
+                'Unlimited AI replies',
+                'Everything in Pro',
+                'Early access to new features',
+                'Priority support',
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
+                  <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a
+              href="https://apps.apple.com"
+              className="block text-center rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              Get Max on App Store
             </a>
           </div>
         </div>

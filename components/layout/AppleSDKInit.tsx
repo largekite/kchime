@@ -9,7 +9,8 @@ export function AppleSDKInit() {
       strategy="lazyOnload"
       onLoad={() => {
         window.AppleID?.auth.init({
-          clientId: 'com.kchime.app',
+          // Must be a Services ID (not the iOS bundle ID) registered in Apple Developer Portal
+          clientId: process.env.NEXT_PUBLIC_APPLE_WEB_CLIENT_ID ?? 'com.kchime.web',
           scope: 'name email',
           // Use the current origin so this works in dev (localhost) and production
           redirectURI: `${window.location.origin}/api/auth/apple/web`,

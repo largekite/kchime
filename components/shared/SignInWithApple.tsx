@@ -23,7 +23,7 @@ export function SignInWithApple({ onSuccess, label = 'Sign in with Apple' }: Pro
     try {
       const result = await window.AppleID.auth.signIn();
 
-      const res = await fetch('/api/auth/apple', {
+      const res = await fetch('/api/auth/apple/web', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identityToken: result.authorization.id_token }),
