@@ -1,4 +1,4 @@
-import type { AccentCode, BadgeId, Collection, CustomScenario, Progress, SavedPhrase } from '@/types';
+import type { AccentCode, BadgeId, Collection, Contact, CustomScenario, Progress, RelationshipProfile, SavedPhrase, ToneProfile } from '@/types';
 import { checkNewBadges, BADGE_MAP } from '@/lib/gamification';
 
 const KEYS = {
@@ -12,6 +12,9 @@ const KEYS = {
   ONBOARD_GOAL: 'kchime_onboard_goal',
   CUSTOM_SCENARIOS: 'kchime_custom_scenarios',
   COLLECTIONS: 'kchime_collections',
+  TONE_PROFILE: 'kchime_tone_profile',
+  RELATIONSHIP_PROFILES: 'kchime_relationship_profiles',
+  CONTACTS: 'kchime_contacts',
 } as const;
 
 function getToday(): string {
@@ -377,4 +380,105 @@ export function getAccent(): AccentCode {
 
 export function setAccent(code: AccentCode): void {
   localStorage.setItem(KEYS.ACCENT, code);
+}
+
+// --- Tone Profile (synced from iOS) ---
+
+const DEFAULT_TONE_PROFILE: ToneProfile = {
+  id: 'default',
+  label: 'Warm & direct',
+  formality: 0.35,
+  emojiEnabled: false,
+  lengthPreference: 'medium',
+  customInstructions: undefined,
+};
+
+export function getToneProfile(): ToneProfile {
+  if (typeof window === 'undefined') return DEFAULT_TONE_PROFILE;
+  try {
+    const raw = localStorage.getItem(KEYS.TONE_PROFILE);
+    if (!raw) return DEFAULT_TONE_PROFILE;
+    return { ...DEFAULT_TONE_PROFILE, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_TONE_PROFILE;
+  }
+}
+
+export function saveToneProfile(profile: ToneProfile): void {
+  localStorage.setItem(KEYS.TONE_PROFILE, JSON.stringify(profile));
+}
+
+export const TONE_PRESETS: ToneProfile[] = [
+  { id: 'warm-direct', label: 'Warm & direct', formality: 0.35, emojiEnabled: false, lengthPreference: 'medium' },
+  { id: 'formal-brief', label: 'Formal & brief', formality: 0.85, emojiEnabled: false, lengthPreference: 'short' },
+  { id: 'casual-friendly', label: 'Casual & friendly', formality: 0.1, emojiEnabled: true, lengthPreference: 'medium' },
+];
+
+// --- Relationship Profiles (synced from iOS) ---
+
+export const BUILT_IN_RELATIONSHIPS: RelationshipProfile[] = [
+  { id: 'boss', name: 'Boss', emoji: '👔', formality: 8, warmth: 4, brevity: 6, directness: 5, emojiAllowed: false, isCustom: false },
+  { id: 'coworker', name: 'Coworker', emoji: '💼', formality: 5, warmth: 6, brevity: 5, directness: 6, emojiAllowed: false, isCustom: false },
+  { id: 'client', name: 'Client', emoji: '🤝', formality: 7, warmth: 6, brevity: 5, directness: 5, emojiAllowed: false, isCustom: false },
+  { id: 'teacher', name: 'Teacher', emoji: '📚', formality: 7, warmth: 5, brevity: 5, directness: 5, emojiAllowed: false, isCustom: false },
+  { id: 'friend', name: 'Friend', emoji: '👫', formality: 2, warmth: 9, brevity: 4, directness: 7, emojiAllowed: true, isCustom: false },
+  { id: 'family', name: 'Family', emoji: '❤️', formality: 1, warmth: 10, brevity: 4, directness: 8, emojiAllowed: true, isCustom: false },
+];
+
+export function getCustomRelationships(): RelationshipProfile[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(KEYS.RELATIONSHIP_PROFILES);
+    return raw ? (JSON.parse(raw) as RelationshipProfile[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getAllRelationships(): RelationshipProfile[] {
+  return [...BUILT_IN_RELATIONSHIPS, ...getCustomRelationships()];
+}
+
+export function saveCustomRelationship(profile: RelationshipProfile): void {
+  const list = getCustomRelationships();
+  const idx = list.findIndex((r) => r.id === profile.id);
+  if (idx >= 0) {
+    list[idx] = profile;
+  } else {
+    list.push(profile);
+  }
+  localStorage.setItem(KEYS.RELATIONSHIP_PROFILES, JSON.stringify(list));
+}
+
+export function deleteCustomRelationship(id: string): void {
+  const list = getCustomRelationships().filter((r) => r.id !== id);
+  localStorage.setItem(KEYS.RELATIONSHIP_PROFILES, JSON.stringify(list));
+}
+
+// --- Contacts (synced from iOS) ---
+
+export function getContacts(): Contact[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(KEYS.CONTACTS);
+    return raw ? (JSON.parse(raw) as Contact[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveContact(contact: Contact): void {
+  const list = getContacts();
+  const idx = list.findIndex((c) => c.id === contact.id);
+  if (idx >= 0) {
+    list[idx] = contact;
+  } else {
+    list.unshift(contact);
+  }
+  localStorage.setItem(KEYS.CONTACTS, JSON.stringify(list));
+}
+
+export function deleteContact(id: string): void {
+  const list = getContacts().filter((c) => c.id !== id);
+  localStorage.setItem(KEYS.CONTACTS, JSON.stringify(list));
 }

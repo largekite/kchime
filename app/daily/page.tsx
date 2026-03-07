@@ -1,0 +1,149 @@
+'use client';
+
+import { getPhraseOfTheDay, getRecentPhrases } from '@/lib/daily-phrases';
+import type { DailyPhrase } from '@/types';
+import clsx from 'clsx';
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Lightbulb, BookOpen, Volume2 } from 'lucide-react';
+import { speakText } from '@/lib/speech';
+
+const CATEGORY_BADGE: Record<DailyPhrase['category'], { label: string; color: string }> = {
+  idiom: { label: 'Idiom', color: 'bg-purple-100 text-purple-700' },
+  slang: { label: 'Slang', color: 'bg-emerald-100 text-emerald-700' },
+  filler: { label: 'Filler Phrase', color: 'bg-amber-100 text-amber-700' },
+  cultural: { label: 'Cultural', color: 'bg-blue-100 text-blue-700' },
+};
+
+export default function DailyPhrasePage() {
+  const todayPhrase = getPhraseOfTheDay();
+  const recentPhrases = getRecentPhrases();
+
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [showArchive, setShowArchive] = useState(false);
+
+  const quizAnswered = selectedAnswer !== null;
+  const quizCorrect = selectedAnswer === todayPhrase.quiz.correctIndex;
+
+  function handleSpeak(text: string) {
+    speakText(text, () => {});
+  }
+
+  return (
+    <div className="space-y-6 max-w-xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Phrase of the Day</h1>
+        <p className="text-sm text-gray-500 mt-1">Learn a new expression every day with cultural context.</p>
+      </div>
+
+      {/* Main phrase card */}
+      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white">
+          <div className="flex items-center gap-2 mb-3">
+            <span className={clsx('rounded-full px-2.5 py-0.5 text-xs font-semibold', 'bg-white/20 text-white')}>
+              {CATEGORY_BADGE[todayPhrase.category].label}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold">&ldquo;{todayPhrase.phrase}&rdquo;</h2>
+            <button
+              onClick={() => handleSpeak(todayPhrase.phrase)}
+              className="rounded-full bg-white/20 p-2 hover:bg-white/30 transition"
+              title="Listen to pronunciation"
+            >
+              <Volume2 className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="mt-2 text-indigo-100 text-sm">{todayPhrase.meaning}</p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Example */}
+          <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="h-4 w-4 text-gray-400" />
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Example</p>
+            </div>
+            <p className="text-sm text-gray-700 italic">{todayPhrase.example}</p>
+            <button
+              onClick={() => handleSpeak(todayPhrase.example.replace(/^"|"$/g, ''))}
+              className="mt-2 text-xs text-indigo-600 hover:underline flex items-center gap-1"
+            >
+              <Volume2 className="h-3 w-3" />
+              Listen
+            </button>
+          </div>
+
+          {/* Cultural note */}
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Lightbulb className="h-4 w-4 text-amber-600" />
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Why Americans Say This</p>
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">{todayPhrase.culturalNote}</p>
+          </div>
+
+          {/* Quiz */}
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+            <p className="text-sm font-semibold text-gray-800 mb-3">{todayPhrase.quiz.question}</p>
+            <div className="space-y-2">
+              {todayPhrase.quiz.options.map((option, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedAnswer(i)}
+                  disabled={quizAnswered}
+                  className={clsx(
+                    'w-full text-left rounded-xl border px-4 py-2.5 text-sm transition',
+                    quizAnswered && i === todayPhrase.quiz.correctIndex
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800 font-medium'
+                      : quizAnswered && i === selectedAnswer
+                      ? 'border-red-300 bg-red-50 text-red-700'
+                      : quizAnswered
+                      ? 'border-gray-200 bg-white text-gray-400'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50'
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            {quizAnswered && (
+              <p className={clsx('mt-3 text-sm font-medium', quizCorrect ? 'text-emerald-700' : 'text-amber-700')}>
+                {quizCorrect ? 'Correct! You got it.' : 'Not quite — check the answer highlighted above.'}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Archive toggle */}
+      <button
+        onClick={() => setShowArchive((v) => !v)}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition"
+      >
+        {showArchive ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {showArchive ? 'Hide' : 'Show'} recent phrases
+      </button>
+
+      {/* Archive */}
+      {showArchive && (
+        <div className="space-y-2">
+          {recentPhrases.slice(1).map(({ date, phrase }, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3"
+            >
+              <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', CATEGORY_BADGE[phrase.category].color)}>
+                {CATEGORY_BADGE[phrase.category].label}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">&ldquo;{phrase.phrase}&rdquo;</p>
+                <p className="text-xs text-gray-400">{phrase.meaning}</p>
+              </div>
+              <span className="text-xs text-gray-400 flex-shrink-0">{date}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

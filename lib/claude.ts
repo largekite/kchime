@@ -33,8 +33,14 @@ async function post(body: Record<string, unknown>): Promise<Response> {
   });
 }
 
-export async function fetchReplies(prompt: string, context: Context): Promise<Reply[]> {
-  const res = await post({ mode: 'replies', prompt, context });
+export interface ReplyPersonalization {
+  toneProfile?: { formality: number; lengthPreference: string; emojiEnabled: boolean; customInstructions?: string };
+  relationshipProfile?: { name: string; formality: number; warmth: number; brevity: number; directness: number; emojiAllowed: boolean };
+  contactNotes?: string;
+}
+
+export async function fetchReplies(prompt: string, context: Context, personalization?: ReplyPersonalization): Promise<Reply[]> {
+  const res = await post({ mode: 'replies', prompt, context, ...personalization });
 
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
