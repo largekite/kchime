@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { MessageSquare, Keyboard, Zap } from 'lucide-react';
 
 export const metadata = {
-  title: 'KChime — AI Reply Assistant',
-  description: 'Reply naturally in English, every time. AI-powered suggestions right in your keyboard.',
+  title: 'KChime — Daily Conversation Coach',
+  description: 'Your daily conversation coach for sounding natural in English — at work, with friends, or anywhere.',
 };
 
 export default function LandingPage() {
@@ -40,7 +40,7 @@ export default function LandingPage() {
       <section className="mx-auto max-w-5xl px-6 py-24 text-center">
         <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 mb-8">
           <Zap className="h-3.5 w-3.5" />
-          AI-powered English replies
+          Daily Conversation Coach
         </div>
         <h1 className="text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl leading-tight">
           Reply naturally in English,{' '}

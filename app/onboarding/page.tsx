@@ -49,7 +49,7 @@ export default function OnboardingPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Welcome to KChime</h1>
               <p className="mt-3 text-gray-500 text-base leading-relaxed">
-                Your AI-powered daily coach for sounding natural in American English conversations.
+                Your daily conversation coach for sounding natural in English — at work, with friends, or anywhere.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center text-sm">

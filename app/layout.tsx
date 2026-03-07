@@ -8,7 +8,7 @@ import { NotificationPrompt } from '@/components/layout/NotificationPrompt';
 
 export const metadata: Metadata = {
   title: 'KChime — Daily Conversation Coach',
-  description: 'Get naturally good at daily English conversations with AI-powered reply suggestions, live listening, and real-world scenarios.',
+  description: 'Your daily conversation coach for sounding natural in English — smart replies, live listening, and real-world scenarios.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
