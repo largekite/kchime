@@ -19,12 +19,20 @@ export default function LandingPage() {
             </svg>
             <span className="text-xl font-bold tracking-tight text-gray-900">KChime</span>
           </div>
-          <a
-            href="#pricing"
-            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
-          >
-            Get Pro
-          </a>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/reply"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition"
+            >
+              Open App
+            </Link>
+            <a
+              href="#pricing"
+              className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            >
+              Get Pro
+            </a>
+          </div>
         </div>
       </header>
 
@@ -58,6 +66,12 @@ export default function LandingPage() {
             Get Pro on the web
           </a>
         </div>
+        <p className="mt-5 text-sm text-gray-400">
+          Already have an account?{' '}
+          <Link href="/reply" className="text-indigo-600 hover:underline font-medium">
+            Open the web app
+          </Link>
+        </p>
       </section>
 
       {/* Features */}
