@@ -31,7 +31,7 @@ export default function QuickReplyPage() {
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
 
-  const { isListening, isSupported, start, stop, transcript } = useSpeechRecognition({
+  const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } = useSpeechRecognition({
     onSilence: (t) => {
       setInput(t);
       stop();
@@ -109,12 +109,13 @@ export default function QuickReplyPage() {
               }}
               placeholder='What did someone say? e.g. "TGIF, am I right?"'
               rows={2}
+              autoComplete="off"
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
             />
             {(input || transcript) && !isListening && (
               <button
                 type="button"
-                onClick={() => { setInput(''); setReplies([]); setError(''); }}
+                onClick={() => { setInput(''); setReplies([]); setError(''); setCurrentPrompt(''); setContext('Any'); resetTranscript(); }}
                 className="absolute right-2.5 top-2.5 rounded-full p-0.5 text-gray-400 hover:text-gray-600 transition"
                 title="Clear"
               >
