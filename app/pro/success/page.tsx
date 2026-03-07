@@ -17,7 +17,7 @@ export default function ProSuccessPage() {
 
         <h1 className="text-3xl font-extrabold text-gray-900 mb-3">You&apos;re Pro!</h1>
         <p className="text-gray-500 text-lg mb-8">
-          Your subscription is active. Open the KChime app and sign in to unlock unlimited AI replies.
+          Your subscription is active. Open the KChime app and sign in to unlock unlimited replies.
         </p>
 
         {/* App Store CTA */}

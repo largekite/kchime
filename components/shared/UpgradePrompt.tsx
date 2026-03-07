@@ -80,8 +80,8 @@ export function UpgradePrompt({ reason, onClose }: Props) {
 
         <div className="mt-5 rounded-xl bg-indigo-50 border border-indigo-100 p-4 space-y-2">
           {[
-            'Unlimited Quick Replies',
-            'Unlimited Work Reply Optimizer',
+            '50 Quick Replies per day',
+            '50 Work Reply Optimizer uses per day',
             'Live Listen (real-time suggestions)',
             'Progress synced across all devices',
           ].map((f) => (
