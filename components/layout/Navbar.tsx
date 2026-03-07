@@ -11,7 +11,7 @@ import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import { NotificationToggle } from '@/components/layout/NotificationPrompt';
 
 const tabs = [
-  { href: '/', label: 'Quick Reply', Icon: MessageSquare },
+  { href: '/reply', label: 'Quick Reply', Icon: MessageSquare },
   { href: '/fix', label: 'Fix Message', Icon: Wand2 },
   { href: '/work', label: 'Work', Icon: Briefcase },
   { href: '/converse', label: 'Converse', Icon: Users },
@@ -26,6 +26,8 @@ const tabs = [
 export function Navbar() {
   const pathname = usePathname();
   const { user, plan, loading, signOut } = useAuth();
+
+  if (pathname === '/') return null;
   const [showAuth, setShowAuth] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -99,9 +101,7 @@ export function Navbar() {
         <nav className="mx-auto max-w-4xl overflow-x-auto px-4">
           <div className="flex gap-1 pb-0">
             {tabs.map(({ href, label, Icon, alsoActive }) => {
-              const active = href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(href) || (alsoActive?.some((p) => pathname.startsWith(p)) ?? false);
+              const active = pathname.startsWith(href) || (alsoActive?.some((p) => pathname.startsWith(p)) ?? false);
               return (
                 <Link
                   key={href}

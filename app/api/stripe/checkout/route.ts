@@ -1,53 +1,44 @@
-import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase-server';
+import Stripe from 'stripe';
+import { verifyJWT } from '@/lib/jwt';
 
-export const dynamic = 'force-dynamic';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const supabase = createServiceClient();
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  // Get or create Stripe customer
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('stripe_customer_id, plan')
-    .eq('user_id', user.id)
-    .single();
-
-  if (sub?.plan === 'pro') {
-    return NextResponse.json({ error: 'Already Pro' }, { status: 400 });
+  // Require a valid session JWT
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Missing authorization header' }, { status: 401 });
   }
 
-  let customerId = sub?.stripe_customer_id as string | undefined;
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { supabase_user_id: user.id },
-    });
-    customerId = customer.id;
-
-    await supabase.from('subscriptions').upsert(
-      { user_id: user.id, stripe_customer_id: customerId, plan: 'free', status: 'free' },
-      { onConflict: 'user_id' },
-    );
+  let session: Awaited<ReturnType<typeof verifyJWT>>;
+  try {
+    session = await verifyJWT(authHeader.slice(7));
+  } catch {
+    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
 
-  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
 
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
+  const checkoutSession = await stripe.checkout.sessions.create({
     mode: 'subscription',
-    line_items: [{ price: process.env.STRIPE_PRO_PRICE_ID!, quantity: 1 }],
-    success_url: `${origin}/dashboard?upgraded=1`,
-    cancel_url: `${origin}/?upgrade_canceled=1`,
-    subscription_data: { metadata: { supabase_user_id: user.id } },
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price: process.env.STRIPE_PRO_PRICE_ID!,
+        quantity: 1,
+      },
+    ],
+    // Store apple_user_id on the subscription so the webhook can look up the user
+    subscription_data: {
+      metadata: {
+        apple_user_id: session.appleUserID,
+        user_id: session.sub,
+      },
+    },
+    success_url: `${baseUrl}/pro/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/`,
   });
 
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ url: checkoutSession.url });
 }

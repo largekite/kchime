@@ -1,80 +1,75 @@
-import Stripe from 'stripe';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase-server';
+import Stripe from 'stripe';
+import sql from '@/lib/db';
 
-export const dynamic = 'force-dynamic';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+async function setProStatus(appleUserID: string, isPro: boolean, periodEnd: Date | null) {
+  await sql`
+    UPDATE users
+    SET
+      is_pro         = ${isPro},
+      pro_expires_at = ${periodEnd ? periodEnd.toISOString() : null}
+    WHERE apple_user_id = ${appleUserID}
+  `;
+}
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const body = await req.text();
-  const sig = req.headers.get('stripe-signature');
-  if (!sig) return NextResponse.json({ error: 'No signature' }, { status: 400 });
+  const sig = req.headers.get('stripe-signature') ?? '';
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Webhook signature verification failed';
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const supabase = createServiceClient();
+  try {
+    switch (event.type) {
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const sub = event.data.object as Stripe.Subscription;
+        const appleUserID = sub.metadata?.apple_user_id;
+        if (!appleUserID) break;
 
-  async function getSupabaseUserId(customerId: string): Promise<string | null> {
-    const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-    return customer.metadata?.supabase_user_id ?? null;
-  }
+        const isActive = sub.status === 'active' || sub.status === 'trialing';
+        // In Stripe v20, current_period_end is on the SubscriptionItem, not Subscription
+        const rawEnd = sub.items?.data?.[0]?.current_period_end;
+        const periodEnd = rawEnd ? new Date(rawEnd * 1000) : null;
+        await setProStatus(appleUserID, isActive, isActive ? periodEnd : null);
+        break;
+      }
 
-  async function upsertSubscription(
-    userId: string,
-    sub: Stripe.Subscription,
-    plan: 'free' | 'pro',
-  ) {
-    await supabase.from('subscriptions').upsert(
-      {
-        user_id: userId,
-        stripe_customer_id: sub.customer as string,
-        stripe_subscription_id: sub.id,
-        plan,
-        status: sub.status,
-        current_period_end: new Date((sub as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    );
-  }
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object as Stripe.Subscription;
+        const appleUserID = sub.metadata?.apple_user_id;
+        if (!appleUserID) break;
 
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.mode !== 'subscription') break;
-      const sub = await stripe.subscriptions.retrieve(session.subscription as string);
-      const userId = sub.metadata?.supabase_user_id
-        ?? session.client_reference_id
-        ?? (await getSupabaseUserId(session.customer as string));
-      if (!userId) break;
-      await upsertSubscription(userId, sub, 'pro');
-      break;
+        await setProStatus(appleUserID, false, null);
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        // In Stripe v20, subscription lives at invoice.parent.subscription_details.subscription
+        const subRef = invoice.parent?.subscription_details?.subscription;
+        const subscriptionId = typeof subRef === 'string' ? subRef : subRef?.id;
+        if (!subscriptionId) break;
+
+        const sub = await stripe.subscriptions.retrieve(subscriptionId);
+        const appleUserID = sub.metadata?.apple_user_id;
+        if (!appleUserID) break;
+
+        await setProStatus(appleUserID, false, null);
+        break;
+      }
     }
 
-    case 'customer.subscription.updated': {
-      const sub = event.data.object as Stripe.Subscription;
-      const userId = sub.metadata?.supabase_user_id
-        ?? (await getSupabaseUserId(sub.customer as string));
-      if (!userId) break;
-      const isPro = sub.status === 'active' || sub.status === 'trialing';
-      await upsertSubscription(userId, sub, isPro ? 'pro' : 'free');
-      break;
-    }
-
-    case 'customer.subscription.deleted': {
-      const sub = event.data.object as Stripe.Subscription;
-      const userId = sub.metadata?.supabase_user_id
-        ?? (await getSupabaseUserId(sub.customer as string));
-      if (!userId) break;
-      await upsertSubscription(userId, sub, 'free');
-      break;
-    }
+    return NextResponse.json({ received: true });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Webhook processing failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({ received: true });
 }
