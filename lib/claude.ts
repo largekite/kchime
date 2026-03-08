@@ -195,6 +195,16 @@ export async function aiConverse(
   return data.aiReply;
 }
 
+export async function fetchPackVariations(prompt: string): Promise<{ tone: string; text: string }[]> {
+  const res = await post({ mode: 'pack-variations', prompt });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
+    throw new Error(err.error ?? `Request failed: ${res.status}`);
+  }
+  const data = await res.json() as { variations: { tone: string; text: string }[] };
+  return data.variations;
+}
+
 const STRATEGY_LABELS = ['A', 'B', 'C'];
 
 export async function fetchWorkReplies(message: string, preset: WorkplacePreset): Promise<WorkReplyResult> {

@@ -186,6 +186,24 @@ export interface Contact {
   createdAt: string;
 }
 
+// --- Reply Packs (synced from iOS ReplyPack.swift) ---
+
+export interface ReplyScenario {
+  id: string;
+  message: string;         // what someone said (maps to iOS `message`)
+  context: string;         // situation description (maps to iOS `context`)
+  seedReplies: string[];   // 3 pre-written seed replies (maps to iOS `seedReplies`)
+}
+
+export interface ReplyPack {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  color: string;           // semantic color key matching iOS: 'orange', 'teal', 'green', 'red'
+  scenarios: ReplyScenario[];
+}
+
 // --- Phrase of the Day ---
 
 export interface DailyPhrase {
