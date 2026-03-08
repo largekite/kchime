@@ -82,7 +82,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'daily-phrase';
+      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'daily-phrase' | 'pack-variations';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -420,6 +420,25 @@ Each reply must be under 20 words, use contractions, and sound like a real Ameri
       return new Response(readable, {
         headers: { 'Content-Type': 'application/x-ndjson' },
       });
+    }
+
+    if (mode === 'pack-variations') {
+      const { prompt } = body;
+      if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+
+      const message = await getAnthropic().messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 512,
+        system: `You are an American English conversation coach. Given a message someone sent, generate 4 natural reply variations in different tones: Casual, Funny, Warm, and Safe. Each reply should sound like a real American would say it. Use contractions. Keep each reply under 25 words. Return ONLY valid JSON: {"variations":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown.`,
+        messages: [{
+          role: 'user',
+          content: `Someone said: "${prompt}"\n\nGenerate 4 reply variations (Casual, Funny, Warm, Safe).`,
+        }],
+      });
+
+      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const parsed = parseJson<{ variations: { tone: string; text: string }[] }>(raw);
+      return NextResponse.json(parsed);
     }
 
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });

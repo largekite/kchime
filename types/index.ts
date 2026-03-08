@@ -186,6 +186,23 @@ export interface Contact {
   createdAt: string;
 }
 
+// --- Reply Packs ---
+
+export interface ReplyPackExample {
+  id: string;
+  prompt: string;          // what someone said
+  suggestedReplies: string[]; // 3-4 pre-written seed replies
+}
+
+export interface ReplyPack {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  color: string;           // tailwind color key e.g. 'teal', 'amber'
+  examples: ReplyPackExample[];
+}
+
 // --- Phrase of the Day ---
 
 export interface DailyPhrase {
