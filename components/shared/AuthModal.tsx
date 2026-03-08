@@ -5,29 +5,43 @@ import { useAuth } from '@/context/AuthContext';
 
 interface Props {
   onClose: () => void;
-  /** Called after a magic link is sent, so the parent can show a success message. */
   onSent?: () => void;
 }
 
+type Mode = 'sign-in' | 'sign-up';
+
 export function AuthModal({ onClose, onSent }: Props) {
-  const { signInWithEmail } = useAuth();
+  const { signInWithPassword, signUpWithEmail } = useAuth();
+  const [mode, setMode] = useState<Mode>('sign-in');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [signUpSent, setSignUpSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !password.trim()) return;
     setLoading(true);
     setError('');
-    const { error } = await signInWithEmail(email.trim());
-    setLoading(false);
-    if (error) {
-      setError(error);
+
+    if (mode === 'sign-up') {
+      const { error } = await signUpWithEmail(email.trim(), password.trim());
+      setLoading(false);
+      if (error) {
+        setError(error);
+      } else {
+        setSignUpSent(true);
+        onSent?.();
+      }
     } else {
-      setSent(true);
-      onSent?.();
+      const { error } = await signInWithPassword(email.trim(), password.trim());
+      setLoading(false);
+      if (error) {
+        setError(error);
+      } else {
+        onClose();
+      }
     }
   }
 
@@ -37,11 +51,11 @@ export function AuthModal({ onClose, onSent }: Props) {
         className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {sent ? (
+        {signUpSent ? (
           <div className="text-center py-4">
             <p className="text-xl font-bold text-gray-900 mb-2">Check your email</p>
             <p className="text-sm text-gray-500">
-              We sent a magic link to <strong>{email}</strong>. Click it to sign in — no password needed.
+              We sent a confirmation link to <strong>{email}</strong>. Click it to verify your account.
             </p>
             <button
               onClick={onClose}
@@ -52,9 +66,13 @@ export function AuthModal({ onClose, onSent }: Props) {
           </div>
         ) : (
           <>
-            <p className="text-xl font-bold text-gray-900">Sign in to KChime</p>
+            <p className="text-xl font-bold text-gray-900">
+              {mode === 'sign-in' ? 'Sign in to KChime' : 'Create your account'}
+            </p>
             <p className="text-sm text-gray-500 mt-1 mb-5">
-              Save your progress across devices and unlock Pro.
+              {mode === 'sign-in'
+                ? 'Welcome back! Enter your email and password.'
+                : 'Save your progress across devices and unlock Pro.'}
             </p>
             <form onSubmit={handleSubmit} className="space-y-3">
               <input
@@ -66,17 +84,48 @@ export function AuthModal({ onClose, onSent }: Props) {
                 autoFocus
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
               />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+                minLength={6}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              />
               {error && <p className="text-xs text-red-600">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
               >
-                {loading ? 'Sending…' : 'Send magic link'}
+                {loading
+                  ? (mode === 'sign-in' ? 'Signing in…' : 'Creating account…')
+                  : (mode === 'sign-in' ? 'Sign in' : 'Sign up')}
               </button>
             </form>
             <p className="mt-4 text-center text-xs text-gray-400">
-              No password. We email you a one-click sign-in link.
+              {mode === 'sign-in' ? (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <button
+                    onClick={() => { setMode('sign-up'); setError(''); }}
+                    className="text-indigo-600 font-medium hover:underline"
+                  >
+                    Sign up
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <button
+                    onClick={() => { setMode('sign-in'); setError(''); }}
+                    className="text-indigo-600 font-medium hover:underline"
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
             </p>
           </>
         )}

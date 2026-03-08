@@ -12,7 +12,10 @@ interface AuthContextValue {
   session: Session | null;
   plan: Plan;
   loading: boolean;
-  signInWithEmail: (email: string) => Promise<{ error: string | null }>;
+  /** Sign up with email + password (new users). */
+  signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** Sign in with email + password (returning users). */
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshPlan: () => Promise<void>;
@@ -23,7 +26,8 @@ const AuthContext = createContext<AuthContextValue>({
   session: null,
   plan: 'free',
   loading: true,
-  signInWithEmail: async () => ({ error: null }),
+  signUpWithEmail: async () => ({ error: null }),
+  signInWithPassword: async () => ({ error: null }),
   signInWithGoogle: async () => ({ error: null }),
   signOut: async () => {},
   refreshPlan: async () => {},
@@ -114,11 +118,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const signInWithEmail = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
+  const signUpWithEmail = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
       email,
+      password,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/reply` },
     });
+    if (error) return { error: error.message };
+    // Supabase sends a confirmation email on sign-up
+    return { error: null };
+  }, [supabase]);
+
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error?.message ?? null };
   }, [supabase]);
 
@@ -139,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchPlan]);
 
   return (
-    <AuthContext.Provider value={{ user, session, plan, loading, signInWithEmail, signInWithGoogle, signOut, refreshPlan }}>
+    <AuthContext.Provider value={{ user, session, plan, loading, signUpWithEmail, signInWithPassword, signInWithGoogle, signOut, refreshPlan }}>
       {children}
     </AuthContext.Provider>
   );
