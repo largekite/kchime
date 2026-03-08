@@ -186,12 +186,13 @@ export interface Contact {
   createdAt: string;
 }
 
-// --- Reply Packs ---
+// --- Reply Packs (synced from iOS ReplyPack.swift) ---
 
-export interface ReplyPackExample {
+export interface ReplyScenario {
   id: string;
-  prompt: string;          // what someone said
-  suggestedReplies: string[]; // 3-4 pre-written seed replies
+  message: string;         // what someone said (maps to iOS `message`)
+  context: string;         // situation description (maps to iOS `context`)
+  seedReplies: string[];   // 3 pre-written seed replies (maps to iOS `seedReplies`)
 }
 
 export interface ReplyPack {
@@ -199,8 +200,8 @@ export interface ReplyPack {
   title: string;
   description: string;
   emoji: string;
-  color: string;           // tailwind color key e.g. 'teal', 'amber'
-  examples: ReplyPackExample[];
+  color: string;           // semantic color key matching iOS: 'orange', 'teal', 'green', 'red'
+  scenarios: ReplyScenario[];
 }
 
 // --- Phrase of the Day ---

@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { REPLY_PACKS } from '@/lib/reply-packs';
 import { Package } from 'lucide-react';
+import { useState } from 'react';
 
-const COLOR_MAP: Record<string, { card: string; border: string; badge: string; icon: string }> = {
-  teal: { card: 'bg-teal-50', border: 'border-teal-200', badge: 'bg-teal-100 text-teal-700', icon: 'text-teal-600' },
-  indigo: { card: 'bg-indigo-50', border: 'border-indigo-200', badge: 'bg-indigo-100 text-indigo-700', icon: 'text-indigo-600' },
-  violet: { card: 'bg-violet-50', border: 'border-violet-200', badge: 'bg-violet-100 text-violet-700', icon: 'text-violet-600' },
-  amber: { card: 'bg-amber-50', border: 'border-amber-200', badge: 'bg-amber-100 text-amber-700', icon: 'text-amber-600' },
+// Color mapping matches iOS PackCard accentColor logic
+const COLOR_MAP: Record<string, { card: string; border: string; badge: string }> = {
+  orange: { card: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700' },
+  teal: { card: 'bg-teal-50', border: 'border-teal-200', badge: 'bg-teal-100 text-teal-700' },
+  green: { card: 'bg-green-50', border: 'border-green-200', badge: 'bg-green-100 text-green-700' },
+  red: { card: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-700' },
 };
 
 export default function ReplyPacksPage() {
@@ -18,11 +20,11 @@ export default function ReplyPacksPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Reply Packs</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Browse ready-made reply collections for everyday situations.
+          Pre-built message scenarios with instant replies. Tap a pack to explore.
         </p>
       </div>
 
-      {/* Pack cards grid */}
+      {/* Pack cards grid — matches iOS 2-column LazyVGrid */}
       <div className="grid gap-4 sm:grid-cols-2">
         {REPLY_PACKS.map((pack) => {
           const colors = COLOR_MAP[pack.color] ?? COLOR_MAP.teal;
@@ -32,21 +34,18 @@ export default function ReplyPacksPage() {
               href={`/packs/${pack.id}`}
               className={`group rounded-2xl border p-5 transition hover:shadow-md ${colors.card} ${colors.border}`}
             >
-              <div className="flex items-start gap-3">
-                <span className="text-3xl">{pack.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-gray-900 group-hover:text-teal-700 transition">
-                    {pack.title}
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-600 leading-snug">
-                    {pack.description}
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${colors.badge}`}>
-                      {pack.examples.length} examples
-                    </span>
-                    <span className="text-xs text-gray-400">Tap to browse</span>
-                  </div>
+              <div className="flex flex-col h-full min-h-[140px]">
+                <span className="text-3xl mb-2">{pack.emoji}</span>
+                <h2 className="text-lg font-bold text-gray-900 group-hover:text-teal-700 transition">
+                  {pack.title}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600 leading-snug line-clamp-2">
+                  {pack.description}
+                </p>
+                <div className="mt-auto pt-3">
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${colors.badge}`}>
+                    {pack.scenarios.length} scenarios
+                  </span>
                 </div>
               </div>
             </Link>
@@ -62,7 +61,7 @@ export default function ReplyPacksPage() {
             <p className="text-sm font-semibold text-gray-800">How Reply Packs work</p>
             <p className="text-sm text-gray-600 mt-1">
               Each pack contains real message scenarios with pre-written replies you can copy instantly.
-              Tap any example to generate fresh AI variations tailored to the situation.
+              Tap any scenario to generate fresh AI variations tailored to the situation.
             </p>
           </div>
         </div>
