@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ClientInit />
           <AppleSDKInit />
           <Navbar />
-          <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+          <main className="mx-auto max-w-4xl px-4 py-6 pb-24 md:pb-6 md:pl-56">{children}</main>
           <NotificationPrompt />
         </Providers>
       </body>
