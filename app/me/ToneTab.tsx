@@ -21,7 +21,7 @@ function formalityLabel(v: number): string {
   return 'Formal';
 }
 
-export default function ToneProfilePage() {
+export default function ToneTab() {
   const [profile, setProfile] = useState<ToneProfile>(() => getToneProfile());
   const [saved, setSaved] = useState(false);
   const [relationships, setRelationships] = useState<RelationshipProfile[]>(() => getAllRelationships());

@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  BarChart2, BookOpen, Briefcase, Dumbbell, Gift, Mic,
-  MessageSquare, Package, RefreshCw, Wand2, Users,
-  Lightbulb, Sliders, UserCircle, MoreHorizontal, X,
+  BookOpen, Dumbbell, MessageSquare, UserCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useState } from 'react';
@@ -14,30 +12,16 @@ import { AuthModal } from '@/components/shared/AuthModal';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import { NotificationToggle } from '@/components/layout/NotificationPrompt';
 
-// All tabs in display order
+// 4 main tabs — clean, natural flow
 const ALL_TABS = [
-  { href: '/reply', label: 'Quick Reply', Icon: MessageSquare },
-  { href: '/fix', label: 'Fix Message', Icon: Wand2 },
-  { href: '/work', label: 'Work', Icon: Briefcase },
-  { href: '/converse', label: 'Converse', Icon: Users },
-  { href: '/live', label: 'Live', Icon: Mic },
-  { href: '/packs', label: 'Packs', Icon: Package },
-  { href: '/practice', label: 'Practice', Icon: Dumbbell, alsoActive: ['/custom'] },
-  { href: '/library', label: 'Library', Icon: BookOpen },
-  { href: '/review', label: 'Review', Icon: RefreshCw },
-  { href: '/daily', label: 'Daily', Icon: Lightbulb },
-  { href: '/dashboard', label: 'Dashboard', Icon: BarChart2 },
-  { href: '/contacts', label: 'Contacts', Icon: UserCircle },
-  { href: '/tone', label: 'Tone', Icon: Sliders },
-  { href: '/refer', label: 'Refer', Icon: Gift },
+  { href: '/reply', label: 'Reply', Icon: MessageSquare, matches: ['/reply', '/fix', '/work'] },
+  { href: '/practice', label: 'Practice', Icon: Dumbbell, matches: ['/practice', '/converse', '/live', '/packs', '/custom'] },
+  { href: '/learn', label: 'Learn', Icon: BookOpen, matches: ['/learn', '/library', '/review', '/daily'] },
+  { href: '/me', label: 'Me', Icon: UserCircle, matches: ['/me', '/dashboard', '/tone', '/contacts', '/refer'] },
 ];
 
-// Mobile bottom bar: 4 primary tabs + More
-const PRIMARY_TABS = ALL_TABS.slice(0, 4);
-const OVERFLOW_TABS = ALL_TABS.slice(4);
-
-function isActive(pathname: string, href: string, alsoActive?: readonly string[]) {
-  return pathname.startsWith(href) || (alsoActive?.some((p) => pathname.startsWith(p)) ?? false);
+function isActive(pathname: string, matches: string[]) {
+  return matches.some((m) => pathname.startsWith(m));
 }
 
 export function Navbar() {
@@ -49,9 +33,6 @@ export function Navbar() {
   const [showAuth, setShowAuth] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [showMore, setShowMore] = useState(false);
-
-  const moreIsActive = OVERFLOW_TABS.some((t) => isActive(pathname, t.href, 'alsoActive' in t ? t.alsoActive : undefined));
 
   return (
     <>
@@ -120,14 +101,14 @@ export function Navbar() {
       {/* ─── Desktop: vertical sidebar (hidden on mobile) ─── */}
       <aside className="hidden md:fixed md:top-[57px] md:left-0 md:bottom-0 md:flex md:w-52 md:flex-col md:border-r md:border-gray-100 md:bg-white md:z-30">
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          {ALL_TABS.map(({ href, label, Icon, ...rest }) => {
-            const active = isActive(pathname, href, 'alsoActive' in rest ? (rest as { alsoActive: string[] }).alsoActive : undefined);
+          {ALL_TABS.map(({ href, label, Icon, matches }) => {
+            const active = isActive(pathname, matches);
             return (
               <Link
                 key={href}
                 href={href}
                 className={clsx(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   active
                     ? 'bg-indigo-50 text-indigo-700'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -144,8 +125,8 @@ export function Navbar() {
       {/* ─── Mobile: bottom tab bar (hidden on desktop) ─── */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur md:hidden">
         <div className="flex items-stretch justify-around">
-          {PRIMARY_TABS.map(({ href, label, Icon, ...rest }) => {
-            const active = isActive(pathname, href, 'alsoActive' in rest ? (rest as { alsoActive: string[] }).alsoActive : undefined);
+          {ALL_TABS.map(({ href, label, Icon, matches }) => {
+            const active = isActive(pathname, matches);
             return (
               <Link
                 key={href}
@@ -160,57 +141,8 @@ export function Navbar() {
               </Link>
             );
           })}
-
-          {/* More button */}
-          <button
-            onClick={() => setShowMore(true)}
-            className={clsx(
-              'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
-              moreIsActive ? 'text-indigo-600' : 'text-gray-400'
-            )}
-          >
-            <MoreHorizontal className="h-5 w-5" />
-            <span>More</span>
-          </button>
         </div>
       </nav>
-
-      {/* ─── Mobile "More" sheet ─── */}
-      {showMore && (
-        <div className="fixed inset-0 z-50 md:hidden" onClick={() => setShowMore(false)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <div
-            className="absolute bottom-0 left-0 right-0 rounded-t-2xl bg-white pb-8 pt-3 shadow-2xl animate-in slide-in-from-bottom"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 pb-3 border-b border-gray-100">
-              <span className="text-sm font-semibold text-gray-900">More</span>
-              <button onClick={() => setShowMore(false)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-1 px-3 pt-3">
-              {OVERFLOW_TABS.map(({ href, label, Icon, ...rest }) => {
-                const active = isActive(pathname, href, 'alsoActive' in rest ? (rest as { alsoActive: string[] }).alsoActive : undefined);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setShowMore(false)}
-                    className={clsx(
-                      'flex flex-col items-center gap-1 rounded-xl py-3 text-[11px] font-medium transition-colors',
-                      active ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:bg-gray-50'
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       {showUpgrade && (

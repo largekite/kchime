@@ -37,7 +37,7 @@ interface Debrief {
   fluency: 'Excellent' | 'Good' | 'Keep practicing';
 }
 
-export default function ConversePage() {
+export default function ConverseTab() {
   const { plan, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);

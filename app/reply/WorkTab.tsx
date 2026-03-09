@@ -34,7 +34,7 @@ function SkeletonCard() {
   );
 }
 
-export default function WorkPage() {
+export default function WorkTab() {
   const [preset, setPreset] = useState<WorkplacePreset | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);

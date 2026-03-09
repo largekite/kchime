@@ -18,7 +18,7 @@ const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = 
 
 const FREE_LIMIT = 3;
 
-export default function FixPage() {
+export default function FixTab() {
   const { plan } = useAuth();
   const [draft, setDraft] = useState('');
   const [messageType, setMessageType] = useState(MESSAGE_TYPES[0]);

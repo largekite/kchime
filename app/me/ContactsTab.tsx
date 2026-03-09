@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import { Plus, Trash2, X, Search, UserPlus } from 'lucide-react';
 
-export default function ContactsPage() {
+export default function ContactsTab() {
   const [contacts, setContacts] = useState<Contact[]>(() => getContacts());
   const [relationships] = useState<RelationshipProfile[]>(() => getAllRelationships());
   const [search, setSearch] = useState('');

@@ -14,7 +14,7 @@ const CATEGORY_BADGE: Record<DailyPhrase['category'], { label: string; color: st
   cultural: { label: 'Cultural', color: 'bg-blue-100 text-blue-700' },
 };
 
-export default function DailyPhrasePage() {
+export default function DailyTab() {
   const todayPhrase = getPhraseOfTheDay();
   const recentPhrases = getRecentPhrases();
 

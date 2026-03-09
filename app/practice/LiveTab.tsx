@@ -17,7 +17,7 @@ const TONE_COLORS: Record<string, string> = {
   Safe: 'text-emerald-700',
 };
 
-export default function LivePage() {
+export default function LiveTab() {
   const { plan, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [rounds, setRounds] = useState<ConversationRound[]>([]);

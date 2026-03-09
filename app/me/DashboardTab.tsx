@@ -76,7 +76,7 @@ function shortDay(dateStr: string) {
   return d.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
-export default function DashboardPage() {
+export default function DashboardTab() {
   const { progress, streak, completedScenarios, todayCount, xp, levelInfo, earnedBadges } = useProgress();
   const shareRef = useRef<HTMLDivElement>(null);
 

@@ -9,7 +9,6 @@ import {
   getDueForReview, getCollections, createCollection,
   deleteCollection, togglePhraseInCollection,
 } from '@/lib/storage';
-import Link from 'next/link';
 
 const TONE_STYLES: Record<Tone, string> = {
   Casual: 'bg-indigo-100 text-indigo-700',
@@ -26,7 +25,7 @@ function SrsChip({ srs }: { srs?: SavedPhrase['srs'] }) {
   return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Expert</span>;
 }
 
-export default function LibraryPage() {
+export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   const { phrases, remove } = useSavedPhrases();
   const [search, setSearch] = useState('');
   const [filterTone, setFilterTone] = useState<Tone | 'All'>('All');
@@ -135,13 +134,13 @@ export default function LibraryPage() {
               </button>
             )}
             {dueCount > 0 && (
-              <Link
-                href="/review"
+              <button
+                onClick={() => onNavigate?.('review')}
                 className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
               >
                 Review
                 <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
-              </Link>
+              </button>
             )}
           </div>
         </div>

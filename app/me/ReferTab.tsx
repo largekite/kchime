@@ -18,7 +18,7 @@ const HOW_IT_WORKS = [
   { step: '3', text: 'You both get 7 days of Pro — free.' },
 ];
 
-export default function ReferPage() {
+export default function ReferTab() {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [referral, setReferral] = useState<ReferralData | null>(null);

@@ -13,7 +13,7 @@ const COLOR_MAP: Record<string, { card: string; border: string; badge: string }>
   red: { card: 'bg-red-50', border: 'border-red-200', badge: 'bg-red-100 text-red-700' },
 };
 
-export default function ReplyPacksPage() {
+export default function PacksTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
