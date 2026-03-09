@@ -10,21 +10,34 @@ interface Props {
   onClose: () => void;
 }
 
-const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/4gM28lfhk5zy18X2m85sA00';
-
 export function UpgradePrompt({ reason, onClose }: Props) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  function handleUpgrade() {
-    if (!user) {
+  async function handleUpgrade() {
+    if (!user || !session) {
       setShowAuth(true);
       return;
     }
-    const url = new URL(STRIPE_PAYMENT_LINK);
-    url.searchParams.set('client_reference_id', user.id);
-    if (user.email) url.searchParams.set('prefilled_email', user.email);
-    window.location.href = url.toString();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Failed to start checkout');
+      }
+      const { url } = await res.json();
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setLoading(false);
+    }
   }
 
   if (showAuth) {
@@ -62,10 +75,12 @@ export function UpgradePrompt({ reason, onClose }: Props) {
         <div className="mt-5 space-y-2">
           <button
             onClick={handleUpgrade}
-            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            disabled={loading}
+            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
           >
-            Upgrade — $7 / month
+            {loading ? 'Loading…' : 'Upgrade — $7 / month'}
           </button>
+          {error && <p className="text-xs text-red-600">{error}</p>}
 
           <button
             onClick={onClose}
