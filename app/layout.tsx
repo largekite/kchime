@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { ClientInit } from '@/components/layout/ClientInit';
-import { AppleSDKInit } from '@/components/layout/AppleSDKInit';
 import { Providers } from '@/components/layout/Providers';
 import { NotificationPrompt } from '@/components/layout/NotificationPrompt';
 
@@ -35,7 +34,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-gray-50 antialiased">
         <Providers>
           <ClientInit />
-          <AppleSDKInit />
           <Navbar />
           <main className="mx-auto max-w-4xl px-4 py-6 pb-24 md:pb-6 md:pl-56">{children}</main>
           <NotificationPrompt />
