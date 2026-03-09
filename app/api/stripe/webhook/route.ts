@@ -1,29 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import sql from '@/lib/db';
+import { createServiceClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
-async function setTierStatus(
-  appleUserID: string,
-  isPro: boolean,
-  isMax: boolean,
-  periodEnd: Date | null
+async function upsertSubscription(
+  userId: string,
+  plan: 'pro' | 'max' | 'free',
+  periodEnd: Date | null,
 ) {
-  await sql`
-    UPDATE users
-    SET
-      is_pro         = ${isPro},
-      is_max         = ${isMax},
-      pro_expires_at = ${periodEnd ? periodEnd.toISOString() : null}
-    WHERE apple_user_id = ${appleUserID}
-  `;
+  const supabase = createServiceClient();
+  await supabase.from('subscriptions').upsert(
+    {
+      user_id: userId,
+      plan,
+      period_end: periodEnd?.toISOString() ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  );
 }
 
-function getTier(sub: Stripe.Subscription): { isPro: boolean; isMax: boolean } {
+function getTier(sub: Stripe.Subscription): 'pro' | 'max' {
   const priceId = sub.items?.data?.[0]?.price?.id;
-  const isMax = !!process.env.STRIPE_MAX_PRICE_ID && priceId === process.env.STRIPE_MAX_PRICE_ID;
-  return { isPro: true, isMax };
+  if (process.env.STRIPE_MAX_PRICE_ID && priceId === process.env.STRIPE_MAX_PRICE_ID) {
+    return 'max';
+  }
+  return 'pro';
 }
 
 export async function POST(req: NextRequest) {
@@ -44,23 +47,23 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        const appleUserID = sub.metadata?.apple_user_id;
-        if (!appleUserID) break;
+        const userId = sub.metadata?.user_id;
+        if (!userId) break;
 
         const isActive = sub.status === 'active' || sub.status === 'trialing';
         const rawEnd = sub.items?.data?.[0]?.current_period_end;
         const periodEnd = rawEnd ? new Date(rawEnd * 1000) : null;
-        const { isPro, isMax } = isActive ? getTier(sub) : { isPro: false, isMax: false };
-        await setTierStatus(appleUserID, isPro, isMax, isActive ? periodEnd : null);
+        const plan = isActive ? getTier(sub) : 'free';
+        await upsertSubscription(userId, plan, isActive ? periodEnd : null);
         break;
       }
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        const appleUserID = sub.metadata?.apple_user_id;
-        if (!appleUserID) break;
+        const userId = sub.metadata?.user_id;
+        if (!userId) break;
 
-        await setTierStatus(appleUserID, false, false, null);
+        await upsertSubscription(userId, 'free', null);
         break;
       }
 
@@ -71,10 +74,10 @@ export async function POST(req: NextRequest) {
         if (!subscriptionId) break;
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
-        const appleUserID = sub.metadata?.apple_user_id;
-        if (!appleUserID) break;
+        const userId = sub.metadata?.user_id;
+        if (!userId) break;
 
-        await setTierStatus(appleUserID, false, false, null);
+        await upsertSubscription(userId, 'free', null);
         break;
       }
     }
