@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmDialogProps {
@@ -24,10 +24,25 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [visible, setVisible] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const uid = useId();
+  const titleId = `confirm-title-${uid}`;
+  const messageId = `confirm-message-${uid}`;
 
   useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-    cancelRef.current?.focus();
+    requestAnimationFrame(() => {
+      setVisible(true);
+      cancelRef.current?.focus();
+    });
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') handleCancel();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleConfirm() {
@@ -46,8 +61,8 @@ export function ConfirmDialog({
       onClick={handleCancel}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="confirm-title"
-      aria-describedby="confirm-message"
+      aria-labelledby={titleId}
+      aria-describedby={messageId}
     >
       <div
         className={`w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl transition-all duration-150 ${visible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
@@ -60,8 +75,8 @@ export function ConfirmDialog({
             </div>
           )}
           <div>
-            <h3 id="confirm-title" className="text-base font-semibold text-gray-900">{title}</h3>
-            <p id="confirm-message" className="text-sm text-gray-500 mt-1">{message}</p>
+            <h3 id={titleId} className="text-base font-semibold text-gray-900">{title}</h3>
+            <p id={messageId} className="text-sm text-gray-500 mt-1">{message}</p>
           </div>
         </div>
         <div className="flex gap-2">

@@ -56,7 +56,7 @@ export default function ContactsTab() {
   const filteredContacts = contacts.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.notes.toLowerCase().includes(search.toLowerCase()),
+      (c.notes ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
   function getRelationship(id?: string) {

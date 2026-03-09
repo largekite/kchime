@@ -28,8 +28,6 @@ export function Navbar() {
   const pathname = usePathname();
   const { user, plan, loading, signOut } = useAuth();
 
-  if (pathname === '/') return null;
-
   const [showAuth, setShowAuth] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -46,6 +44,8 @@ export function Navbar() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showMenu]);
+
+  if (pathname === '/') return null;
 
   return (
     <>
@@ -73,7 +73,7 @@ export function Navbar() {
                   className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 >
                   <span className="h-6 w-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                    {user.email?.[0].toUpperCase()}
+                    {user.email?.[0]?.toUpperCase() ?? '?'}
                   </span>
                   {plan === 'pro' && (
                     <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">Pro</span>

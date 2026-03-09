@@ -6,7 +6,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useToast } from '@/components/shared/Toast';
 import type { Collection, SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getDueForReview, getCollections, createCollection,
   deleteCollection, togglePhraseInCollection,
@@ -44,6 +44,19 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
   const [newColName, setNewColName] = useState('');
   const [showNewCol, setShowNewCol] = useState(false);
   const [colMenuPhrase, setColMenuPhrase] = useState<string | null>(null); // phraseId whose menu is open
+  const colMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close collection dropdown on outside click
+  useEffect(() => {
+    if (!colMenuPhrase) return;
+    function handleClick(e: MouseEvent) {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setColMenuPhrase(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [colMenuPhrase]);
 
   useEffect(() => {
     setDueCount(getDueForReview().length);
@@ -86,9 +99,13 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
   }
 
   async function handleCopy(phrase: SavedPhrase) {
-    await navigator.clipboard.writeText(phrase.text);
-    setCopied(phrase.id);
-    setTimeout(() => setCopied(null), 2000);
+    try {
+      await navigator.clipboard.writeText(phrase.text);
+      setCopied(phrase.id);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   function formatDate(iso: string) {
@@ -275,7 +292,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
 
                   {/* Collections dropdown */}
                   {collections.length > 0 && (
-                    <div className="relative">
+                    <div className="relative" ref={colMenuPhrase === phrase.id ? colMenuRef : undefined}>
                       <button
                         onClick={() => setColMenuPhrase(colMenuPhrase === phrase.id ? null : phrase.id)}
                         className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"

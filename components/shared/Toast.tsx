@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { Check, X, AlertTriangle, Info } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -39,14 +39,18 @@ const STYLES: Record<ToastType, string> = {
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
   const [visible, setVisible] = useState(false);
   const Icon = ICONS[toast.type];
+  const innerTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(() => onRemove(toast.id), 200);
+      innerTimer.current = setTimeout(() => onRemove(toast.id), 200);
     }, 2500);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(innerTimer.current);
+    };
   }, [toast.id, onRemove]);
 
   return (
