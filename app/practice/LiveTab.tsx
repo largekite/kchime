@@ -25,6 +25,7 @@ export default function LiveTab() {
   const [error, setError] = useState('');
   const [autoMode, setAutoMode] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const [showExplain, setShowExplain] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -32,7 +33,8 @@ export default function LiveTab() {
 
   const handleSilence = useCallback(
     async (transcript: string) => {
-      if (!autoMode || !transcript.trim() || isProcessing) return;
+      if (!autoMode || !transcript.trim() || isProcessingRef.current) return;
+      isProcessingRef.current = true;
       setIsProcessing(true);
       setLoading(true);
       const roundId = `round-${Date.now()}`;
@@ -49,10 +51,11 @@ export default function LiveTab() {
         setError(e instanceof Error ? e.message : 'Error generating replies.');
       } finally {
         setLoading(false);
+        isProcessingRef.current = false;
         setIsProcessing(false);
       }
     },
-    [autoMode, isProcessing]
+    [autoMode]
   );
 
   const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } =
