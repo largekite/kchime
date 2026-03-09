@@ -59,9 +59,13 @@ export default function PackDetailPage() {
   const selectedScenario = pack.scenarios.find((s) => s.id === selectedScenarioId);
 
   async function handleCopy(text: string, id: string) {
-    await navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   async function handleGenerateVariations(message: string) {

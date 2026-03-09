@@ -1,28 +1,28 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { MessageSquare, Wand2, Briefcase } from 'lucide-react';
+import { BookOpen, RefreshCw, Lightbulb } from 'lucide-react';
 import clsx from 'clsx';
 import dynamic from 'next/dynamic';
 import { TabSkeleton } from '@/components/shared/Skeleton';
 
-const QuickReplyTab = dynamic(() => import('./QuickReplyTab'), { ssr: false, loading: () => <TabSkeleton /> });
-const FixTab = dynamic(() => import('./FixTab'), { ssr: false, loading: () => <TabSkeleton /> });
-const WorkTab = dynamic(() => import('./WorkTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const LibraryTab = dynamic(() => import('./LibraryTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const ReviewTab = dynamic(() => import('./ReviewTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const DailyTab = dynamic(() => import('./DailyTab'), { ssr: false, loading: () => <TabSkeleton /> });
 
-type ReplyMode = 'quick' | 'fix' | 'work';
+type LearnMode = 'library' | 'review' | 'daily';
 
-const MODES: { id: ReplyMode; label: string; desc: string; Icon: typeof MessageSquare }[] = [
-  { id: 'quick', label: 'Quick Reply', desc: 'Get replies to what someone said', Icon: MessageSquare },
-  { id: 'fix', label: 'Fix Message', desc: 'Polish your draft message', Icon: Wand2 },
-  { id: 'work', label: 'Work Reply', desc: 'Strategic workplace responses', Icon: Briefcase },
+const MODES: { id: LearnMode; label: string; Icon: typeof BookOpen }[] = [
+  { id: 'library', label: 'Saved Phrases', Icon: BookOpen },
+  { id: 'review', label: 'Review', Icon: RefreshCw },
+  { id: 'daily', label: 'Daily Phrase', Icon: Lightbulb },
 ];
 
-export default function ReplyHubPage() {
-  const [mode, setMode] = useState<ReplyMode>('quick');
+export default function LearnHubPage() {
+  const [mode, setMode] = useState<LearnMode>('library');
   const [animKey, setAnimKey] = useState(0);
 
-  const switchMode = useCallback((id: ReplyMode) => {
+  const switchMode = useCallback((id: LearnMode) => {
     setMode(id);
     setAnimKey((k) => k + 1);
   }, []);
@@ -30,7 +30,7 @@ export default function ReplyHubPage() {
   return (
     <div className="space-y-4">
       {/* Mode selector */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Reply modes">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Learn modes">
         {MODES.map(({ id, label, Icon }) => (
           <button
             key={id}
@@ -53,9 +53,9 @@ export default function ReplyHubPage() {
 
       {/* Content */}
       <div key={animKey} className="animate-tab-in" role="tabpanel" id={`panel-${mode}`}>
-        {mode === 'quick' && <QuickReplyTab />}
-        {mode === 'fix' && <FixTab />}
-        {mode === 'work' && <WorkTab />}
+        {mode === 'library' && <LibraryTab onNavigate={(tab) => switchMode(tab as LearnMode)} />}
+        {mode === 'review' && <ReviewTab onNavigate={(tab) => switchMode(tab as LearnMode)} />}
+        {mode === 'daily' && <DailyTab />}
       </div>
     </div>
   );

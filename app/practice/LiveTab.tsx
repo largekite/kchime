@@ -17,7 +17,7 @@ const TONE_COLORS: Record<string, string> = {
   Safe: 'text-emerald-700',
 };
 
-export default function LivePage() {
+export default function LiveTab() {
   const { plan, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [rounds, setRounds] = useState<ConversationRound[]>([]);
@@ -25,6 +25,7 @@ export default function LivePage() {
   const [error, setError] = useState('');
   const [autoMode, setAutoMode] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const [showExplain, setShowExplain] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -32,7 +33,8 @@ export default function LivePage() {
 
   const handleSilence = useCallback(
     async (transcript: string) => {
-      if (!autoMode || !transcript.trim() || isProcessing) return;
+      if (!autoMode || !transcript.trim() || isProcessingRef.current) return;
+      isProcessingRef.current = true;
       setIsProcessing(true);
       setLoading(true);
       const roundId = `round-${Date.now()}`;
@@ -49,10 +51,11 @@ export default function LivePage() {
         setError(e instanceof Error ? e.message : 'Error generating replies.');
       } finally {
         setLoading(false);
+        isProcessingRef.current = false;
         setIsProcessing(false);
       }
     },
-    [autoMode, isProcessing]
+    [autoMode]
   );
 
   const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } =
@@ -233,7 +236,7 @@ export default function LivePage() {
                   </p>
                   <p className="text-sm text-gray-900">{reply.text}</p>
                   <button
-                    onClick={() => navigator.clipboard.writeText(reply.text)}
+                    onClick={() => navigator.clipboard.writeText(reply.text).catch(() => {})}
                     className="mt-1.5 text-xs text-gray-400 hover:text-gray-700 transition"
                   >
                     Copy
@@ -250,7 +253,7 @@ export default function LivePage() {
                     </p>
                     <p className="text-sm text-gray-900">{reply.text}</p>
                     <button
-                      onClick={() => navigator.clipboard.writeText(reply.text)}
+                      onClick={() => navigator.clipboard.writeText(reply.text).catch(() => {})}
                       className="mt-1.5 text-xs text-gray-400 hover:text-gray-700 transition"
                     >
                       Copy

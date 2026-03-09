@@ -5,13 +5,17 @@ import type { Contact, RelationshipProfile } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { Plus, Trash2, X, Search, UserPlus } from 'lucide-react';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { useToast } from '@/components/shared/Toast';
 
-export default function ContactsPage() {
+export default function ContactsTab() {
   const [contacts, setContacts] = useState<Contact[]>(() => getContacts());
   const [relationships] = useState<RelationshipProfile[]>(() => getAllRelationships());
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // New contact form
   const [newName, setNewName] = useState('');
@@ -33,23 +37,26 @@ export default function ContactsPage() {
     setNewNotes('');
     setNewRelId('');
     setShowNew(false);
+    toast('Contact added');
   }
 
   function handleUpdate(contact: Contact) {
     saveContact(contact);
     setContacts(getContacts());
     setEditingId(null);
+    toast('Contact updated');
   }
 
   function handleDelete(id: string) {
     deleteContact(id);
     setContacts(getContacts());
+    toast('Contact deleted');
   }
 
   const filteredContacts = contacts.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.notes.toLowerCase().includes(search.toLowerCase()),
+      (c.notes ?? '').toLowerCase().includes(search.toLowerCase()),
   );
 
   function getRelationship(id?: string) {
@@ -191,8 +198,9 @@ export default function ContactsPage() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleDelete(contact.id)}
+                      onClick={() => setConfirmDeleteId(contact.id)}
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                      aria-label={`Delete ${contact.name}`}
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -213,6 +221,18 @@ export default function ContactsPage() {
         </div>
       ) : (
         <p className="text-sm text-gray-400 text-center py-6">No contacts match &ldquo;{search}&rdquo;</p>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="Delete contact?"
+          message="This contact and their notes will be permanently removed."
+          onConfirm={() => {
+            handleDelete(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   );

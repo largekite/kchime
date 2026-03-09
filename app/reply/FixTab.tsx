@@ -18,7 +18,7 @@ const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = 
 
 const FREE_LIMIT = 3;
 
-export default function FixPage() {
+export default function FixTab() {
   const { plan } = useAuth();
   const [draft, setDraft] = useState('');
   const [messageType, setMessageType] = useState(MESSAGE_TYPES[0]);
@@ -69,9 +69,13 @@ export default function FixPage() {
   }
 
   async function handleCopy(text: string, id: string) {
-    await navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(''), 1800);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(''), 1800);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   const remaining = FREE_LIMIT - usageCount;

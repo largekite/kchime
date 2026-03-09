@@ -37,13 +37,14 @@ interface Debrief {
   fluency: 'Excellent' | 'Good' | 'Keep practicing';
 }
 
-export default function ConversePage() {
+export default function ConverseTab() {
   const { plan, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const [error, setError] = useState('');
   const [debrief, setDebrief] = useState<Debrief | null>(null);
   const [isDebriefing, setIsDebriefing] = useState(false);
@@ -51,13 +52,17 @@ export default function ConversePage() {
 
   const handleUserSpeech = useCallback(
     async (transcript: string) => {
-      if (!selectedPersona || isProcessing || isAiSpeaking) return;
+      if (!selectedPersona || isProcessingRef.current || isAiSpeaking) return;
       if (!transcript.trim()) return;
 
+      isProcessingRef.current = true;
       setIsProcessing(true);
       const userTurn: Turn = { speaker: 'user', text: transcript };
-      const newHistory = [...history, userTurn];
-      setHistory(newHistory);
+      let newHistory: Turn[] = [];
+      setHistory((prev) => {
+        newHistory = [...prev, userTurn];
+        return newHistory;
+      });
 
       try {
         const aiReply = await aiConverse(
@@ -72,10 +77,11 @@ export default function ConversePage() {
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Something went wrong.');
       } finally {
+        isProcessingRef.current = false;
         setIsProcessing(false);
       }
     },
-    [selectedPersona, history, isProcessing, isAiSpeaking],
+    [selectedPersona, isAiSpeaking],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({

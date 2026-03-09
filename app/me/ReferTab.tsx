@@ -18,7 +18,7 @@ const HOW_IT_WORKS = [
   { step: '3', text: 'You both get 7 days of Pro — free.' },
 ];
 
-export default function ReferPage() {
+export default function ReferTab() {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [referral, setReferral] = useState<ReferralData | null>(null);
@@ -52,9 +52,13 @@ export default function ReferPage() {
 
   async function handleCopy() {
     if (!referralUrl) return;
-    await navigator.clipboard.writeText(referralUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   async function handleShare() {

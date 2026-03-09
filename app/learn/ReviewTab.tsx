@@ -5,7 +5,6 @@ import { getDueForReview, updateSRS } from '@/lib/storage';
 import { explainPhrases } from '@/lib/claude';
 import type { PhraseExplanation, SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
-import Link from 'next/link';
 
 const TONE_STYLES: Record<Tone, string> = {
   Casual: 'bg-indigo-100 text-indigo-700',
@@ -14,7 +13,7 @@ const TONE_STYLES: Record<Tone, string> = {
   Safe: 'bg-emerald-100 text-emerald-700',
 };
 
-export default function ReviewPage() {
+export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const [queue, setQueue] = useState<SavedPhrase[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -79,12 +78,12 @@ export default function ReviewPage() {
         ) : (
           <p className="text-gray-500">No phrases due for review today. Come back tomorrow!</p>
         )}
-        <Link
-          href="/library"
+        <button
+          onClick={() => onNavigate?.('library')}
           className="inline-block rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
         >
           Back to Library
-        </Link>
+        </button>
       </div>
     );
   }
@@ -99,7 +98,7 @@ export default function ReviewPage() {
       <div>
         <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
           <span>Card {index + 1} of {queue.length}</span>
-          <Link href="/library" className="hover:text-gray-700 transition">Exit</Link>
+          <button onClick={() => onNavigate?.('library')} className="hover:text-gray-700 transition">Exit</button>
         </div>
         <div className="h-1.5 w-full rounded-full bg-gray-100">
           <div

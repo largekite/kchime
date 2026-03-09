@@ -76,7 +76,7 @@ function shortDay(dateStr: string) {
   return d.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
-export default function DashboardPage() {
+export default function DashboardTab() {
   const { progress, streak, completedScenarios, todayCount, xp, levelInfo, earnedBadges } = useProgress();
   const shareRef = useRef<HTMLDivElement>(null);
 
@@ -92,7 +92,7 @@ export default function DashboardPage() {
   function getCategoryStats(cat: ScenarioCategory) {
     const all = getScenariosByCategory(cat);
     const done = all.filter((s) => completedScenarios.includes(s.id)).length;
-    return { done, total: all.length, pct: Math.round((done / all.length) * 100) };
+    return { done, total: all.length, pct: all.length > 0 ? Math.round((done / all.length) * 100) : 0 };
   }
 
   const DAILY_GOAL = getDailyGoal();

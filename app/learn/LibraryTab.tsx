@@ -2,14 +2,15 @@
 
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { useToast } from '@/components/shared/Toast';
 import type { Collection, SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getDueForReview, getCollections, createCollection,
   deleteCollection, togglePhraseInCollection,
 } from '@/lib/storage';
-import Link from 'next/link';
 
 const TONE_STYLES: Record<Tone, string> = {
   Casual: 'bg-indigo-100 text-indigo-700',
@@ -26,20 +27,36 @@ function SrsChip({ srs }: { srs?: SavedPhrase['srs'] }) {
   return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Expert</span>;
 }
 
-export default function LibraryPage() {
+export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   const { phrases, remove } = useSavedPhrases();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [filterTone, setFilterTone] = useState<Tone | 'All'>('All');
   const [filterCollection, setFilterCollection] = useState<string | 'All'>('All');
   const [sharePhrase, setSharePhrase] = useState<SavedPhrase | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [dueCount, setDueCount] = useState(0);
+  const [confirmDeleteCol, setConfirmDeleteCol] = useState<string | null>(null);
+  const [confirmDeletePhrase, setConfirmDeletePhrase] = useState<string | null>(null);
 
   // Collections state
   const [collections, setCollections] = useState<Collection[]>([]);
   const [newColName, setNewColName] = useState('');
   const [showNewCol, setShowNewCol] = useState(false);
   const [colMenuPhrase, setColMenuPhrase] = useState<string | null>(null); // phraseId whose menu is open
+  const colMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close collection dropdown on outside click
+  useEffect(() => {
+    if (!colMenuPhrase) return;
+    function handleClick(e: MouseEvent) {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setColMenuPhrase(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [colMenuPhrase]);
 
   useEffect(() => {
     setDueCount(getDueForReview().length);
@@ -82,9 +99,13 @@ export default function LibraryPage() {
   }
 
   async function handleCopy(phrase: SavedPhrase) {
-    await navigator.clipboard.writeText(phrase.text);
-    setCopied(phrase.id);
-    setTimeout(() => setCopied(null), 2000);
+    try {
+      await navigator.clipboard.writeText(phrase.text);
+      setCopied(phrase.id);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   function formatDate(iso: string) {
@@ -97,12 +118,14 @@ export default function LibraryPage() {
     setCollections((prev) => [...prev, col]);
     setNewColName('');
     setShowNewCol(false);
+    toast('Collection created');
   }
 
   function handleDeleteCollection(id: string) {
     deleteCollection(id);
     setCollections((prev) => prev.filter((c) => c.id !== id));
     if (filterCollection === id) setFilterCollection('All');
+    toast('Collection deleted');
   }
 
   function handleTogglePhrase(collectionId: string, phraseId: string) {
@@ -135,13 +158,13 @@ export default function LibraryPage() {
               </button>
             )}
             {dueCount > 0 && (
-              <Link
-                href="/review"
+              <button
+                onClick={() => onNavigate?.('review')}
                 className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
               >
                 Review
                 <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -167,8 +190,9 @@ export default function LibraryPage() {
                     <span className="ml-1 opacity-60">{col.phraseIds.length}</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteCollection(col.id)}
+                    onClick={() => setConfirmDeleteCol(col.id)}
                     className="rounded-r-full bg-gray-100 px-1.5 py-1 text-xs text-gray-400 hover:bg-red-100 hover:text-red-500 transition"
+                    aria-label={`Delete ${col.name} collection`}
                     title="Delete collection"
                   >
                     ×
@@ -268,7 +292,7 @@ export default function LibraryPage() {
 
                   {/* Collections dropdown */}
                   {collections.length > 0 && (
-                    <div className="relative">
+                    <div className="relative" ref={colMenuPhrase === phrase.id ? colMenuRef : undefined}>
                       <button
                         onClick={() => setColMenuPhrase(colMenuPhrase === phrase.id ? null : phrase.id)}
                         className="rounded-md bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
@@ -296,7 +320,7 @@ export default function LibraryPage() {
                   )}
 
                   <button
-                    onClick={() => remove(phrase.id)}
+                    onClick={() => setConfirmDeletePhrase(phrase.id)}
                     className="ml-auto rounded-md px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-50 transition"
                   >
                     Delete
@@ -325,6 +349,31 @@ export default function LibraryPage() {
           prompt={sharePhrase.prompt}
           open={!!sharePhrase}
           onClose={() => setSharePhrase(null)}
+        />
+      )}
+
+      {confirmDeleteCol && (
+        <ConfirmDialog
+          title="Delete collection?"
+          message="Phrases in this collection won't be deleted, only the collection itself."
+          onConfirm={() => {
+            handleDeleteCollection(confirmDeleteCol);
+            setConfirmDeleteCol(null);
+          }}
+          onCancel={() => setConfirmDeleteCol(null)}
+        />
+      )}
+
+      {confirmDeletePhrase && (
+        <ConfirmDialog
+          title="Delete phrase?"
+          message="This phrase will be permanently removed from your library."
+          onConfirm={() => {
+            remove(confirmDeletePhrase);
+            toast('Phrase deleted');
+            setConfirmDeletePhrase(null);
+          }}
+          onCancel={() => setConfirmDeletePhrase(null)}
         />
       )}
     </>
