@@ -31,7 +31,11 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
   const styles = TONE_STYLES[reply.tone];
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(reply.text);
+    try {
+      await navigator.clipboard.writeText(reply.text);
+    } catch {
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

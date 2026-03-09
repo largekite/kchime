@@ -72,6 +72,7 @@ export function useSpeechRecognition({
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const transcriptRef = useRef('');
+  const stoppedRef = useRef(false);
 
   useEffect(() => {
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -96,6 +97,7 @@ export function useSpeechRecognition({
 
   const stop = useCallback(() => {
     clearSilenceTimer();
+    stoppedRef.current = true;
     recognitionRef.current?.stop();
     setIsListening(false);
   }, []);
@@ -104,6 +106,7 @@ export function useSpeechRecognition({
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SR) return;
 
+    stoppedRef.current = false;
     const recognition = new SR();
     recognition.lang = 'en-US';
     recognition.continuous = continuous;
@@ -131,7 +134,7 @@ export function useSpeechRecognition({
 
     recognition.onend = () => {
       setIsListening(false);
-      if (continuous) {
+      if (continuous && !stoppedRef.current) {
         try {
           recognition.start();
           setIsListening(true);
@@ -158,6 +161,7 @@ export function useSpeechRecognition({
   useEffect(() => {
     return () => {
       clearSilenceTimer();
+      stoppedRef.current = true;
       recognitionRef.current?.stop();
     };
   }, []);

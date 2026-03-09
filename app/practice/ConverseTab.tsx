@@ -44,6 +44,7 @@ export default function ConverseTab() {
   const [history, setHistory] = useState<Turn[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const isProcessingRef = useRef(false);
   const [error, setError] = useState('');
   const [debrief, setDebrief] = useState<Debrief | null>(null);
   const [isDebriefing, setIsDebriefing] = useState(false);
@@ -51,9 +52,10 @@ export default function ConverseTab() {
 
   const handleUserSpeech = useCallback(
     async (transcript: string) => {
-      if (!selectedPersona || isProcessing || isAiSpeaking) return;
+      if (!selectedPersona || isProcessingRef.current || isAiSpeaking) return;
       if (!transcript.trim()) return;
 
+      isProcessingRef.current = true;
       setIsProcessing(true);
       const userTurn: Turn = { speaker: 'user', text: transcript };
       let newHistory: Turn[] = [];
@@ -75,10 +77,11 @@ export default function ConverseTab() {
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Something went wrong.');
       } finally {
+        isProcessingRef.current = false;
         setIsProcessing(false);
       }
     },
-    [selectedPersona, isProcessing, isAiSpeaking],
+    [selectedPersona, isAiSpeaking],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({

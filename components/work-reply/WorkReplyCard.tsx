@@ -36,7 +36,7 @@ export function WorkReplyCard({ variation, isBest }: Props) {
     navigator.clipboard.writeText(variation.text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    });
+    }).catch(() => {});
   }
 
   return (
