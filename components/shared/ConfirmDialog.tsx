@@ -24,6 +24,8 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [visible, setVisible] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
   const uid = useId();
   const titleId = `confirm-title-${uid}`;
   const messageId = `confirm-message-${uid}`;
@@ -38,11 +40,13 @@ export function ConfirmDialog({
   // Close on Escape
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') handleCancel();
+      if (e.key === 'Escape') {
+        setVisible(false);
+        setTimeout(() => onCancelRef.current(), 150);
+      }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleConfirm() {

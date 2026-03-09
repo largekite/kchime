@@ -233,7 +233,7 @@ export default function LiveTab() {
                   </p>
                   <p className="text-sm text-gray-900">{reply.text}</p>
                   <button
-                    onClick={() => navigator.clipboard.writeText(reply.text)}
+                    onClick={() => navigator.clipboard.writeText(reply.text).catch(() => {})}
                     className="mt-1.5 text-xs text-gray-400 hover:text-gray-700 transition"
                   >
                     Copy
@@ -250,7 +250,7 @@ export default function LiveTab() {
                     </p>
                     <p className="text-sm text-gray-900">{reply.text}</p>
                     <button
-                      onClick={() => navigator.clipboard.writeText(reply.text)}
+                      onClick={() => navigator.clipboard.writeText(reply.text).catch(() => {})}
                       className="mt-1.5 text-xs text-gray-400 hover:text-gray-700 transition"
                     >
                       Copy

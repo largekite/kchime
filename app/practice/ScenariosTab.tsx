@@ -200,7 +200,7 @@ export default function ScenariosTab() {
               {allCategories.map((cat) => {
                 const meta = categoryMeta[cat];
                 const { done, total } = getCompletionForCategory(cat);
-                const pct = Math.round((done / total) * 100);
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
                 return (
                   <Link
                     key={cat}

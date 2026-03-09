@@ -56,8 +56,11 @@ export default function ConverseTab() {
 
       setIsProcessing(true);
       const userTurn: Turn = { speaker: 'user', text: transcript };
-      const newHistory = [...history, userTurn];
-      setHistory(newHistory);
+      let newHistory: Turn[] = [];
+      setHistory((prev) => {
+        newHistory = [...prev, userTurn];
+        return newHistory;
+      });
 
       try {
         const aiReply = await aiConverse(
@@ -75,7 +78,7 @@ export default function ConverseTab() {
         setIsProcessing(false);
       }
     },
-    [selectedPersona, history, isProcessing, isAiSpeaking],
+    [selectedPersona, isProcessing, isAiSpeaking],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({

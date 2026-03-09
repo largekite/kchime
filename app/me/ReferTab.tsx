@@ -52,9 +52,13 @@ export default function ReferTab() {
 
   async function handleCopy() {
     if (!referralUrl) return;
-    await navigator.clipboard.writeText(referralUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   async function handleShare() {

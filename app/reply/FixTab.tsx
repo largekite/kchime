@@ -69,9 +69,13 @@ export default function FixTab() {
   }
 
   async function handleCopy(text: string, id: string) {
-    await navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(''), 1800);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(''), 1800);
+    } catch {
+      // clipboard API may fail if page is not focused
+    }
   }
 
   const remaining = FREE_LIMIT - usageCount;
