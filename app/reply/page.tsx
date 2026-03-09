@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { MessageSquare, Wand2, Briefcase } from 'lucide-react';
 import clsx from 'clsx';
 import dynamic from 'next/dynamic';
+import { TabSkeleton } from '@/components/shared/Skeleton';
 
-const QuickReplyTab = dynamic(() => import('./QuickReplyTab'), { ssr: false });
-const FixTab = dynamic(() => import('./FixTab'), { ssr: false });
-const WorkTab = dynamic(() => import('./WorkTab'), { ssr: false });
+const QuickReplyTab = dynamic(() => import('./QuickReplyTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const FixTab = dynamic(() => import('./FixTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const WorkTab = dynamic(() => import('./WorkTab'), { ssr: false, loading: () => <TabSkeleton /> });
 
 type ReplyMode = 'quick' | 'fix' | 'work';
 
@@ -19,17 +20,26 @@ const MODES: { id: ReplyMode; label: string; desc: string; Icon: typeof MessageS
 
 export default function ReplyHubPage() {
   const [mode, setMode] = useState<ReplyMode>('quick');
+  const [animKey, setAnimKey] = useState(0);
+
+  const switchMode = useCallback((id: ReplyMode) => {
+    setMode(id);
+    setAnimKey((k) => k + 1);
+  }, []);
 
   return (
     <div className="space-y-4">
       {/* Mode selector */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Reply modes">
         {MODES.map(({ id, label, Icon }) => (
           <button
             key={id}
-            onClick={() => setMode(id)}
+            onClick={() => switchMode(id)}
+            role="tab"
+            aria-selected={mode === id}
+            aria-controls={`panel-${id}`}
             className={clsx(
-              'flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition',
+              'flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-200',
               mode === id
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
@@ -42,9 +52,11 @@ export default function ReplyHubPage() {
       </div>
 
       {/* Content */}
-      {mode === 'quick' && <QuickReplyTab />}
-      {mode === 'fix' && <FixTab />}
-      {mode === 'work' && <WorkTab />}
+      <div key={animKey} className="animate-tab-in" role="tabpanel" id={`panel-${mode}`}>
+        {mode === 'quick' && <QuickReplyTab />}
+        {mode === 'fix' && <FixTab />}
+        {mode === 'work' && <WorkTab />}
+      </div>
     </div>
   );
 }

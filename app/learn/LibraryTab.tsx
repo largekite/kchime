@@ -2,6 +2,8 @@
 
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { useToast } from '@/components/shared/Toast';
 import type { Collection, SavedPhrase, Tone } from '@/types';
 import clsx from 'clsx';
 import { useState, useEffect } from 'react';
@@ -27,12 +29,15 @@ function SrsChip({ srs }: { srs?: SavedPhrase['srs'] }) {
 
 export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) => void } = {}) {
   const { phrases, remove } = useSavedPhrases();
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [filterTone, setFilterTone] = useState<Tone | 'All'>('All');
   const [filterCollection, setFilterCollection] = useState<string | 'All'>('All');
   const [sharePhrase, setSharePhrase] = useState<SavedPhrase | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [dueCount, setDueCount] = useState(0);
+  const [confirmDeleteCol, setConfirmDeleteCol] = useState<string | null>(null);
+  const [confirmDeletePhrase, setConfirmDeletePhrase] = useState<string | null>(null);
 
   // Collections state
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -96,12 +101,14 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
     setCollections((prev) => [...prev, col]);
     setNewColName('');
     setShowNewCol(false);
+    toast('Collection created');
   }
 
   function handleDeleteCollection(id: string) {
     deleteCollection(id);
     setCollections((prev) => prev.filter((c) => c.id !== id));
     if (filterCollection === id) setFilterCollection('All');
+    toast('Collection deleted');
   }
 
   function handleTogglePhrase(collectionId: string, phraseId: string) {
@@ -166,8 +173,9 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
                     <span className="ml-1 opacity-60">{col.phraseIds.length}</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteCollection(col.id)}
+                    onClick={() => setConfirmDeleteCol(col.id)}
                     className="rounded-r-full bg-gray-100 px-1.5 py-1 text-xs text-gray-400 hover:bg-red-100 hover:text-red-500 transition"
+                    aria-label={`Delete ${col.name} collection`}
                     title="Delete collection"
                   >
                     ×
@@ -295,7 +303,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
                   )}
 
                   <button
-                    onClick={() => remove(phrase.id)}
+                    onClick={() => setConfirmDeletePhrase(phrase.id)}
                     className="ml-auto rounded-md px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-50 transition"
                   >
                     Delete
@@ -324,6 +332,31 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
           prompt={sharePhrase.prompt}
           open={!!sharePhrase}
           onClose={() => setSharePhrase(null)}
+        />
+      )}
+
+      {confirmDeleteCol && (
+        <ConfirmDialog
+          title="Delete collection?"
+          message="Phrases in this collection won't be deleted, only the collection itself."
+          onConfirm={() => {
+            handleDeleteCollection(confirmDeleteCol);
+            setConfirmDeleteCol(null);
+          }}
+          onCancel={() => setConfirmDeleteCol(null)}
+        />
+      )}
+
+      {confirmDeletePhrase && (
+        <ConfirmDialog
+          title="Delete phrase?"
+          message="This phrase will be permanently removed from your library."
+          onConfirm={() => {
+            remove(confirmDeletePhrase);
+            toast('Phrase deleted');
+            setConfirmDeletePhrase(null);
+          }}
+          onCancel={() => setConfirmDeletePhrase(null)}
         />
       )}
     </>

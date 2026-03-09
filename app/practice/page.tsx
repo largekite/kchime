@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Dumbbell, Users, Mic, Package } from 'lucide-react';
 import clsx from 'clsx';
 import dynamic from 'next/dynamic';
+import { TabSkeleton } from '@/components/shared/Skeleton';
 
-const ScenariosTab = dynamic(() => import('./ScenariosTab'), { ssr: false });
-const ConverseTab = dynamic(() => import('./ConverseTab'), { ssr: false });
-const LiveTab = dynamic(() => import('./LiveTab'), { ssr: false });
-const PacksTab = dynamic(() => import('./PacksTab'), { ssr: false });
+const ScenariosTab = dynamic(() => import('./ScenariosTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const ConverseTab = dynamic(() => import('./ConverseTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const LiveTab = dynamic(() => import('./LiveTab'), { ssr: false, loading: () => <TabSkeleton /> });
+const PacksTab = dynamic(() => import('./PacksTab'), { ssr: false, loading: () => <TabSkeleton /> });
 
 type PracticeMode = 'scenarios' | 'converse' | 'live' | 'packs';
 
@@ -21,17 +22,26 @@ const MODES: { id: PracticeMode; label: string; Icon: typeof Dumbbell }[] = [
 
 export default function PracticeHubPage() {
   const [mode, setMode] = useState<PracticeMode>('scenarios');
+  const [animKey, setAnimKey] = useState(0);
+
+  const switchMode = useCallback((id: PracticeMode) => {
+    setMode(id);
+    setAnimKey((k) => k + 1);
+  }, []);
 
   return (
     <div className="space-y-4">
       {/* Mode selector */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Practice modes">
         {MODES.map(({ id, label, Icon }) => (
           <button
             key={id}
-            onClick={() => setMode(id)}
+            onClick={() => switchMode(id)}
+            role="tab"
+            aria-selected={mode === id}
+            aria-controls={`panel-${id}`}
             className={clsx(
-              'flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition',
+              'flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-200',
               mode === id
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
@@ -44,10 +54,12 @@ export default function PracticeHubPage() {
       </div>
 
       {/* Content */}
-      {mode === 'scenarios' && <ScenariosTab />}
-      {mode === 'converse' && <ConverseTab />}
-      {mode === 'live' && <LiveTab />}
-      {mode === 'packs' && <PacksTab />}
+      <div key={animKey} className="animate-tab-in" role="tabpanel" id={`panel-${mode}`}>
+        {mode === 'scenarios' && <ScenariosTab />}
+        {mode === 'converse' && <ConverseTab />}
+        {mode === 'live' && <LiveTab />}
+        {mode === 'packs' && <PacksTab />}
+      </div>
     </div>
   );
 }
