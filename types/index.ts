@@ -85,7 +85,10 @@ export type BadgeId =
   | 'ten_down'
   | 'fifteen_strong'
   | 'twenty_club'
-  | 'quiz_streak_7';
+  | 'quiz_streak_7'
+  | 'pack_explorer'
+  | 'pack_completionist'
+  | 'culture_buff';
 
 export interface Badge {
   id: BadgeId;
@@ -110,6 +113,8 @@ export interface Progress {
   dailyBonusMultiplier?: number; // current daily XP multiplier (1.0–3.0)
   lastBonusDate?: string; // YYYY-MM-DD of last bonus-eligible completion
   consecutiveDailyGoals?: number; // consecutive days daily goal was met
+  viewedPackScenarios?: string[]; // pack scenario IDs the user has opened
+  culturalNotesRead?: number; // count of cultural notes explicitly expanded/read
 }
 
 export interface ConversationRound {

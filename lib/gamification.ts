@@ -16,6 +16,9 @@ export const BADGES: Badge[] = [
   { id: 'fifteen_strong', name: 'Fifteen Strong',         description: 'Complete 15 scenarios',                        xpReward: 150,  emoji: '💫' },
   { id: 'twenty_club',   name: 'Twenty Club',            description: 'Complete 20 scenarios',                        xpReward: 175,  emoji: '🎯' },
   { id: 'quiz_streak_7', name: 'Quiz Whiz',              description: 'Answer the daily phrase quiz 7 days in a row', xpReward: 150,  emoji: '🧠' },
+  { id: 'pack_explorer',     name: 'Pack Explorer',    description: 'Open 10 different pack scenarios',              xpReward: 100,  emoji: '📦' },
+  { id: 'pack_completionist', name: 'Pack Pro',        description: 'Open every scenario across all packs',          xpReward: 300,  emoji: '👑' },
+  { id: 'culture_buff',      name: 'Culture Buff',     description: 'Read 20 cultural notes',                        xpReward: 125,  emoji: '🌎' },
 ];
 
 export const BADGE_MAP = Object.fromEntries(BADGES.map((b) => [b.id, b])) as Record<BadgeId, Badge>;
@@ -40,7 +43,7 @@ export function getLevel(xp: number): { level: number; name: string; current: nu
 }
 
 /** Check which new badges should be earned given current progress. Returns new badge IDs. */
-export function checkNewBadges(progress: Progress, savedPhrasesCount: number): BadgeId[] {
+export function checkNewBadges(progress: Progress, savedPhrasesCount: number, totalPackScenarios?: number): BadgeId[] {
   const earned = new Set(progress.earnedBadges);
   const newBadges: BadgeId[] = [];
 
@@ -86,6 +89,16 @@ export function checkNewBadges(progress: Progress, savedPhrasesCount: number): B
     }
     check('quiz_streak_7', consecutive >= 7);
   }
+
+  // Pack badges
+  const viewedPacks = progress.viewedPackScenarios ?? [];
+  check('pack_explorer', viewedPacks.length >= 10);
+  if (totalPackScenarios !== undefined && totalPackScenarios > 0) {
+    check('pack_completionist', viewedPacks.length >= totalPackScenarios);
+  }
+
+  // Cultural note badge
+  check('culture_buff', (progress.culturalNotesRead ?? 0) >= 20);
 
   return newBadges;
 }

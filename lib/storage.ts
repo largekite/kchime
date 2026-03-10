@@ -69,6 +69,8 @@ const DEFAULT_PROGRESS: Progress = {
   quizCompletedDates: [],
   dailyBonusMultiplier: 1.0,
   consecutiveDailyGoals: 0,
+  viewedPackScenarios: [],
+  culturalNotesRead: 0,
 };
 
 export function getProgress(): Progress {
@@ -253,6 +255,45 @@ export function recordQuizCompletion(): { xpAwarded: number; progress: Progress;
 
   saveProgress(progress);
   return { xpAwarded: 15, progress, newBadges };
+}
+
+export function recordPackScenarioView(scenarioId: string, totalPackScenarios: number): { xpAwarded: number; progress: Progress; newBadges: BadgeId[] } {
+  const progress = getProgress();
+  const viewed = progress.viewedPackScenarios ?? [];
+
+  if (viewed.includes(scenarioId)) {
+    return { xpAwarded: 0, progress, newBadges: [] };
+  }
+
+  viewed.push(scenarioId);
+  progress.viewedPackScenarios = viewed;
+  progress.xp += 10; // 10 XP per new pack scenario opened
+
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount, totalPackScenarios);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { xpAwarded: 10, progress, newBadges };
+}
+
+export function recordCulturalNoteRead(): { xpAwarded: number; progress: Progress; newBadges: BadgeId[] } {
+  const progress = getProgress();
+  progress.culturalNotesRead = (progress.culturalNotesRead ?? 0) + 1;
+  progress.xp += 5; // 5 XP per cultural note read
+
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { xpAwarded: 5, progress, newBadges };
 }
 
 // --- Saved Phrases ---

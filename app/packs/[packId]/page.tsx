@@ -2,8 +2,12 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
-import { getPackById } from '@/lib/reply-packs';
+import { getPackById, REPLY_PACKS } from '@/lib/reply-packs';
 import { fetchPackVariations } from '@/lib/claude';
+import { recordPackScenarioView, getProgress } from '@/lib/storage';
+import { XpPopup } from '@/components/XpPopup';
+import { BadgeToast } from '@/components/BadgeToast';
+import type { BadgeId } from '@/types';
 import { ArrowLeft, Check, ChevronRight, Copy, MessageSquare, Search, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -33,6 +37,23 @@ export default function PackDetailPage() {
   const [loadingAi, setLoadingAi] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
+  const [packXp, setPackXp] = useState(0);
+  const [showPackXp, setShowPackXp] = useState(false);
+  const [packBadges, setPackBadges] = useState<BadgeId[]>([]);
+
+  // Total pack scenarios across all packs for completionist badge
+  const totalPackScenarios = useMemo(
+    () => REPLY_PACKS.reduce((sum, p) => sum + p.scenarios.length, 0),
+    [],
+  );
+
+  // Track which scenarios have been viewed for progress display
+  const [viewedCount, setViewedCount] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    return (getProgress().viewedPackScenarios ?? []).filter(
+      (id) => pack?.scenarios.some((s) => s.id === id),
+    ).length;
+  });
 
   // Search filter matching iOS filteredScenarios logic
   const filteredScenarios = useMemo(() => {
@@ -88,11 +109,27 @@ export default function PackDetailPage() {
     } else {
       setSelectedScenarioId(scenarioId);
       setAiVariations([]);
+
+      // Award XP on first open
+      const result = recordPackScenarioView(scenarioId, totalPackScenarios);
+      if (result.xpAwarded > 0) {
+        setPackXp(result.xpAwarded);
+        setShowPackXp(true);
+        setViewedCount((c) => c + 1);
+      }
+      if (result.newBadges.length > 0) {
+        setPackBadges(result.newBadges);
+      }
     }
   }
 
   return (
     <div className="space-y-5">
+      {/* Badge toast */}
+      {packBadges.length > 0 && (
+        <BadgeToast newBadges={packBadges} onDismiss={() => setPackBadges([])} />
+      )}
+
       {/* Back + Header */}
       <div>
         <button
@@ -107,9 +144,19 @@ export default function PackDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{pack.title}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {pack.scenarios.length} scenarios
+              {pack.scenarios.length} scenarios · {viewedCount} explored
+              {showPackXp && (
+                <XpPopup amount={packXp} onDone={() => setShowPackXp(false)} />
+              )}
             </p>
           </div>
+        </div>
+        {/* Pack progress bar */}
+        <div className="mt-3 h-1.5 w-full rounded-full bg-gray-100">
+          <div
+            className={clsx('h-1.5 rounded-full transition-all', accent.bg)}
+            style={{ width: `${Math.round((viewedCount / pack.scenarios.length) * 100)}%` }}
+          />
         </div>
       </div>
 

@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { REPLY_PACKS } from '@/lib/reply-packs';
+import { getProgress } from '@/lib/storage';
 import { Package } from 'lucide-react';
 import { useState } from 'react';
+import clsx from 'clsx';
 
 // Color mapping matches iOS PackCard accentColor logic
 const COLOR_MAP: Record<string, { card: string; border: string; badge: string }> = {
@@ -14,6 +16,8 @@ const COLOR_MAP: Record<string, { card: string; border: string; badge: string }>
 };
 
 export default function PacksTab() {
+  const viewedScenarios = typeof window !== 'undefined' ? (getProgress().viewedPackScenarios ?? []) : [];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -28,6 +32,8 @@ export default function PacksTab() {
       <div className="grid gap-4 sm:grid-cols-2">
         {REPLY_PACKS.map((pack) => {
           const colors = COLOR_MAP[pack.color] ?? COLOR_MAP.teal;
+          const explored = pack.scenarios.filter((s) => viewedScenarios.includes(s.id)).length;
+          const pct = Math.round((explored / pack.scenarios.length) * 100);
           return (
             <Link
               key={pack.id}
@@ -42,10 +48,23 @@ export default function PacksTab() {
                 <p className="mt-1 text-sm text-gray-600 leading-snug line-clamp-2">
                   {pack.description}
                 </p>
-                <div className="mt-auto pt-3">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${colors.badge}`}>
-                    {pack.scenarios.length} scenarios
-                  </span>
+                <div className="mt-auto pt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${colors.badge}`}>
+                      {pack.scenarios.length} scenarios
+                    </span>
+                    {explored > 0 && (
+                      <span className="text-xs text-gray-400">{explored}/{pack.scenarios.length}</span>
+                    )}
+                  </div>
+                  {explored > 0 && (
+                    <div className="h-1 w-full rounded-full bg-black/5">
+                      <div
+                        className="h-1 rounded-full bg-teal-500 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </Link>
