@@ -80,10 +80,10 @@ async function isRateLimited(
 
   const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
 
-  // Ensure a row exists for today
+  // Ensure a row exists for today (insert only, skip if row already exists)
   await supabase.from('daily_usage').upsert(
     { user_id: userId, date: today },
-    { onConflict: 'user_id,date', ignoreDuplicates: true },
+    { onConflict: 'user_id,date' },
   );
 
   // Read current count
