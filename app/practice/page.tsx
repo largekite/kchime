@@ -1,22 +1,20 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Dumbbell, Users, Mic, Package } from 'lucide-react';
+import { Dumbbell, Users, Package } from 'lucide-react';
 import clsx from 'clsx';
 import dynamic from 'next/dynamic';
 import { TabSkeleton } from '@/components/shared/Skeleton';
 
 const ScenariosTab = dynamic(() => import('./ScenariosTab'), { ssr: false, loading: () => <TabSkeleton /> });
 const ConverseTab = dynamic(() => import('./ConverseTab'), { ssr: false, loading: () => <TabSkeleton /> });
-const LiveTab = dynamic(() => import('./LiveTab'), { ssr: false, loading: () => <TabSkeleton /> });
 const PacksTab = dynamic(() => import('./PacksTab'), { ssr: false, loading: () => <TabSkeleton /> });
 
-type PracticeMode = 'scenarios' | 'converse' | 'live' | 'packs';
+type PracticeMode = 'scenarios' | 'converse' | 'packs';
 
 const MODES: { id: PracticeMode; label: string; subtitle: string; Icon: typeof Dumbbell }[] = [
   { id: 'scenarios', label: 'Scenarios', subtitle: 'Guided role-play drills', Icon: Dumbbell },
   { id: 'converse', label: 'Converse', subtitle: 'Chat with an AI partner', Icon: Users },
-  { id: 'live', label: 'Live Listen', subtitle: 'Get reply suggestions live', Icon: Mic },
   { id: 'packs', label: 'Packs', subtitle: 'Themed phrase sets', Icon: Package },
 ];
 
@@ -62,7 +60,6 @@ export default function PracticeHubPage() {
       <div key={animKey} className="animate-tab-in" role="tabpanel" id={`panel-${mode}`}>
         {mode === 'scenarios' && <ScenariosTab />}
         {mode === 'converse' && <ConverseTab />}
-        {mode === 'live' && <LiveTab />}
         {mode === 'packs' && <PacksTab />}
       </div>
     </div>
