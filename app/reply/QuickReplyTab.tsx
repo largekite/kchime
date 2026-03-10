@@ -2,7 +2,7 @@
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
 import { ContactSelector } from '@/components/shared/ContactSelector';
-import { fetchReplies } from '@/lib/claude';
+import { fetchRepliesStream } from '@/lib/claude';
 import type { ReplyPersonalization } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { useProgress } from '@/hooks/useProgress';
@@ -65,8 +65,11 @@ export default function QuickReplyTab() {
         ...getContactPersonalization(),
       };
 
-      const result = await fetchReplies(text, context, personalization);
-      setReplies(result);
+      setReplies([]);
+      for await (const reply of fetchRepliesStream(text, context, personalization)) {
+        setReplies((prev) => [...prev, reply]);
+        setLoading(false);
+      }
       addPrompt(text);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');

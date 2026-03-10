@@ -2,6 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase-server';
 
+// Use Sonnet for core reply generation, Haiku for simpler supportive tasks
+const MODEL_FAST = 'claude-haiku-4-5-20251001';
+const MODEL_QUALITY = 'claude-sonnet-4-6';
+
 // Free-tier daily limits
 const LIMITS = {
   'replies': 5,
@@ -183,7 +187,7 @@ export async function POST(req: NextRequest) {
       const toneList = toneLabels.join(', ');
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_QUALITY,
         max_tokens: 512,
         system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`,
         messages: [
@@ -204,7 +208,7 @@ export async function POST(req: NextRequest) {
       if (!openingLine || !userReply) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 256,
         system: `You are a warm, encouraging American English coach. Evaluate if a reply sounds natural in a casual American English conversation. Return ONLY valid JSON: {"natural":true/false,"feedback":"1-2 sentence warm feedback","suggestion":"optional better phrasing if not natural"}. No markdown.`,
         messages: [
@@ -225,7 +229,7 @@ export async function POST(req: NextRequest) {
       if (!text) return NextResponse.json({ error: 'Missing text' }, { status: 400 });
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 512,
         system: `You are an American English coach. Extract idioms, slang, and cultural references from the text. Return ONLY valid JSON: {"phrases":[{"phrase":"...","meaning":"simple meaning under 15 words","tip":"optional short usage tip"}]}. If no special phrases, return {"phrases":[]}. No markdown.`,
         messages: [
@@ -282,7 +286,7 @@ export async function POST(req: NextRequest) {
       const [s1, s2, s3] = config.strategies;
 
       const response = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_QUALITY,
         max_tokens: 1024,
         system: `You are an expert workplace communication strategist. ${config.context}${workPersonalization}
 
@@ -319,7 +323,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const historyText = history.map((h) => `${h.speaker === 'other' ? 'Other person' : 'Learner'}: "${h.text}"`).join('\n');
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 256,
         system: `You are simulating a natural American English conversation partner. Given the conversation history, generate a short, realistic follow-up line that the OTHER person would naturally say next. Keep it under 20 words, casual and authentic. Return ONLY valid JSON: {"followUp":"..."}. No markdown.`,
         messages: [
@@ -340,7 +344,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       if (!conversation) return NextResponse.json({ error: 'Missing conversation' }, { status: 400 });
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 512,
         system: `You are creating English conversation practice scenarios. Given a real conversation snippet, extract the key conversational moment and create a practice scenario. Return ONLY valid JSON with NO markdown:
 {"title":"short title under 6 words","category":"one of: Small Talk|Weekend Plans|Workplace Banter|Sports Talk|American Humor|Holiday Greetings|Food & Dining|Social Events|Compliments","openingLine":"the first thing the other person said, as a single sentence","context":"brief description of the situation, 1 sentence","suggestedReplies":["4 natural reply options, each under 20 words"]}`,
@@ -391,7 +395,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const fixPersonalization = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_QUALITY,
         max_tokens: 1024,
         system: `You are an American English writing coach helping non-native speakers sound natural. ${typeConfig.guidance}${relGuidance ? ' ' + relGuidance : ''}${fixPersonalization}
 
@@ -415,7 +419,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
       const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'Learner'}: "${h.text}"`).join('\n');
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 128,
         system: `You are roleplaying as a ${persona} in a realistic American English conversation. Respond naturally and briefly (under 25 words). Keep the conversation moving forward naturally. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
         messages: [{
@@ -436,7 +440,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
       const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'You'}: "${h.text}"`).join('\n');
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 256,
         system: `You are a supportive American English coach. Review this conversation practice session and give brief, encouraging feedback. Return ONLY valid JSON, no markdown:
 {"highlight":"one specific thing they did well, max 20 words","tip":"one concrete improvement tip, max 20 words","fluency":"Excellent"|"Good"|"Keep practicing"}`,
@@ -466,7 +470,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         async start(controller) {
           try {
             const stream = getAnthropic().messages.stream({
-              model: 'claude-sonnet-4-6',
+              model: MODEL_QUALITY,
               max_tokens: 512,
               system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies. Output each reply as a separate JSON object on its own line (NDJSON), in this exact order, with no other text before or after:
 ${ndjsonExample}
@@ -508,7 +512,7 @@ Each reply must be under 20 words, use contractions, and sound like a real Ameri
       const packPersonalization = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
       const message = await getAnthropic().messages.create({
-        model: 'claude-sonnet-4-6',
+        model: MODEL_FAST,
         max_tokens: 512,
         system: `You are an American English conversation coach. Given a message someone sent, generate 4 natural reply variations in different tones: Casual, Funny, Warm, and Safe. Each reply should sound like a real American would say it. Use contractions. Keep each reply under 25 words. Return ONLY valid JSON: {"variations":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown.${packPersonalization}`,
         messages: [{
