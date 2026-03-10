@@ -99,8 +99,8 @@ export default function QuickReplyTab() {
 
       {/* Input area */}
       <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
-        {/* Context chips */}
-        <div className="mb-3 flex gap-2 flex-wrap">
+        {/* Context + contact chips — single row */}
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
           {CONTEXTS.map((c) => (
             <button
               key={c}
@@ -116,16 +116,20 @@ export default function QuickReplyTab() {
               {c}
             </button>
           ))}
-        </div>
 
-        {/* Contact picker */}
-        <div className="mb-3">
-          <ContactSelector
-            contacts={contacts}
-            relationships={relationships}
-            selectedContactId={selectedContactId}
-            onSelect={setSelectedContactId}
-          />
+          {/* Separator + contact chip */}
+          {contacts.length > 0 && (
+            <>
+              <span className="mx-1 h-4 w-px bg-gray-200" />
+              <ContactSelector
+                contacts={contacts}
+                relationships={relationships}
+                selectedContactId={selectedContactId}
+                onSelect={setSelectedContactId}
+                inline
+              />
+            </>
+          )}
         </div>
 
         {/* Text input */}

@@ -85,11 +85,19 @@ export default function PackDetailPage() {
   async function handleCopy(text: string, id: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      // clipboard API may fail if page is not focused
+      // Fallback for browsers that block clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
     }
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   }
 
   async function handleGenerateVariations(message: string) {
@@ -145,7 +153,7 @@ export default function PackDetailPage() {
       {/* Back + Header */}
       <div>
         <button
-          onClick={() => router.push('/packs')}
+          onClick={() => router.push('/practice?mode=packs')}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-teal-600 transition mb-3"
         >
           <ArrowLeft className="h-4 w-4" />

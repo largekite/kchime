@@ -62,6 +62,7 @@ export default function CustomPage() {
     add(preview);
     setPreview(null);
     setInput('');
+    setError('');
   }
 
   return (

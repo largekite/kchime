@@ -80,10 +80,10 @@ async function isRateLimited(
 
   const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
 
-  // Ensure a row exists for today
+  // Ensure a row exists for today (insert only, skip if row already exists)
   await supabase.from('daily_usage').upsert(
     { user_id: userId, date: today },
-    { onConflict: 'user_id,date', ignoreDuplicates: true },
+    { onConflict: 'user_id,date' },
   );
 
   // Read current count
@@ -174,7 +174,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Build personalization note from tone profile (shared across modes)
+    // Build personalization note from tone profile (shared across modes).
+    // Priority: contact-specific (rp + cn) overrides global tone profile (tp)
+    // when they conflict on the same dimension (e.g. formality, emojis).
     function buildPersonalizationNote(
       tp?: { formality: number; lengthPreference: string; emojiEnabled: boolean; customInstructions?: string },
       rp?: { name: string; formality: number; warmth: number; brevity: number; directness: number; emojiAllowed: boolean },
@@ -182,19 +184,27 @@ export async function POST(req: NextRequest) {
     ): string {
       const parts: string[] = [];
       if (tp) {
-        const formalityDesc = tp.formality < 0.3 ? 'casual' : tp.formality > 0.65 ? 'formal' : 'balanced';
+        // If a relationship profile is provided, its formality overrides the global one.
+        if (!rp) {
+          const formalityDesc = tp.formality < 0.3 ? 'casual' : tp.formality > 0.65 ? 'formal' : 'balanced';
+          parts.push(`User prefers ${formalityDesc} tone.`);
+        }
         const lengthDesc = tp.lengthPreference === 'short' ? 'very brief (under 10 words)' : tp.lengthPreference === 'verbose' ? 'detailed (20+ words)' : 'medium length (10-20 words)';
-        parts.push(`User prefers ${formalityDesc} tone, ${lengthDesc} replies.`);
-        if (tp.emojiEnabled) parts.push('Include emojis where natural.');
-        else parts.push('Do NOT include emojis.');
+        parts.push(`Preferred reply length: ${lengthDesc}.`);
+        // Emoji: relationship profile overrides global setting when present.
+        if (!rp) {
+          if (tp.emojiEnabled) parts.push('Include emojis where natural.');
+          else parts.push('Do NOT include emojis.');
+        }
         if (tp.customInstructions) parts.push(`User note: ${tp.customInstructions}`);
       }
       if (rp) {
         parts.push(`Replying to their ${rp.name}. Formality: ${rp.formality}/10, Warmth: ${rp.warmth}/10, Brevity: ${rp.brevity}/10, Directness: ${rp.directness}/10.`);
-        if (rp.emojiAllowed) parts.push('Emojis are appropriate for this relationship.');
+        if (rp.emojiAllowed) parts.push('Emojis are welcome for this relationship.');
+        else parts.push('Do NOT use emojis for this relationship.');
       }
       if (cn) {
-        parts.push(`Notes about the person: ${cn}`);
+        parts.push(`Notes about this person (highest priority): ${cn}`);
       }
       return parts.length > 0 ? `\nPersonalization: ${parts.join(' ')}` : '';
     }
@@ -315,7 +325,7 @@ export async function POST(req: NextRequest) {
       };
 
       const config = PRESET_CONFIG[preset] ?? {
-        context: `Context: ${preset}`,
+        context: 'Context: general workplace communication.',
         strategies: ['Diplomatic', 'Direct', 'Bold'] as [string, string, string],
       };
       const [s1, s2, s3] = config.strategies;
@@ -425,7 +435,8 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       };
 
       const typeConfig = FIX_TYPE_CONFIG[messageType ?? ''] ?? { guidance: 'Rewrite to sound natural in American English.', tones: ['Polished', 'Friendly', 'Confident'] as [string, string, string] };
-      const relGuidance = RELATIONSHIP_GUIDANCE[relationship ?? ''] ?? '';
+      // Skip generic relationship guidance when a specific relationship profile is provided (it's more precise).
+      const relGuidance = relationshipProfile ? '' : (RELATIONSHIP_GUIDANCE[relationship ?? ''] ?? '');
       const [t1, t2, t3] = typeConfig.tones;
       const fixPersonalization = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
