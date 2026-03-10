@@ -24,6 +24,13 @@ const REL_NAME_TO_PRESET: Record<string, WorkplacePreset> = {
   Client: 'Reply to Client',
 };
 
+/** Relationship-based presets that should be locked when a contact is selected. */
+const RELATIONSHIP_PRESETS: Set<WorkplacePreset> = new Set([
+  'Reply to Manager',
+  'Reply to Direct Report',
+  'Reply to Client',
+]);
+
 function SkeletonCard() {
   return (
     <div className="animate-pulse rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -116,19 +123,27 @@ export default function WorkTab() {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {PRESETS.map((label) => (
-            <button
-              key={label}
-              onClick={() => setPreset(label)}
-              className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
-                preset === label
-                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+          {PRESETS.map((label) => {
+            // Lock other relationship presets when a contact is selected;
+            // action presets (Push Back, Feedback, Escalate) stay available.
+            const locked = !!selectedContactId && RELATIONSHIP_PRESETS.has(label) && preset !== label;
+            return (
+              <button
+                key={label}
+                onClick={() => { if (!locked) setPreset(label); }}
+                disabled={locked}
+                className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
+                  preset === label
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : locked
+                      ? 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
