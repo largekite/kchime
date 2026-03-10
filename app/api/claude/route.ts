@@ -6,10 +6,15 @@ import { createServiceClient } from '@/lib/supabase-server';
 const MODEL_FAST = 'claude-haiku-4-5-20251001';
 const MODEL_QUALITY = 'claude-sonnet-4-6';
 
-// Free-tier daily limits
-const LIMITS = {
-  'replies': 5,
-  'work-reply': 2,
+// Daily limits per tier
+const FREE_LIMITS = {
+  'replies': 10,
+  'work-reply': 3,
+} as const;
+
+const PRO_LIMITS = {
+  'replies': 50,
+  'work-reply': 50,
 } as const;
 
 export const dynamic = 'force-dynamic';
@@ -23,15 +28,15 @@ function getAnthropic() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-/** Returns { isPro, userId } from the Bearer token if present. */
-async function getSubscription(req: NextRequest): Promise<{ isPro: boolean; userId: string | null }> {
+/** Returns { plan, userId } from the Bearer token if present. */
+async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro' | 'max'; userId: string | null }> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-  if (!token) return { isPro: false, userId: null };
+  if (!token) return { plan: 'free', userId: null };
 
   try {
     const supabase = createServiceClient();
     const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) return { isPro: false, userId: null };
+    if (!user) return { plan: 'free', userId: null };
 
     const { data } = await supabase
       .from('subscriptions')
@@ -39,9 +44,11 @@ async function getSubscription(req: NextRequest): Promise<{ isPro: boolean; user
       .eq('user_id', user.id)
       .single();
 
-    return { isPro: data?.plan === 'pro', userId: user.id };
+    const p = data?.plan;
+    const plan = (p === 'max' || p === 'pro') ? p : 'free';
+    return { plan, userId: user.id };
   } catch {
-    return { isPro: false, userId: null };
+    return { plan: 'free', userId: null };
   }
 }
 
@@ -50,14 +57,14 @@ function getToday(): string {
 }
 
 /**
- * Checks and increments usage for authenticated free-tier users.
+ * Checks and increments usage for authenticated users.
  * Returns true if the request should be blocked.
  */
 async function isRateLimited(
   userId: string,
   mode: 'replies' | 'work-reply',
+  limit: number,
 ): Promise<boolean> {
-  const limit = LIMITS[mode];
   const today = getToday();
   const supabase = createServiceClient();
 
@@ -111,16 +118,17 @@ export async function POST(req: NextRequest) {
 
     // Rate-limited modes
     if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply') {
-      const { isPro, userId } = await getSubscription(req);
+      const { plan, userId } = await getSubscription(req);
 
-      if (!isPro) {
+      // Max tier gets unlimited
+      if (plan !== 'max') {
+        const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
         if (userId) {
-          // Authenticated free user — enforce server-side
           const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply';
-          const blocked = await isRateLimited(userId, rateLimitMode);
+          const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
           if (blocked) {
             return NextResponse.json(
-              { error: 'limit_reached', limit: LIMITS[rateLimitMode] },
+              { error: 'limit_reached', limit: limits[rateLimitMode] },
               { status: 429 },
             );
           }
@@ -131,8 +139,8 @@ export async function POST(req: NextRequest) {
 
     // Live Listen is Pro-only — block at API level too
     if (mode === 'explain') {
-      const { isPro } = await getSubscription(req);
-      if (!isPro) {
+      const { plan } = await getSubscription(req);
+      if (plan === 'free') {
         // explain is used by Live Listen — allow it for now (nice-to-have gating)
         // If you want to gate it hard, uncomment the next lines:
         // return NextResponse.json({ error: 'pro_required' }, { status: 403 });

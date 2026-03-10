@@ -54,8 +54,8 @@ export async function fetchReplies(prompt: string, context: Context, personaliza
   const res = await post({ mode: 'replies', prompt, context, ...personalization }).catch(wrapTimeout);
 
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 5);
+    const err = await res.json().catch(() => ({ limit: 10 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 10);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -80,8 +80,8 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
   }).catch(wrapTimeout);
 
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 5);
+    const err = await res.json().catch(() => ({ limit: 10 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 10);
   }
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   if (!res.body) throw new Error('No response body');
@@ -224,8 +224,8 @@ export async function fetchWorkReplies(message: string, preset: WorkplacePreset,
   const res = await post({ mode: 'work-reply', message, preset, ...personalization });
 
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 2 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 2);
+    const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 3);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };

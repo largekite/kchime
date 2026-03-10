@@ -121,7 +121,7 @@ export default function LandingPage() {
             <p className="text-4xl font-extrabold text-gray-900 mb-1">$0</p>
             <p className="text-sm text-gray-400 mb-8">forever</p>
             <ul className="space-y-3 mb-8">
-              {['10 replies per day', 'Keyboard extension', '4 reply styles', 'iOS app included'].map((f) => (
+              {['10 Quick Replies per day', '3 Fix My Message per day', 'Keyboard extension', '4 reply styles'].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -147,10 +147,10 @@ export default function LandingPage() {
             <p className="text-sm text-gray-400 mb-8">per month</p>
             <ul className="space-y-3 mb-8">
               {[
-                '50 replies per day',
-                'Everything in Free',
+                '50 Quick Replies per day',
+                'Unlimited Fix My Message',
+                'Live Listen & Practice',
                 'Works on iOS + web',
-                'Priority responses',
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -176,8 +176,8 @@ export default function LandingPage() {
               {[
                 'Unlimited replies',
                 'Everything in Pro',
-                'Early access to new features',
                 'Priority support',
+                'Early access to new features',
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
