@@ -235,7 +235,7 @@ export default function PackDetailPage() {
                         const copyId = `${scenario.id}-seed-${i}`;
                         return (
                           <div
-                            key={i}
+                            key={copyId}
                             className="flex items-start gap-2 rounded-xl bg-gray-50 px-3 py-2.5"
                           >
                             <p className="flex-1 text-sm text-gray-800 leading-snug">{reply}</p>
@@ -295,7 +295,7 @@ export default function PackDetailPage() {
                             const copyId = `${scenario.id}-ai-${i}`;
                             return (
                               <div
-                                key={i}
+                                key={copyId}
                                 className={clsx('rounded-xl border p-3 transition', styles.bg, styles.border)}
                               >
                                 <div className="flex items-center justify-between mb-1.5">

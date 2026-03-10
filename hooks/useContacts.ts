@@ -6,10 +6,11 @@ import type { ReplyPersonalization } from '@/lib/claude';
 export function useContacts() {
   const [contacts, setContacts] = useState<Contact[]>(() => getContacts());
   const [selectedContactId, setSelectedContactId] = useState<string>('');
-  const relationships = useMemo(() => getAllRelationships(), []);
+  const [relationships, setRelationships] = useState<RelationshipProfile[]>(() => getAllRelationships());
 
   const refresh = useCallback(() => {
     setContacts(getContacts());
+    setRelationships(getAllRelationships());
   }, []);
 
   /** Build personalization fields for the selected contact. */

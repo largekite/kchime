@@ -149,8 +149,8 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
               {explanations && explanations.length > 0 && (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2">
                   <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Why it works</p>
-                  {explanations.map((exp, i) => (
-                    <div key={i}>
+                  {explanations.map((exp) => (
+                    <div key={exp.phrase}>
                       <p className="text-sm font-semibold text-gray-800">&ldquo;{exp.phrase}&rdquo;</p>
                       <p className="text-xs text-gray-600 mt-0.5">{exp.meaning}</p>
                       {exp.tip && (

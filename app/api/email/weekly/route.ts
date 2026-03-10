@@ -238,7 +238,7 @@ export async function POST(req: NextRequest) {
   const dueMap = new Map<string, number>();
   for (const row of phraseRows ?? []) {
     const phrase = row as { user_id: string; srs?: SavedPhrase['srs'] };
-    const isDue = !phrase.srs || phrase.srs.nextReview <= today;
+    const isDue = !phrase.srs?.nextReview || phrase.srs.nextReview <= today;
     if (isDue) {
       dueMap.set(phrase.user_id, (dueMap.get(phrase.user_id) ?? 0) + 1);
     }

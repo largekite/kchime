@@ -142,7 +142,7 @@ export default function DailyTab() {
             <div className="space-y-2">
               {todayPhrase.quiz.options.map((option, i) => (
                 <button
-                  key={i}
+                  key={option}
                   onClick={() => handleQuizAnswer(i)}
                   disabled={quizAnswered}
                   className={clsx(
@@ -186,9 +186,9 @@ export default function DailyTab() {
       {/* Archive */}
       {showArchive && (
         <div className="space-y-2">
-          {recentPhrases.slice(1).map(({ date, phrase }, i) => (
+          {recentPhrases.slice(1).map(({ date, phrase }) => (
             <div
-              key={i}
+              key={`${date}-${phrase.phrase}`}
               className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3"
             >
               <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', CATEGORY_BADGE[phrase.category].color)}>

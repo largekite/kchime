@@ -10,7 +10,7 @@ async function upsertSubscription(
   periodEnd: Date | null,
 ) {
   const supabase = createServiceClient();
-  await supabase.from('subscriptions').upsert(
+  const { error } = await supabase.from('subscriptions').upsert(
     {
       user_id: userId,
       plan,
@@ -19,6 +19,7 @@ async function upsertSubscription(
     },
     { onConflict: 'user_id' },
   );
+  if (error) throw new Error(`Failed to upsert subscription: ${error.message}`);
 }
 
 

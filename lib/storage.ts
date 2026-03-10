@@ -372,9 +372,10 @@ export function updateSRS(phraseId: string, quality: 0 | 1): void {
   const srs = phrase.srs ?? { nextReview: getToday(), interval: 1, repetitions: 0, ease: 2.5 };
 
   if (quality === 0) {
-    // Forgot: reset repetitions, review again tomorrow
+    // Forgot: reset repetitions, review again tomorrow, penalize ease factor
     srs.repetitions = 0;
     srs.interval = 1;
+    srs.ease = Math.max(1.3, srs.ease - 0.2);
   } else {
     // Recalled: advance schedule
     if (srs.repetitions === 0) {

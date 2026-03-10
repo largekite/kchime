@@ -26,13 +26,17 @@ export async function subscribeToPush(token: string): Promise<boolean> {
     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
   });
 
-  const res = await fetch('/api/push/subscribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ subscription }),
-  });
-
-  return res.ok;
+  try {
+    const res = await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ subscription }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function unsubscribeFromPush(token: string): Promise<boolean> {
@@ -44,13 +48,17 @@ export async function unsubscribeFromPush(token: string): Promise<boolean> {
 
   await subscription.unsubscribe();
 
-  const res = await fetch('/api/push/subscribe', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ endpoint: subscription.endpoint }),
-  });
-
-  return res.ok;
+  try {
+    const res = await fetch('/api/push/subscribe', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ endpoint: subscription.endpoint }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function isSubscribed(): Promise<boolean> {
