@@ -135,13 +135,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Context-specific tone sets and rich descriptions
+    const CONTEXT_CONFIG: Record<string, { description: string; tones: string[] }> = {
+      Any:    { description: 'Context: general/any setting. Reply naturally for any everyday situation.', tones: ['Casual', 'Funny', 'Warm', 'Safe'] },
+      Office: { description: 'Context: professional workplace. Keep replies polished, concise, and appropriate for colleagues or a boss. Avoid slang.', tones: ['Professional', 'Diplomatic', 'Confident', 'Friendly'] },
+      Text:   { description: 'Context: texting a friend. Replies should feel like real text messages — short, relaxed, maybe abbreviations or slang.', tones: ['Chill', 'Witty', 'Hype', 'Sweet'] },
+      Party:  { description: 'Context: social event or party. Replies should be upbeat, energetic, and fun. Match the lively vibe.', tones: ['Playful', 'Bold', 'Energetic', 'Smooth'] },
+      Family: { description: 'Context: talking with family members. Replies should be warm, respectful, and caring. Appropriate for parents, siblings, or relatives.', tones: ['Warm', 'Gentle', 'Lighthearted', 'Respectful'] },
+    };
+
     if (mode === 'replies') {
       const { prompt, context, toneProfile, relationshipProfile, contactNotes } = body;
       if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
-      const contextNote = context && context !== 'Any'
-        ? `Context: ${context} setting.`
-        : 'Context: general/any setting.';
+      const config = CONTEXT_CONFIG[context ?? 'Any'] ?? CONTEXT_CONFIG.Any;
+      const contextNote = config.description;
+      const toneLabels = config.tones;
 
       // Build personalization instructions from tone profile, relationship, and contact
       const personalization: string[] = [];
@@ -162,14 +171,17 @@ export async function POST(req: NextRequest) {
       }
       const personalizationNote = personalization.length > 0 ? `\nPersonalization: ${personalization.join(' ')}` : '';
 
+      const toneJson = toneLabels.map(t => `{"tone":"${t}","text":"..."}`).join(',');
+      const toneList = toneLabels.join(', ');
+
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 512,
-        system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown, no extra text.${personalizationNote}`,
+        system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`,
         messages: [
           {
             role: 'user',
-            content: `Someone said: "${prompt}"\n${contextNote}\n\nGenerate 4 replies (Casual, Funny, Warm, Safe).`,
+            content: `Someone said: "${prompt}"\n${contextNote}\n\nGenerate 4 replies (${toneList}).`,
           },
         ],
       });
@@ -375,9 +387,10 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const { prompt, context } = body;
       if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
-      const contextNote = context && context !== 'Any'
-        ? `Context: ${context} setting.`
-        : 'Context: general/any setting.';
+      const config = CONTEXT_CONFIG[context ?? 'Any'] ?? CONTEXT_CONFIG.Any;
+      const contextNote = config.description;
+      const toneLabels = config.tones;
+      const ndjsonExample = toneLabels.map(t => `{"tone":"${t}","text":"reply here"}`).join('\n');
 
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
@@ -387,10 +400,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
               model: 'claude-sonnet-4-6',
               max_tokens: 512,
               system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies. Output each reply as a separate JSON object on its own line (NDJSON), in this exact order, with no other text before or after:
-{"tone":"Casual","text":"reply here"}
-{"tone":"Funny","text":"reply here"}
-{"tone":"Warm","text":"reply here"}
-{"tone":"Safe","text":"reply here"}
+${ndjsonExample}
 Each reply must be under 20 words, use contractions, and sound like a real American would say it.`,
               messages: [{
                 role: 'user',

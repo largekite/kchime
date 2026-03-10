@@ -1,14 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Reply, Tone } from '@/types';
-
-const TONE_COLORS: Record<Tone, string> = {
-  Casual: '#6366f1',
-  Funny: '#f59e0b',
-  Warm: '#ec4899',
-  Safe: '#10b981',
-};
+import type { Reply } from '@/types';
+import { getToneStyle } from '@/lib/tone-styles';
 
 interface Props {
   reply: Reply;
@@ -86,7 +80,7 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
 
   if (!open) return null;
 
-  const color = TONE_COLORS[reply.tone];
+  const color = getToneStyle(reply.tone).color;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

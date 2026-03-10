@@ -1,4 +1,4 @@
-export type Tone = 'Casual' | 'Funny' | 'Warm' | 'Safe';
+export type Tone = string;
 
 export type Context = 'Any' | 'Office' | 'Text' | 'Party' | 'Family';
 
