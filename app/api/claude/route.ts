@@ -31,7 +31,7 @@ function getAnthropic() {
 }
 
 /** Returns { plan, userId } from the Bearer token if present. */
-async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro' | 'max'; userId: string | null }> {
+async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'; userId: string | null }> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) return { plan: 'free', userId: null };
 
@@ -47,7 +47,7 @@ async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'
       .single();
 
     const p = data?.plan;
-    const plan = (p === 'max' || p === 'pro') ? p : 'free';
+    const plan = p === 'pro' ? 'pro' : 'free';
     return { plan, userId: user.id };
   } catch {
     return { plan: 'free', userId: null };
@@ -122,21 +122,18 @@ export async function POST(req: NextRequest) {
     if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message') {
       const { plan, userId } = await getSubscription(req);
 
-      // Max tier gets unlimited
-      if (plan !== 'max') {
-        const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
-        if (userId) {
-          const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
-          const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
-          if (blocked) {
-            return NextResponse.json(
-              { error: 'limit_reached', limit: limits[rateLimitMode] },
-              { status: 429 },
-            );
-          }
+      const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
+      if (userId) {
+        const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
+        const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
+        if (blocked) {
+          return NextResponse.json(
+            { error: 'limit_reached', limit: limits[rateLimitMode] },
+            { status: 429 },
+          );
         }
-        // Anonymous users: client-side tracking is sufficient (no server state)
       }
+      // Anonymous users: client-side tracking is sufficient (no server state)
     }
 
     // Live Listen is Pro-only — block at API level too

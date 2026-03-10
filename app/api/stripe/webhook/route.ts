@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 async function upsertSubscription(
   userId: string,
-  plan: 'pro' | 'max' | 'free',
+  plan: 'pro' | 'free',
   periodEnd: Date | null,
 ) {
   const supabase = createServiceClient();
@@ -21,13 +21,6 @@ async function upsertSubscription(
   );
 }
 
-function getTier(sub: Stripe.Subscription): 'pro' | 'max' {
-  const priceId = sub.items?.data?.[0]?.price?.id;
-  if (process.env.STRIPE_MAX_PRICE_ID && priceId === process.env.STRIPE_MAX_PRICE_ID) {
-    return 'max';
-  }
-  return 'pro';
-}
 
 export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -53,7 +46,7 @@ export async function POST(req: NextRequest) {
         const isActive = sub.status === 'active' || sub.status === 'trialing';
         const rawEnd = sub.items?.data?.[0]?.current_period_end;
         const periodEnd = rawEnd ? new Date(rawEnd * 1000) : null;
-        const plan = isActive ? getTier(sub) : 'free';
+        const plan = isActive ? 'pro' : 'free';
         await upsertSubscription(userId, plan, isActive ? periodEnd : null);
         break;
       }

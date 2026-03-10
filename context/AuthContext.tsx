@@ -5,7 +5,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import { getProgress, saveProgress, getSavedPhrases } from '@/lib/storage';
 
-export type Plan = 'free' | 'pro' | 'max';
+export type Plan = 'free' | 'pro';
 
 interface AuthContextValue {
   user: User | null;

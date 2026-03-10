@@ -114,7 +114,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 mx-auto max-w-5xl px-6">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Simple, honest pricing</h2>
         <p className="text-center text-gray-500 mb-14">Start free. Upgrade when you need more.</p>
-        <div className="grid gap-8 sm:grid-cols-3 max-w-4xl mx-auto">
+        <div className="grid gap-8 sm:grid-cols-2 max-w-3xl mx-auto">
           {/* Free */}
           <div className="rounded-2xl border border-gray-200 p-8">
             <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Free</p>
@@ -166,34 +166,6 @@ export default function LandingPage() {
               className="block text-center rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
             >
               Get Pro — $7/month
-            </a>
-          </div>
-          {/* Business */}
-          <div className="rounded-2xl border border-gray-200 p-8">
-            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Business</p>
-            <p className="text-4xl font-extrabold text-gray-900 mb-1">$19</p>
-            <p className="text-sm text-gray-400 mb-8">per month &middot; $180/yr</p>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Unlimited replies (all types)',
-                'Custom AI tone training',
-                'Team sharing (up to 5)',
-                'Priority support',
-                'Early access to new features',
-              ].map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                  <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <a
-              href="/reply"
-              className="block text-center rounded-xl bg-gray-900 py-3 text-sm font-semibold text-white hover:bg-gray-700 transition"
-            >
-              Get Business — $19/month
             </a>
           </div>
         </div>

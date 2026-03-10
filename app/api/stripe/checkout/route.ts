@@ -21,12 +21,7 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
 
-  // Support both Pro and Business tiers via request body
-  const body = await req.json().catch(() => ({})) as { tier?: string };
-  const tier = body.tier ?? 'pro';
-  const priceId = tier === 'max'
-    ? process.env.STRIPE_MAX_PRICE_ID!
-    : process.env.STRIPE_PRO_PRICE_ID!;
+  const priceId = process.env.STRIPE_PRO_PRICE_ID!;
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: 'subscription',
