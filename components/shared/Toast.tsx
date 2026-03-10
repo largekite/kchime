@@ -46,7 +46,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
     const timer = setTimeout(() => {
       setVisible(false);
       innerTimer.current = setTimeout(() => onRemove(toast.id), 200);
-    }, 2500);
+    }, 4000);
     return () => {
       clearTimeout(timer);
       clearTimeout(innerTimer.current);

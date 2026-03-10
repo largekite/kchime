@@ -203,13 +203,21 @@ export async function POST(req: NextRequest) {
   const userIds = optedIn.map((r) => r.user_id);
   const today = new Date().toISOString().split('T')[0];
 
-  // Fetch user emails from auth
-  const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-  const emailMap = new Map<string, string>(
-    (authUsers?.users ?? [])
-      .filter((u) => userIds.includes(u.id) && u.email)
-      .map((u) => [u.id, u.email!])
-  );
+  // Fetch user emails from auth (paginate to cover all users)
+  const emailMap = new Map<string, string>();
+  let page = 1;
+  const perPage = 1000;
+  while (true) {
+    const { data: authUsers } = await supabase.auth.admin.listUsers({ page, perPage });
+    const users = authUsers?.users ?? [];
+    for (const u of users) {
+      if (userIds.includes(u.id) && u.email) {
+        emailMap.set(u.id, u.email);
+      }
+    }
+    if (users.length < perPage) break;
+    page++;
+  }
 
   // Fetch progress for all opted-in users
   const { data: progressRows } = await supabase
@@ -230,7 +238,7 @@ export async function POST(req: NextRequest) {
   const dueMap = new Map<string, number>();
   for (const row of phraseRows ?? []) {
     const phrase = row as { user_id: string; srs?: SavedPhrase['srs'] };
-    const isDue = !phrase.srs || phrase.srs.nextReview <= today;
+    const isDue = !phrase.srs?.nextReview || phrase.srs.nextReview <= today;
     if (isDue) {
       dueMap.set(phrase.user_id, (dueMap.get(phrase.user_id) ?? 0) + 1);
     }

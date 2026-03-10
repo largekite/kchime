@@ -12,6 +12,13 @@ export const BADGES: Badge[] = [
   { id: 'halfway',       name: 'Halfway There',          description: 'Complete 25 scenarios',                       xpReward: 200,  emoji: '⭐' },
   { id: 'master',        name: 'Conversation Master',    description: 'Complete all 47 scenarios',                   xpReward: 1000, emoji: '🏆' },
   { id: 'natural',       name: 'Natural Speaker',        description: 'Receive 10 "natural" feedback ratings',       xpReward: 150,  emoji: '🎤' },
+  { id: 'ten_down',      name: 'Getting Warmed Up',      description: 'Complete 10 scenarios',                        xpReward: 100,  emoji: '🔟' },
+  { id: 'fifteen_strong', name: 'Fifteen Strong',         description: 'Complete 15 scenarios',                        xpReward: 150,  emoji: '💫' },
+  { id: 'twenty_club',   name: 'Twenty Club',            description: 'Complete 20 scenarios',                        xpReward: 175,  emoji: '🎯' },
+  { id: 'quiz_streak_7', name: 'Quiz Whiz',              description: 'Answer the daily phrase quiz 7 days in a row', xpReward: 150,  emoji: '🧠' },
+  { id: 'pack_explorer',     name: 'Pack Explorer',    description: 'Open 10 different pack scenarios',              xpReward: 100,  emoji: '📦' },
+  { id: 'pack_completionist', name: 'Pack Pro',        description: 'Open every scenario across all packs',          xpReward: 300,  emoji: '👑' },
+  { id: 'culture_buff',      name: 'Culture Buff',     description: 'Read 20 cultural notes',                        xpReward: 125,  emoji: '🌎' },
 ];
 
 export const BADGE_MAP = Object.fromEntries(BADGES.map((b) => [b.id, b])) as Record<BadgeId, Badge>;
@@ -36,7 +43,7 @@ export function getLevel(xp: number): { level: number; name: string; current: nu
 }
 
 /** Check which new badges should be earned given current progress. Returns new badge IDs. */
-export function checkNewBadges(progress: Progress, savedPhrasesCount: number): BadgeId[] {
+export function checkNewBadges(progress: Progress, savedPhrasesCount: number, totalPackScenarios?: number): BadgeId[] {
   const earned = new Set(progress.earnedBadges);
   const newBadges: BadgeId[] = [];
 
@@ -61,9 +68,46 @@ export function checkNewBadges(progress: Progress, savedPhrasesCount: number): B
   check('streak_30', progress.streak >= 30);
   check('collector', savedPhrasesCount >= 10);
   check('explorer', explorerDone);
+  check('ten_down', progress.completedScenarios.length >= 10);
+  check('fifteen_strong', progress.completedScenarios.length >= 15);
+  check('twenty_club', progress.completedScenarios.length >= 20);
   check('halfway', progress.completedScenarios.length >= 25);
   check('master', progress.completedScenarios.length >= 47);
   check('natural', progress.naturalReplies >= 10);
 
+  // Quiz streak badge: 7 consecutive days of quiz completion
+  const quizDates = progress.quizCompletedDates ?? [];
+  if (quizDates.length >= 7) {
+    const sorted = [...quizDates].sort().reverse();
+    let consecutive = 1;
+    for (let i = 1; i < sorted.length && consecutive < 7; i++) {
+      const prev = new Date(sorted[i - 1] + 'T12:00:00');
+      const curr = new Date(sorted[i] + 'T12:00:00');
+      const diff = (prev.getTime() - curr.getTime()) / 86400000;
+      if (Math.round(diff) === 1) consecutive++;
+      else break;
+    }
+    check('quiz_streak_7', consecutive >= 7);
+  }
+
+  // Pack badges
+  const viewedPacks = progress.viewedPackScenarios ?? [];
+  check('pack_explorer', viewedPacks.length >= 10);
+  if (totalPackScenarios !== undefined && totalPackScenarios > 0) {
+    check('pack_completionist', viewedPacks.length >= totalPackScenarios);
+  }
+
+  // Cultural note badge
+  check('culture_buff', (progress.culturalNotesRead ?? 0) >= 20);
+
   return newBadges;
+}
+
+/** Calculate the current XP multiplier based on consecutive daily goals met. */
+export function getDailyMultiplier(consecutiveDailyGoals: number): { multiplier: number; label: string } {
+  // Day 1 = 1x, Day 2 = 1.5x, Day 3+ = 2x, Day 7+ = 3x (max)
+  if (consecutiveDailyGoals >= 7) return { multiplier: 3.0, label: '3x' };
+  if (consecutiveDailyGoals >= 3) return { multiplier: 2.0, label: '2x' };
+  if (consecutiveDailyGoals >= 2) return { multiplier: 1.5, label: '1.5x' };
+  return { multiplier: 1.0, label: '1x' };
 }

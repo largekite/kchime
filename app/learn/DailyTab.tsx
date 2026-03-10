@@ -1,7 +1,10 @@
 'use client';
 
 import { getPhraseOfTheDay, getRecentPhrases } from '@/lib/daily-phrases';
-import type { DailyPhrase } from '@/types';
+import { recordQuizCompletion, recordCulturalNoteRead } from '@/lib/storage';
+import { XpPopup } from '@/components/XpPopup';
+import { BadgeToast } from '@/components/BadgeToast';
+import type { BadgeId, DailyPhrase } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Lightbulb, BookOpen, Volume2 } from 'lucide-react';
@@ -20,9 +23,45 @@ export default function DailyTab() {
 
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showArchive, setShowArchive] = useState(false);
+  const [quizXp, setQuizXp] = useState(0);
+  const [showQuizXp, setShowQuizXp] = useState(false);
+  const [quizBadges, setQuizBadges] = useState<BadgeId[]>([]);
+  const [cultureExpanded, setCultureExpanded] = useState(false);
+  const [cultureXp, setCultureXp] = useState(0);
+  const [showCultureXp, setShowCultureXp] = useState(false);
 
   const quizAnswered = selectedAnswer !== null;
   const quizCorrect = selectedAnswer === todayPhrase.quiz.correctIndex;
+
+  function handleQuizAnswer(index: number) {
+    setSelectedAnswer(index);
+    if (index === todayPhrase.quiz.correctIndex) {
+      const result = recordQuizCompletion();
+      if (result.xpAwarded > 0) {
+        setQuizXp(result.xpAwarded);
+        setShowQuizXp(true);
+      }
+      if (result.newBadges.length > 0) {
+        setQuizBadges(result.newBadges);
+      }
+    }
+  }
+
+  function handleExpandCulture() {
+    if (!cultureExpanded) {
+      setCultureExpanded(true);
+      const result = recordCulturalNoteRead();
+      if (result.xpAwarded > 0) {
+        setCultureXp(result.xpAwarded);
+        setShowCultureXp(true);
+      }
+      if (result.newBadges.length > 0) {
+        setQuizBadges((prev) => [...prev, ...result.newBadges]);
+      }
+    } else {
+      setCultureExpanded(false);
+    }
+  }
 
   function handleSpeak(text: string) {
     speakText(text, () => {});
@@ -30,6 +69,9 @@ export default function DailyTab() {
 
   return (
     <div className="space-y-6 max-w-xl mx-auto">
+      {quizBadges.length > 0 && (
+        <BadgeToast newBadges={quizBadges} onDismiss={() => setQuizBadges([])} />
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Phrase of the Day</h1>
         <p className="text-sm text-gray-500 mt-1">Learn a new expression every day with cultural context.</p>
@@ -73,14 +115,26 @@ export default function DailyTab() {
             </button>
           </div>
 
-          {/* Cultural note */}
-          <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-            <div className="flex items-center gap-2 mb-2">
+          {/* Cultural note — tap to expand and earn XP */}
+          <button
+            onClick={handleExpandCulture}
+            className="w-full text-left rounded-xl bg-amber-50 border border-amber-200 p-4 transition hover:border-amber-300"
+          >
+            <div className="flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-amber-600" />
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Why Americans Say This</p>
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider flex-1">Why Americans Say This</p>
+              {showCultureXp && (
+                <XpPopup amount={cultureXp} onDone={() => setShowCultureXp(false)} />
+              )}
+              {!cultureExpanded && !showCultureXp && (
+                <span className="text-xs text-amber-500 font-medium">+5 XP</span>
+              )}
+              {cultureExpanded ? <ChevronUp className="h-4 w-4 text-amber-400" /> : <ChevronDown className="h-4 w-4 text-amber-400" />}
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{todayPhrase.culturalNote}</p>
-          </div>
+            {cultureExpanded && (
+              <p className="text-sm text-gray-700 leading-relaxed mt-2">{todayPhrase.culturalNote}</p>
+            )}
+          </button>
 
           {/* Quiz */}
           <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
@@ -88,8 +142,8 @@ export default function DailyTab() {
             <div className="space-y-2">
               {todayPhrase.quiz.options.map((option, i) => (
                 <button
-                  key={i}
-                  onClick={() => setSelectedAnswer(i)}
+                  key={option}
+                  onClick={() => handleQuizAnswer(i)}
                   disabled={quizAnswered}
                   className={clsx(
                     'w-full text-left rounded-xl border px-4 py-2.5 text-sm transition',
@@ -107,9 +161,14 @@ export default function DailyTab() {
               ))}
             </div>
             {quizAnswered && (
-              <p className={clsx('mt-3 text-sm font-medium', quizCorrect ? 'text-emerald-700' : 'text-amber-700')}>
-                {quizCorrect ? 'Correct! You got it.' : 'Not quite — check the answer highlighted above.'}
-              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <p className={clsx('text-sm font-medium', quizCorrect ? 'text-emerald-700' : 'text-amber-700')}>
+                  {quizCorrect ? 'Correct! You got it.' : 'Not quite — check the answer highlighted above.'}
+                </p>
+                {showQuizXp && (
+                  <XpPopup amount={quizXp} onDone={() => setShowQuizXp(false)} />
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -127,9 +186,9 @@ export default function DailyTab() {
       {/* Archive */}
       {showArchive && (
         <div className="space-y-2">
-          {recentPhrases.slice(1).map(({ date, phrase }, i) => (
+          {recentPhrases.slice(1).map(({ date, phrase }) => (
             <div
-              key={i}
+              key={`${date}-${phrase.phrase}`}
               className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3"
             >
               <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', CATEGORY_BADGE[phrase.category].color)}>

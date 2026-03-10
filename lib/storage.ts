@@ -1,5 +1,5 @@
 import type { AccentCode, BadgeId, Collection, Contact, CustomScenario, Progress, RelationshipProfile, SavedPhrase, ToneProfile } from '@/types';
-import { checkNewBadges, BADGE_MAP } from '@/lib/gamification';
+import { checkNewBadges, BADGE_MAP, getDailyMultiplier } from '@/lib/gamification';
 
 const KEYS = {
   API_KEY: 'kchime_api_key',
@@ -66,6 +66,11 @@ const DEFAULT_PROGRESS: Progress = {
   earnedBadges: [],
   naturalReplies: 0,
   streakFreezes: 0,
+  quizCompletedDates: [],
+  dailyBonusMultiplier: 1.0,
+  consecutiveDailyGoals: 0,
+  viewedPackScenarios: [],
+  culturalNotesRead: 0,
 };
 
 export function getProgress(): Progress {
@@ -90,9 +95,10 @@ export function markScenarioComplete(scenarioId: string): { progress: Progress; 
   const today = getToday();
 
   const isNew = !progress.completedScenarios.includes(scenarioId);
+  const { multiplier } = getDailyMultiplier(progress.consecutiveDailyGoals ?? 0);
   if (isNew) {
     progress.completedScenarios.push(scenarioId);
-    progress.xp += 50; // 50 XP per new scenario
+    progress.xp += Math.round(50 * multiplier); // base 50 XP × daily multiplier
   }
 
   // Update daily count
@@ -133,6 +139,24 @@ export function markScenarioComplete(scenarioId: string): { progress: Progress; 
     progress.frozeStreak = false;
   }
   progress.lastActiveDate = today;
+
+  // Update consecutive daily goal tracking for XP multiplier
+  const dailyGoal = getDailyGoal();
+  const todayEntryAfter = progress.daily.find((d) => d.date === today);
+  if (todayEntryAfter && todayEntryAfter.scenariosCompleted === dailyGoal) {
+    // Just hit the goal this session
+    if (progress.lastBonusDate !== today) {
+      const yesterdayBonus = new Date();
+      yesterdayBonus.setDate(yesterdayBonus.getDate() - 1);
+      const yesterdayBonusStr = yesterdayBonus.toISOString().split('T')[0];
+      if (progress.lastBonusDate === yesterdayBonusStr) {
+        progress.consecutiveDailyGoals = (progress.consecutiveDailyGoals ?? 0) + 1;
+      } else {
+        progress.consecutiveDailyGoals = 1;
+      }
+      progress.lastBonusDate = today;
+    }
+  }
 
   // Award a freeze token at every 7-day streak milestone (max 3 held)
   const prevStreakBeforeUpdate = progress.streak - 1;
@@ -198,6 +222,78 @@ export function getTodayScenarioCount(): number {
   const today = getToday();
   const entry = progress.daily.find((d) => d.date === today);
   return entry?.scenariosCompleted ?? 0;
+}
+
+export function recordQuizCompletion(): { xpAwarded: number; progress: Progress; newBadges: BadgeId[] } {
+  const progress = getProgress();
+  const today = getToday();
+
+  // Prevent double-reward on same day
+  const quizDates = progress.quizCompletedDates ?? [];
+  if (quizDates.includes(today)) {
+    return { xpAwarded: 0, progress, newBadges: [] };
+  }
+
+  quizDates.push(today);
+  // Keep last 60 days of quiz history
+  if (quizDates.length > 60) {
+    progress.quizCompletedDates = quizDates.slice(-60);
+  } else {
+    progress.quizCompletedDates = quizDates;
+  }
+
+  // Award 15 XP for daily quiz
+  progress.xp += 15;
+
+  // Check badges (quiz_streak_7 is checked inside checkNewBadges)
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { xpAwarded: 15, progress, newBadges };
+}
+
+export function recordPackScenarioView(scenarioId: string, totalPackScenarios: number): { xpAwarded: number; progress: Progress; newBadges: BadgeId[] } {
+  const progress = getProgress();
+  const viewed = progress.viewedPackScenarios ?? [];
+
+  if (viewed.includes(scenarioId)) {
+    return { xpAwarded: 0, progress, newBadges: [] };
+  }
+
+  viewed.push(scenarioId);
+  progress.viewedPackScenarios = viewed;
+  progress.xp += 10; // 10 XP per new pack scenario opened
+
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount, totalPackScenarios);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { xpAwarded: 10, progress, newBadges };
+}
+
+export function recordCulturalNoteRead(): { xpAwarded: number; progress: Progress; newBadges: BadgeId[] } {
+  const progress = getProgress();
+  progress.culturalNotesRead = (progress.culturalNotesRead ?? 0) + 1;
+  progress.xp += 5; // 5 XP per cultural note read
+
+  const savedPhrasesCount = getSavedPhrases().length;
+  const newBadges = checkNewBadges(progress, savedPhrasesCount);
+  for (const bid of newBadges) {
+    progress.earnedBadges.push(bid);
+    progress.xp += BADGE_MAP[bid].xpReward;
+  }
+
+  saveProgress(progress);
+  return { xpAwarded: 5, progress, newBadges };
 }
 
 // --- Saved Phrases ---
@@ -276,9 +372,10 @@ export function updateSRS(phraseId: string, quality: 0 | 1): void {
   const srs = phrase.srs ?? { nextReview: getToday(), interval: 1, repetitions: 0, ease: 2.5 };
 
   if (quality === 0) {
-    // Forgot: reset repetitions, review again tomorrow
+    // Forgot: reset repetitions, review again tomorrow, penalize ease factor
     srs.repetitions = 0;
     srs.interval = 1;
+    srs.ease = Math.max(1.3, srs.ease - 0.2);
   } else {
     // Recalled: advance schedule
     if (srs.repetitions === 0) {

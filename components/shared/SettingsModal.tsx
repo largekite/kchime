@@ -86,9 +86,13 @@ export function SettingsModal({ open, onClose }: Props) {
     setTimeout(() => setGoalSaved(false), 1500);
   }
 
+  const [accentSaved, setAccentSaved] = useState(false);
+
   function handleAccentChange(code: AccentCode) {
     setAccentState(code);
     setAccent(code);
+    setAccentSaved(true);
+    setTimeout(() => setAccentSaved(false), 1500);
   }
 
   if (!open) return null;
@@ -125,7 +129,10 @@ export function SettingsModal({ open, onClose }: Props) {
 
         {/* Accent */}
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-gray-700">Voice Accent</label>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-semibold text-gray-700">Voice Accent</label>
+            {accentSaved && <span className="text-xs font-medium text-indigo-600">Saved!</span>}
+          </div>
           <p className="text-xs text-gray-400">Sets the accent for text-to-speech playback.</p>
           <div className="grid grid-cols-2 gap-2">
             {ACCENTS.map((a) => (

@@ -6,11 +6,11 @@ export const dynamic = 'force-dynamic';
 
 async function upsertSubscription(
   userId: string,
-  plan: 'pro' | 'max' | 'free',
+  plan: 'pro' | 'free',
   periodEnd: Date | null,
 ) {
   const supabase = createServiceClient();
-  await supabase.from('subscriptions').upsert(
+  const { error } = await supabase.from('subscriptions').upsert(
     {
       user_id: userId,
       plan,
@@ -19,27 +19,24 @@ async function upsertSubscription(
     },
     { onConflict: 'user_id' },
   );
+  if (error) throw new Error(`Failed to upsert subscription: ${error.message}`);
 }
 
-function getTier(sub: Stripe.Subscription): 'pro' | 'max' {
-  const priceId = sub.items?.data?.[0]?.price?.id;
-  if (process.env.STRIPE_MAX_PRICE_ID && priceId === process.env.STRIPE_MAX_PRICE_ID) {
-    return 'max';
-  }
-  return 'pro';
-}
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Stripe environment variables not configured' }, { status: 500 });
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const body = await req.text();
   const sig = req.headers.get('stripe-signature') ?? '';
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Webhook signature verification failed';
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
   }
 
   try {
@@ -53,7 +50,7 @@ export async function POST(req: NextRequest) {
         const isActive = sub.status === 'active' || sub.status === 'trialing';
         const rawEnd = sub.items?.data?.[0]?.current_period_end;
         const periodEnd = rawEnd ? new Date(rawEnd * 1000) : null;
-        const plan = isActive ? getTier(sub) : 'free';
+        const plan = isActive ? 'pro' : 'free';
         await upsertSubscription(userId, plan, isActive ? periodEnd : null);
         break;
       }
@@ -83,8 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Webhook processing failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

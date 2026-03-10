@@ -50,15 +50,12 @@ export default function LandingPage() {
           KChime suggests fluent, context-aware replies right inside your iPhone keyboard — so you always know what to say at work, with friends, or anywhere.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a
-            href="https://apps.apple.com"
+          <Link
+            href="/reply"
             className="flex items-center gap-2 rounded-full bg-gray-900 px-7 py-3.5 text-sm font-semibold text-white hover:bg-gray-700 transition"
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden>
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-            </svg>
-            Download on App Store
-          </a>
+            Try Free — No Download
+          </Link>
           <a
             href="#pricing"
             className="rounded-full border-2 border-indigo-600 px-7 py-3.5 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition"
@@ -117,14 +114,14 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 mx-auto max-w-5xl px-6">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">Simple, honest pricing</h2>
         <p className="text-center text-gray-500 mb-14">Start free. Upgrade when you need more.</p>
-        <div className="grid gap-8 sm:grid-cols-3 max-w-4xl mx-auto">
+        <div className="grid gap-8 sm:grid-cols-2 max-w-3xl mx-auto">
           {/* Free */}
           <div className="rounded-2xl border border-gray-200 p-8">
             <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Free</p>
             <p className="text-4xl font-extrabold text-gray-900 mb-1">$0</p>
             <p className="text-sm text-gray-400 mb-8">forever</p>
             <ul className="space-y-3 mb-8">
-              {['10 replies per day', 'Keyboard extension', '4 reply styles', 'iOS app included'].map((f) => (
+              {['10 Quick Replies per day', '5 Work Replies per day', '5 Fix My Message per day', 'Keyboard extension', '4 reply styles'].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -133,12 +130,12 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <a
-              href="https://apps.apple.com"
+            <Link
+              href="/reply"
               className="block text-center rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
             >
-              Download Free
-            </a>
+              Get Started Free
+            </Link>
           </div>
           {/* Pro — most popular */}
           <div className="rounded-2xl border-2 border-indigo-600 p-8 relative shadow-lg shadow-indigo-100">
@@ -147,13 +144,14 @@ export default function LandingPage() {
             </div>
             <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider mb-2">Pro</p>
             <p className="text-4xl font-extrabold text-gray-900 mb-1">$7</p>
-            <p className="text-sm text-gray-400 mb-8">per month</p>
+            <p className="text-sm text-gray-400 mb-8">per month &middot; $60/yr</p>
             <ul className="space-y-3 mb-8">
               {[
-                '50 replies per day',
-                'Everything in Free',
+                '50 Quick Replies per day',
+                '50 Work Replies per day',
+                'Unlimited Fix My Message',
+                'Live Listen & Practice',
                 'Works on iOS + web',
-                'Priority responses',
               ].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -168,33 +166,6 @@ export default function LandingPage() {
               className="block text-center rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
             >
               Get Pro — $7/month
-            </a>
-          </div>
-          {/* Max */}
-          <div className="rounded-2xl border border-gray-200 p-8">
-            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Max</p>
-            <p className="text-4xl font-extrabold text-gray-900 mb-1">$12</p>
-            <p className="text-sm text-gray-400 mb-8">per month</p>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Unlimited replies',
-                'Everything in Pro',
-                'Early access to new features',
-                'Priority support',
-              ].map((f) => (
-                <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
-                  <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <a
-              href="mailto:hello@kchime.app?subject=KChime Max"
-              className="block text-center rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
-            >
-              Join Waitlist
             </a>
           </div>
         </div>

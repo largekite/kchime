@@ -4,7 +4,7 @@ import { getContacts, saveContact, deleteContact, getAllRelationships } from '@/
 import type { Contact, RelationshipProfile } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
-import { Plus, Trash2, X, Search, UserPlus } from 'lucide-react';
+import { Plus, Trash2, X, Search, UserPlus, Download } from 'lucide-react';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useToast } from '@/components/shared/Toast';
 
@@ -53,6 +53,42 @@ export default function ContactsTab() {
     toast('Contact deleted');
   }
 
+  const supportsContactPicker = typeof window !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window;
+
+  async function handleImportFromPhone() {
+    if (!supportsContactPicker) {
+      toast('Your browser does not support importing phone contacts. Try Chrome on Android.');
+      return;
+    }
+    try {
+      const picked = await (navigator as any).contacts.select(['name', 'tel'], { multiple: true });
+      if (!picked || picked.length === 0) return;
+      let imported = 0;
+      for (const entry of picked) {
+        const name = entry.name?.[0]?.trim();
+        if (!name) continue;
+        const phone = entry.tel?.[0] ?? '';
+        const contact: Contact = {
+          id: `contact-${Date.now()}-${imported}`,
+          name,
+          notes: phone ? `Phone: ${phone}` : '',
+          createdAt: new Date().toISOString(),
+        };
+        saveContact(contact);
+        imported++;
+      }
+      setContacts(getContacts());
+      if (imported > 0) {
+        toast(`Imported ${imported} contact${imported > 1 ? 's' : ''}`);
+      }
+    } catch (err) {
+      // User cancelled the picker or permission denied
+      if ((err as Error).name !== 'InvalidStateError') {
+        console.warn('Contact import failed:', err);
+      }
+    }
+  }
+
   const filteredContacts = contacts.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -71,13 +107,24 @@ export default function ContactsTab() {
           <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
           <p className="text-sm text-gray-500 mt-1">Save people with notes so replies are personalized.</p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
-        >
-          <Plus className="h-4 w-4" />
-          Add
-        </button>
+        <div className="flex items-center gap-2">
+          {supportsContactPicker && (
+            <button
+              onClick={handleImportFromPhone}
+              className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            >
+              <Download className="h-4 w-4" />
+              Import
+            </button>
+          )}
+          <button
+            onClick={() => setShowNew(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          >
+            <Plus className="h-4 w-4" />
+            Add
+          </button>
+        </div>
       </div>
 
       {/* Search */}

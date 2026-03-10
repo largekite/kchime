@@ -23,7 +23,12 @@ export async function middleware(request: NextRequest) {
         },
       },
     );
-    await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Redirect logged-in users from the landing page to the app
+    if (user && request.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/reply', request.url));
+    }
   }
 
   return response;

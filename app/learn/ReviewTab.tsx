@@ -3,15 +3,9 @@
 import { useState, useEffect } from 'react';
 import { getDueForReview, updateSRS } from '@/lib/storage';
 import { explainPhrases } from '@/lib/claude';
-import type { PhraseExplanation, SavedPhrase, Tone } from '@/types';
+import type { PhraseExplanation, SavedPhrase } from '@/types';
+import { getToneStyle } from '@/lib/tone-styles';
 import clsx from 'clsx';
-
-const TONE_STYLES: Record<Tone, string> = {
-  Casual: 'bg-indigo-100 text-indigo-700',
-  Funny: 'bg-amber-100 text-amber-700',
-  Warm: 'bg-pink-100 text-pink-700',
-  Safe: 'bg-emerald-100 text-emerald-700',
-};
 
 export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const [queue, setQueue] = useState<SavedPhrase[]>([]);
@@ -122,7 +116,7 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
             <>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Your saved reply:</p>
               <p className="text-base text-gray-900 font-semibold">{current.text}</p>
-              <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[current.tone])}>
+              <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', getToneStyle(current.tone).badge)}>
                 {current.tone}
               </span>
               {interval && (
@@ -155,8 +149,8 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
               {explanations && explanations.length > 0 && (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2">
                   <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Why it works</p>
-                  {explanations.map((exp, i) => (
-                    <div key={i}>
+                  {explanations.map((exp) => (
+                    <div key={exp.phrase}>
                       <p className="text-sm font-semibold text-gray-800">&ldquo;{exp.phrase}&rdquo;</p>
                       <p className="text-xs text-gray-600 mt-0.5">{exp.meaning}</p>
                       {exp.tip && (

@@ -3,8 +3,8 @@
 import { useAuth } from '@/context/AuthContext';
 import { AuthModal } from '@/components/shared/AuthModal';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
-import { Check, Copy, Gift, Share2, Users } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Check, Copy, Gift, RefreshCw, Share2, Users } from 'lucide-react';
 
 interface ReferralData {
   code: string;
@@ -23,28 +23,38 @@ export default function ReferTab() {
   const [showAuth, setShowAuth] = useState(false);
   const [referral, setReferral] = useState<ReferralData | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
+  const fetchCode = useCallback(async () => {
     setFetching(true);
-
-    async function fetchCode() {
+    setFetchError(false);
+    try {
       const { createClient } = await import('@/lib/supabase');
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) return;
+      if (!token) { setFetchError(true); return; }
 
       const res = await fetch('/api/refer', { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json() as ReferralData;
         setReferral(data);
+      } else {
+        setFetchError(true);
       }
+    } catch {
+      setFetchError(true);
+    } finally {
+      setFetching(false);
     }
+  }, []);
 
-    fetchCode().finally(() => setFetching(false));
-  }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    fetchCode();
+  }, [user, fetchCode]);
 
   const referralUrl = referral
     ? `${typeof window !== 'undefined' ? window.location.origin : 'https://kchime.app'}/?ref=${referral.code}`
@@ -52,12 +62,14 @@ export default function ReferTab() {
 
   async function handleCopy() {
     if (!referralUrl) return;
+    setCopyFailed(false);
     try {
       await navigator.clipboard.writeText(referralUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard API may fail if page is not focused
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2000);
     }
   }
 
@@ -105,7 +117,7 @@ export default function ReferTab() {
       {/* Referral link */}
       {!loading && (
         user ? (
-          fetching ? (
+          fetching && !fetchError ? (
             <div className="text-center text-sm text-gray-400 py-4">Getting your link…</div>
           ) : referral ? (
             <div className="space-y-4">
@@ -121,11 +133,13 @@ export default function ReferTab() {
                       'flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition',
                       copied
                         ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : copyFailed
+                          ? 'bg-red-50 border border-red-200 text-red-600'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
                     )}
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copied ? 'Copied!' : 'Copy link'}
+                    {copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy link'}
                   </button>
                   <button
                     onClick={handleShare}
@@ -162,7 +176,17 @@ export default function ReferTab() {
               )}
             </div>
           ) : (
-            <div className="text-center text-sm text-red-500 py-4">Couldn't load your referral link. Try again.</div>
+            <div className="text-center py-4 space-y-2">
+              <p className="text-sm text-red-500">Couldn&apos;t load your referral link.</p>
+              <button
+                onClick={fetchCode}
+                disabled={fetching}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                <RefreshCw className={clsx('h-3.5 w-3.5', fetching && 'animate-spin')} />
+                Try again
+              </button>
+            </div>
           )
         ) : (
           <div className="rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center space-y-3">

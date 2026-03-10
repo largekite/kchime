@@ -1,7 +1,9 @@
 'use client';
 
+import { ContactSelector } from '@/components/shared/ContactSelector';
 import { WorkReplyCard } from '@/components/work-reply/WorkReplyCard';
 import { fetchWorkReplies, LimitReachedError } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
 import { useState } from 'react';
@@ -35,6 +37,7 @@ function SkeletonCard() {
 }
 
 export default function WorkTab() {
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
   const [preset, setPreset] = useState<WorkplacePreset | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,7 +60,7 @@ export default function WorkTab() {
     setResult(null);
 
     try {
-      const data = await fetchWorkReplies(message.trim(), preset);
+      const data = await fetchWorkReplies(message.trim(), preset, getContactPersonalization());
       setResult(data);
       incrementWorkReplyCount();
     } catch (err) {
@@ -112,6 +115,16 @@ export default function WorkTab() {
         />
       </div>
 
+      {/* Contact picker */}
+      <div className="mb-4">
+        <ContactSelector
+          contacts={contacts}
+          relationships={relationships}
+          selectedContactId={selectedContactId}
+          onSelect={setSelectedContactId}
+        />
+      </div>
+
       {error && (
         <p className="mb-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>
       )}
@@ -154,7 +167,7 @@ export default function WorkTab() {
 
       {showUpgrade && (
         <UpgradePrompt
-          reason="You've used your 2 free Work Replies for today. Upgrade for unlimited access."
+          reason="You've used your 5 free Work Replies for today. Upgrade for 50 per day."
           onClose={() => setShowUpgrade(false)}
         />
       )}

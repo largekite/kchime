@@ -4,20 +4,14 @@ import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { useToast } from '@/components/shared/Toast';
-import type { Collection, SavedPhrase, Tone } from '@/types';
+import type { Collection, SavedPhrase } from '@/types';
+import { getToneStyle } from '@/lib/tone-styles';
 import clsx from 'clsx';
 import { useState, useEffect, useRef } from 'react';
 import {
   getDueForReview, getCollections, createCollection,
   deleteCollection, togglePhraseInCollection,
 } from '@/lib/storage';
-
-const TONE_STYLES: Record<Tone, string> = {
-  Casual: 'bg-indigo-100 text-indigo-700',
-  Funny: 'bg-amber-100 text-amber-700',
-  Warm: 'bg-pink-100 text-pink-700',
-  Safe: 'bg-emerald-100 text-emerald-700',
-};
 
 function SrsChip({ srs }: { srs?: SavedPhrase['srs'] }) {
   const reps = srs?.repetitions ?? 0;
@@ -31,7 +25,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
   const { phrases, remove } = useSavedPhrases();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [filterTone, setFilterTone] = useState<Tone | 'All'>('All');
+  const [filterTone, setFilterTone] = useState<string>('All');
   const [filterCollection, setFilterCollection] = useState<string | 'All'>('All');
   const [sharePhrase, setSharePhrase] = useState<SavedPhrase | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -63,7 +57,9 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
     setCollections(getCollections());
   }, [phrases]);
 
-  const tones: (Tone | 'All')[] = ['All', 'Casual', 'Funny', 'Warm', 'Safe'];
+  // Derive tone filter options from saved phrases
+  const uniqueTones = Array.from(new Set(phrases.map(p => p.tone)));
+  const tones: string[] = ['All', ...uniqueTones];
 
   const filtered = phrases.filter((p) => {
     const matchTone = filterTone === 'All' || p.tone === filterTone;
@@ -263,7 +259,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-1.5">
-                    <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', TONE_STYLES[phrase.tone])}>
+                    <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', getToneStyle(phrase.tone).badge)}>
                       {phrase.tone}
                     </span>
                     <SrsChip srs={phrase.srs} />

@@ -5,7 +5,11 @@ import { createServiceClient } from '@/lib/supabase-server';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PRO_PRICE_ID) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
   // Authenticate via Supabase session token
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -21,13 +25,15 @@ export async function POST(req: NextRequest) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
 
+  const priceId = process.env.STRIPE_PRO_PRICE_ID;
+
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: 'subscription',
     payment_method_types: ['card'],
     customer_email: user.email,
     line_items: [
       {
-        price: process.env.STRIPE_PRO_PRICE_ID!,
+        price: priceId,
         quantity: 1,
       },
     ],

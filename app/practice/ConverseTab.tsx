@@ -1,13 +1,15 @@
 'use client';
 
-import { aiConverse, converseDebrief } from '@/lib/claude';
+import { aiConverse, converseDebrief, fetchRepliesStream, type ReplyPersonalization } from '@/lib/claude';
 import { speakText } from '@/lib/speech';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Mic, MicOff, RotateCcw } from 'lucide-react';
+import { Mic, MicOff, RotateCcw, Lightbulb } from 'lucide-react';
+import type { Reply } from '@/types';
 
 interface Persona {
   id: string;
@@ -48,7 +50,11 @@ export default function ConverseTab() {
   const [error, setError] = useState('');
   const [debrief, setDebrief] = useState<Debrief | null>(null);
   const [isDebriefing, setIsDebriefing] = useState(false);
+  const [hints, setHints] = useState<Reply[]>([]);
+  const [isLoadingHints, setIsLoadingHints] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const abortRef = useRef(false);
 
   const handleUserSpeech = useCallback(
     async (transcript: string) => {
@@ -56,7 +62,9 @@ export default function ConverseTab() {
       if (!transcript.trim()) return;
 
       isProcessingRef.current = true;
+      abortRef.current = false;
       setIsProcessing(true);
+      setHints([]);
       const userTurn: Turn = { speaker: 'user', text: transcript };
       let newHistory: Turn[] = [];
       setHistory((prev) => {
@@ -70,12 +78,15 @@ export default function ConverseTab() {
           newHistory.map((t) => ({ speaker: t.speaker, text: t.text })),
           transcript,
         );
+        if (abortRef.current) return;
         const aiTurn: Turn = { speaker: 'ai', text: aiReply };
         setHistory((prev) => [...prev, aiTurn]);
         setIsAiSpeaking(true);
         speakText(aiReply, () => setIsAiSpeaking(false));
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Something went wrong.');
+        if (!abortRef.current) {
+          setError(e instanceof Error ? e.message : 'Something went wrong.');
+        }
       } finally {
         isProcessingRef.current = false;
         setIsProcessing(false);
@@ -105,12 +116,14 @@ export default function ConverseTab() {
   }
 
   function handleReset() {
+    abortRef.current = true;
     stop();
     window.speechSynthesis.cancel();
     setSelectedPersona(null);
     setHistory([]);
     setError('');
     setDebrief(null);
+    setHints([]);
     reset();
     setIsAiSpeaking(false);
   }
@@ -143,6 +156,34 @@ export default function ConverseTab() {
     }
   }
 
+  async function handleHint() {
+    const lastAiTurn = [...history].reverse().find((t) => t.speaker === 'ai');
+    if (!lastAiTurn || isLoadingHints) return;
+    setIsLoadingHints(true);
+    setHints([]);
+    try {
+      const collected: Reply[] = [];
+      const tp = getToneProfile();
+      const personalization: ReplyPersonalization = {
+        toneProfile: {
+          formality: tp.formality,
+          lengthPreference: tp.lengthPreference,
+          emojiEnabled: tp.emojiEnabled,
+          customInstructions: tp.customInstructions,
+        },
+      };
+      for await (const reply of fetchRepliesStream(lastAiTurn.text, 'Any', personalization)) {
+        collected.push(reply);
+        setHints([...collected]);
+        if (collected.length >= 2) break;
+      }
+    } catch {
+      // silently fail — hints are optional
+    } finally {
+      setIsLoadingHints(false);
+    }
+  }
+
   // Count user turns only
   const userTurns = history.filter((t) => t.speaker === 'user').length;
   const userWords = history
@@ -156,7 +197,7 @@ export default function ConverseTab() {
   };
 
   // Pro gate
-  if (!authLoading && plan !== 'pro') {
+  if (!authLoading && plan === 'free') {
     return (
       <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
         <div className="text-4xl">🎙️</div>
@@ -323,25 +364,54 @@ export default function ConverseTab() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Mic button + Finish session */}
+          {/* Hint suggestions */}
+          {hints.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Hint — try saying something like:</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {hints.map((hint) => (
+                  <div key={hint.id} className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+                    <p className="text-xs font-semibold text-amber-700 mb-1">{hint.tone}</p>
+                    <p className="text-sm text-gray-900">{hint.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mic button + Hint + Finish session */}
           <div className="sticky bottom-6 flex flex-col items-center gap-3 pt-2">
-            <button
-              onClick={handleToggleMic}
-              disabled={!isSupported || isProcessing || isAiSpeaking}
-              className={clsx(
-                'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
-                isListening
-                  ? 'bg-red-500 shadow-red-300 scale-110'
-                  : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
-                (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
+            <div className="flex items-center gap-4">
+              {/* Hint button — show after AI has spoken at least once */}
+              {history.length >= 1 && !isProcessing && !isAiSpeaking && (
+                <button
+                  onClick={handleHint}
+                  disabled={isLoadingHints}
+                  className="h-10 w-10 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center hover:bg-amber-100 transition disabled:opacity-40"
+                  title="Need a hint?"
+                >
+                  <Lightbulb className={clsx('h-5 w-5 text-amber-600', isLoadingHints && 'animate-pulse')} />
+                </button>
               )}
-            >
-              {isListening ? (
-                <MicOff className="h-7 w-7 text-white" />
-              ) : (
-                <Mic className="h-7 w-7 text-white" />
-              )}
-            </button>
+
+              <button
+                onClick={handleToggleMic}
+                disabled={!isSupported || isProcessing || isAiSpeaking}
+                className={clsx(
+                  'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
+                  isListening
+                    ? 'bg-red-500 shadow-red-300 scale-110'
+                    : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
+                  (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
+                )}
+              >
+                {isListening ? (
+                  <MicOff className="h-7 w-7 text-white" />
+                ) : (
+                  <Mic className="h-7 w-7 text-white" />
+                )}
+              </button>
+            </div>
             <p className="text-xs text-gray-400">
               {isAiSpeaking ? `${selectedPersona.name} is speaking…` : isListening ? 'Listening…' : 'Tap to speak'}
             </p>

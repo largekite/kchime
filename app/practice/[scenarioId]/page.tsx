@@ -6,8 +6,8 @@ import type { PronunciationScore } from '@/lib/pronunciation';
 import { getScenarioById, categoryMeta } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { recordNaturalReply } from '@/lib/storage';
-import { getLevel } from '@/lib/gamification';
+import { recordNaturalReply, getProgress } from '@/lib/storage';
+import { getLevel, getDailyMultiplier } from '@/lib/gamification';
 import { BadgeToast } from '@/components/BadgeToast';
 import { LevelUpToast } from '@/components/LevelUpToast';
 import { XpPopup } from '@/components/XpPopup';
@@ -125,11 +125,13 @@ export default function ScenarioChatPage({
       setStep('result');
 
       let totalXpGained = 0;
+      const currentProgress = getProgress();
+      const { multiplier } = getDailyMultiplier(currentProgress.consecutiveDailyGoals ?? 0);
 
       if (!alreadyDone) {
         const updated = completeScenario(scenarioId);
         setCompleted(true);
-        totalXpGained += 50;
+        totalXpGained += Math.round(50 * multiplier);
 
         // Check level up
         const newLevel = getLevel(updated.xp ?? xp + 50);
@@ -279,8 +281,8 @@ export default function ScenarioChatPage({
         {step === 'choose' && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-gray-700 mb-2">How would you reply?</p>
-            {scenario.suggestedReplies.map((reply, i) => (
-              <div key={i} className="flex items-center gap-2">
+            {scenario.suggestedReplies.map((reply) => (
+              <div key={reply} className="flex items-center gap-2">
                 <button
                   onClick={() => handleReply(reply)}
                   className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
@@ -370,9 +372,9 @@ export default function ScenarioChatPage({
             {/* Reply options */}
             <p className="text-sm font-medium text-gray-700">How would you reply?</p>
             <div className="space-y-2">
-              {scenario!.suggestedReplies.slice(0, 3).map((reply, i) => (
+              {scenario!.suggestedReplies.slice(0, 3).map((reply) => (
                 <button
-                  key={i}
+                  key={reply}
                   onClick={() => handleFollowUpReply(reply)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
                 >

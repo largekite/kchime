@@ -2,8 +2,14 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
-import { getPackById } from '@/lib/reply-packs';
+import { ContactSelector } from '@/components/shared/ContactSelector';
+import { getPackById, REPLY_PACKS } from '@/lib/reply-packs';
 import { fetchPackVariations } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
+import { recordPackScenarioView, getProgress, getToneProfile } from '@/lib/storage';
+import { XpPopup } from '@/components/XpPopup';
+import { BadgeToast } from '@/components/BadgeToast';
+import type { BadgeId } from '@/types';
 import { ArrowLeft, Check, ChevronRight, Copy, MessageSquare, Search, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -28,11 +34,29 @@ export default function PackDetailPage() {
   const packId = params.packId as string;
   const pack = getPackById(packId);
 
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [aiVariations, setAiVariations] = useState<{ tone: string; text: string }[]>([]);
   const [loadingAi, setLoadingAi] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
+  const [packXp, setPackXp] = useState(0);
+  const [showPackXp, setShowPackXp] = useState(false);
+  const [packBadges, setPackBadges] = useState<BadgeId[]>([]);
+
+  // Total pack scenarios across all packs for completionist badge
+  const totalPackScenarios = useMemo(
+    () => REPLY_PACKS.reduce((sum, p) => sum + p.scenarios.length, 0),
+    [],
+  );
+
+  // Track which scenarios have been viewed for progress display
+  const [viewedCount, setViewedCount] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    return (getProgress().viewedPackScenarios ?? []).filter(
+      (id) => pack?.scenarios.some((s) => s.id === id),
+    ).length;
+  });
 
   // Search filter matching iOS filteredScenarios logic
   const filteredScenarios = useMemo(() => {
@@ -72,7 +96,16 @@ export default function PackDetailPage() {
     setLoadingAi(true);
     setAiVariations([]);
     try {
-      const variations = await fetchPackVariations(message);
+      const tp = getToneProfile();
+      const variations = await fetchPackVariations(message, {
+        toneProfile: {
+          formality: tp.formality,
+          lengthPreference: tp.lengthPreference,
+          emojiEnabled: tp.emojiEnabled,
+          customInstructions: tp.customInstructions,
+        },
+        ...getContactPersonalization(),
+      });
       setAiVariations(variations);
     } catch {
       // Silently fail — seed replies are still available
@@ -88,11 +121,27 @@ export default function PackDetailPage() {
     } else {
       setSelectedScenarioId(scenarioId);
       setAiVariations([]);
+
+      // Award XP on first open
+      const result = recordPackScenarioView(scenarioId, totalPackScenarios);
+      if (result.xpAwarded > 0) {
+        setPackXp(result.xpAwarded);
+        setShowPackXp(true);
+        setViewedCount((c) => c + 1);
+      }
+      if (result.newBadges.length > 0) {
+        setPackBadges(result.newBadges);
+      }
     }
   }
 
   return (
     <div className="space-y-5">
+      {/* Badge toast */}
+      {packBadges.length > 0 && (
+        <BadgeToast newBadges={packBadges} onDismiss={() => setPackBadges([])} />
+      )}
+
       {/* Back + Header */}
       <div>
         <button
@@ -107,9 +156,19 @@ export default function PackDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{pack.title}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {pack.scenarios.length} scenarios
+              {pack.scenarios.length} scenarios · {viewedCount} explored
+              {showPackXp && (
+                <XpPopup amount={packXp} onDone={() => setShowPackXp(false)} />
+              )}
             </p>
           </div>
+        </div>
+        {/* Pack progress bar */}
+        <div className="mt-3 h-1.5 w-full rounded-full bg-gray-100">
+          <div
+            className={clsx('h-1.5 rounded-full transition-all', accent.bg)}
+            style={{ width: `${Math.round((viewedCount / pack.scenarios.length) * 100)}%` }}
+          />
         </div>
       </div>
 
@@ -124,6 +183,14 @@ export default function PackDetailPage() {
           className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
         />
       </div>
+
+      {/* Contact picker */}
+      <ContactSelector
+        contacts={contacts}
+        relationships={relationships}
+        selectedContactId={selectedContactId}
+        onSelect={setSelectedContactId}
+      />
 
       {/* Scenarios list — matches iOS ScenarioRow */}
       <div className="space-y-3">
@@ -168,7 +235,7 @@ export default function PackDetailPage() {
                         const copyId = `${scenario.id}-seed-${i}`;
                         return (
                           <div
-                            key={i}
+                            key={copyId}
                             className="flex items-start gap-2 rounded-xl bg-gray-50 px-3 py-2.5"
                           >
                             <p className="flex-1 text-sm text-gray-800 leading-snug">{reply}</p>
@@ -228,7 +295,7 @@ export default function PackDetailPage() {
                             const copyId = `${scenario.id}-ai-${i}`;
                             return (
                               <div
-                                key={i}
+                                key={copyId}
                                 className={clsx('rounded-xl border p-3 transition', styles.bg, styles.border)}
                               >
                                 <div className="flex items-center justify-between mb-1.5">

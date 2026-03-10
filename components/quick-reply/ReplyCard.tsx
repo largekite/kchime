@@ -3,16 +3,10 @@
 import { useState } from 'react';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
 import { speakText } from '@/lib/speech';
-import type { Context, Reply, SavedPhrase, Tone } from '@/types';
+import type { Context, Reply, SavedPhrase } from '@/types';
+import { getToneStyle } from '@/lib/tone-styles';
 import { Bookmark, BookmarkCheck, Check, Copy, Share2, Square, Volume2 } from 'lucide-react';
 import clsx from 'clsx';
-
-const TONE_STYLES: Record<Tone, { bg: string; badge: string; border: string }> = {
-  Casual: { bg: 'bg-indigo-50', badge: 'bg-indigo-100 text-indigo-700', border: 'border-indigo-200' },
-  Funny: { bg: 'bg-amber-50', badge: 'bg-amber-100 text-amber-700', border: 'border-amber-200' },
-  Warm: { bg: 'bg-pink-50', badge: 'bg-pink-100 text-pink-700', border: 'border-pink-200' },
-  Safe: { bg: 'bg-emerald-50', badge: 'bg-emerald-100 text-emerald-700', border: 'border-emerald-200' },
-};
 
 interface Props {
   reply: Reply;
@@ -28,16 +22,26 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
   const [shareOpen, setShareOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(saved);
 
-  const styles = TONE_STYLES[reply.tone];
+  const styles = getToneStyle(reply.tone);
 
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(reply.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      return;
+      // Fallback: select text from a temporary textarea
+      const ta = document.createElement('textarea');
+      ta.value = reply.text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   function handleSpeak() {

@@ -1,16 +1,18 @@
 'use client';
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
-import { fetchReplies } from '@/lib/claude';
+import { ContactSelector } from '@/components/shared/ContactSelector';
+import { fetchRepliesStream } from '@/lib/claude';
 import type { ReplyPersonalization } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
 import { useProgress } from '@/hooks/useProgress';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { getToneProfile, getContacts, getAllRelationships } from '@/lib/storage';
-import type { Context, Reply, SavedPhrase, Contact } from '@/types';
+import { getToneProfile } from '@/lib/storage';
+import type { Context, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
-import { useState, useMemo } from 'react';
-import { Briefcase, Home, MessageSquare, Music, Globe, UserCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Briefcase, Home, MessageSquare, Music, Globe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
@@ -29,18 +31,18 @@ export default function QuickReplyTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentPrompt, setCurrentPrompt] = useState('');
-  const [selectedContactId, setSelectedContactId] = useState<string>('');
-
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
-
-  const contacts = useMemo(() => getContacts(), []);
-  const relationships = useMemo(() => getAllRelationships(), []);
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
 
   const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } = useSpeechRecognition({
     onSilence: (t) => {
       setInput(t);
       stop();
+      // Auto-submit after speech ends
+      handleSubmit(t).catch((e) => {
+        setError(e instanceof Error ? e.message : 'Something went wrong.');
+      });
     },
   });
 
@@ -62,30 +64,14 @@ export default function QuickReplyTab() {
           emojiEnabled: toneProfile.emojiEnabled,
           customInstructions: toneProfile.customInstructions,
         },
+        ...getContactPersonalization(),
       };
 
-      if (selectedContactId) {
-        const contact = contacts.find((c) => c.id === selectedContactId);
-        if (contact) {
-          if (contact.notes) personalization.contactNotes = contact.notes;
-          if (contact.relationshipId) {
-            const rel = relationships.find((r) => r.id === contact.relationshipId);
-            if (rel) {
-              personalization.relationshipProfile = {
-                name: rel.name,
-                formality: rel.formality,
-                warmth: rel.warmth,
-                brevity: rel.brevity,
-                directness: rel.directness,
-                emojiAllowed: rel.emojiAllowed,
-              };
-            }
-          }
-        }
+      setReplies([]);
+      for await (const reply of fetchRepliesStream(text, context, personalization)) {
+        setReplies((prev) => [...prev, reply]);
+        setLoading(false);
       }
-
-      const result = await fetchReplies(text, context, personalization);
-      setReplies(result);
       addPrompt(text);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -133,84 +119,65 @@ export default function QuickReplyTab() {
         </div>
 
         {/* Contact picker */}
-        {contacts.length > 0 && (
-          <div className="mb-3 flex items-center gap-2">
-            <UserCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <select
-              value={selectedContactId}
-              onChange={(e) => setSelectedContactId(e.target.value)}
-              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 focus:border-indigo-400 focus:outline-none"
-            >
-              <option value="">Replying to anyone</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            {selectedContactId && (
-              <span className="text-xs text-indigo-600">
-                {(() => {
-                  const c = contacts.find((ct) => ct.id === selectedContactId);
-                  const r = c?.relationshipId ? relationships.find((rl) => rl.id === c.relationshipId) : null;
-                  return r ? `${r.emoji} ${r.name}` : 'Personalized';
-                })()}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="mb-3">
+          <ContactSelector
+            contacts={contacts}
+            relationships={relationships}
+            selectedContactId={selectedContactId}
+            onSelect={setSelectedContactId}
+          />
+        </div>
 
         {/* Text input */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <textarea
-              value={isListening ? transcript : input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-              placeholder='What did someone say? e.g. "TGIF, am I right?"'
-              rows={2}
-              autoComplete="off"
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-            />
-            {(input || transcript) && !isListening && (
-              <button
-                type="button"
-                onClick={() => { setInput(''); setReplies([]); setError(''); setCurrentPrompt(''); setContext('Any'); resetTranscript(); }}
-                className="absolute right-2.5 top-2.5 rounded-full p-0.5 text-gray-400 hover:text-gray-600 transition"
-                title="Clear"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z" clipRule="evenodd" />
-                </svg>
-              </button>
-            )}
-            {isListening && (
-              <div className="absolute right-3 top-3 flex items-center gap-1.5">
-                <span className="h-2 w-2 animate-ping rounded-full bg-red-500" />
-                <span className="text-xs text-red-500 font-medium">Listening…</span>
-              </div>
-            )}
-          </div>
-
-          {isSupported && (
+        <div className="relative">
+          <textarea
+            value={isListening ? transcript : input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            placeholder='What did someone say? e.g. "TGIF, am I right?"'
+            rows={2}
+            autoComplete="off"
+            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          />
+          {/* Inline action: clear button or mic inside textarea */}
+          {isListening ? (
             <button
+              type="button"
               onClick={handleMic}
-              className={clsx(
-                'self-start rounded-xl p-3 transition',
-                isListening
-                  ? 'bg-red-500 text-white shadow-lg shadow-red-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              )}
-              title={isListening ? 'Stop listening' : 'Speak'}
+              className="absolute right-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-0.5 text-white shadow-sm transition hover:bg-red-600"
+              title="Stop listening"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <span className="h-2 w-2 animate-ping rounded-full bg-white" />
+              <span className="text-xs font-medium">Stop</span>
+            </button>
+          ) : (input || transcript) ? (
+            <button
+              type="button"
+              onClick={() => { setInput(''); setError(''); resetTranscript(); }}
+              className="absolute right-2.5 top-2.5 rounded-full p-0.5 text-gray-400 hover:text-gray-600 transition"
+              title="Clear"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 8.586L6.707 5.293a1 1 0 00-1.414 1.414L8.586 10l-3.293 3.293a1 1 0 101.414 1.414L10 11.414l3.293 3.293a1 1 0 001.414-1.414L11.414 10l3.293-3.293a1 1 0 00-1.414-1.414L10 8.586z" clipRule="evenodd" />
+              </svg>
+            </button>
+          ) : isSupported ? (
+            <button
+              type="button"
+              onClick={handleMic}
+              className="absolute right-2.5 top-2.5 rounded-full p-1 text-gray-300 hover:text-indigo-500 transition"
+              title="Speak"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm0 2a1 1 0 0 0-1 1v7a1 1 0 0 0 2 0V5a1 1 0 0 0-1-1zm6 7a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
               </svg>
             </button>
-          )}
+          ) : null}
         </div>
 
         <button

@@ -1,8 +1,9 @@
 'use client';
 
-import { fetchRepliesStream, explainPhrases } from '@/lib/claude';
+import { fetchRepliesStream, explainPhrases, type ReplyPersonalization } from '@/lib/claude';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { getToneProfile } from '@/lib/storage';
 import type { Context, ConversationRound, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useCallback, useRef, useState, useEffect } from 'react';
@@ -29,7 +30,20 @@ export default function LiveTab() {
   const [showExplain, setShowExplain] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [copiedId, setCopiedId] = useState('');
   const { save: savePhrase } = useSavedPhrases();
+
+  function getPersonalization(): ReplyPersonalization {
+    const tp = getToneProfile();
+    return {
+      toneProfile: {
+        formality: tp.formality,
+        lengthPreference: tp.lengthPreference,
+        emojiEnabled: tp.emojiEnabled,
+        customInstructions: tp.customInstructions,
+      },
+    };
+  }
 
   const handleSilence = useCallback(
     async (transcript: string) => {
@@ -41,7 +55,7 @@ export default function LiveTab() {
       setRounds((prev) => [...prev, { id: roundId, transcript, replies: [] }]);
       resetTranscript();
       try {
-        for await (const reply of fetchRepliesStream(transcript, 'Any')) {
+        for await (const reply of fetchRepliesStream(transcript, 'Any', getPersonalization())) {
           setLoading(false);
           setRounds((prev) =>
             prev.map((r) => r.id === roundId ? { ...r, replies: [...r.replies, reply] } : r)
@@ -78,7 +92,7 @@ export default function LiveTab() {
     setRounds((prev) => [...prev, { id: roundId, transcript: text, replies: [] }]);
     resetTranscript();
     try {
-      for await (const reply of fetchRepliesStream(text, 'Any')) {
+      for await (const reply of fetchRepliesStream(text, 'Any', getPersonalization())) {
         setLoading(false);
         setRounds((prev) =>
           prev.map((r) => r.id === roundId ? { ...r, replies: [...r.replies, reply] } : r)
@@ -128,8 +142,8 @@ export default function LiveTab() {
     setShowExplain(false);
   }
 
-  // Pro gate — show upgrade wall if not Pro and auth is resolved
-  if (!authLoading && plan !== 'pro') {
+  // Pro gate — show upgrade wall if free and auth is resolved
+  if (!authLoading && plan === 'free') {
     return (
       <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
         <p className="font-semibold text-gray-700 text-lg">Live Listen is a Pro feature</p>
@@ -236,10 +250,14 @@ export default function LiveTab() {
                   </p>
                   <p className="text-sm text-gray-900">{reply.text}</p>
                   <button
-                    onClick={() => navigator.clipboard.writeText(reply.text).catch(() => {})}
+                    onClick={() => {
+                      navigator.clipboard.writeText(reply.text).catch(() => {});
+                      setCopiedId(reply.id);
+                      setTimeout(() => setCopiedId(''), 2000);
+                    }}
                     className="mt-1.5 text-xs text-gray-400 hover:text-gray-700 transition"
                   >
-                    Copy
+                    {copiedId === reply.id ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               ))}

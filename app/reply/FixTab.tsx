@@ -1,6 +1,9 @@
 'use client';
 
+import { ContactSelector } from '@/components/shared/ContactSelector';
 import { fixMessage, LimitReachedError, type MessageFix } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
+import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
@@ -11,15 +14,30 @@ const MESSAGE_TYPES = ['Casual text', 'Work email', 'Slack / Teams', 'Formal let
 const RELATIONSHIPS = ['to my manager', 'to a coworker', 'to a client', 'to a friend', 'to my landlord', 'general'];
 
 const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = {
-  Polished: { bg: 'bg-indigo-50 border-indigo-100', badge: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },
-  Friendly: { bg: 'bg-pink-50 border-pink-100', badge: 'bg-pink-100 text-pink-700', dot: 'bg-pink-500' },
-  Confident: { bg: 'bg-emerald-50 border-emerald-100', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  // Work email
+  Polished:      { bg: 'bg-indigo-50 border-indigo-100',  badge: 'bg-indigo-100 text-indigo-700',    dot: 'bg-indigo-500' },
+  Approachable:  { bg: 'bg-pink-50 border-pink-100',      badge: 'bg-pink-100 text-pink-700',        dot: 'bg-pink-500' },
+  Confident:     { bg: 'bg-emerald-50 border-emerald-100', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  // Casual text
+  Clean:         { bg: 'bg-sky-50 border-sky-100',         badge: 'bg-sky-100 text-sky-700',          dot: 'bg-sky-500' },
+  Friendly:      { bg: 'bg-pink-50 border-pink-100',       badge: 'bg-pink-100 text-pink-700',        dot: 'bg-pink-500' },
+  Punchy:        { bg: 'bg-orange-50 border-orange-100',   badge: 'bg-orange-100 text-orange-700',    dot: 'bg-orange-500' },
+  // Slack / Teams
+  Direct:        { bg: 'bg-emerald-50 border-emerald-100', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+  // Formal letter
+  Diplomatic:    { bg: 'bg-violet-50 border-violet-100',   badge: 'bg-violet-100 text-violet-700',    dot: 'bg-violet-500' },
+  Authoritative: { bg: 'bg-slate-50 border-slate-100',     badge: 'bg-slate-100 text-slate-700',      dot: 'bg-slate-500' },
+  // Social media
+  Smooth:        { bg: 'bg-cyan-50 border-cyan-100',       badge: 'bg-cyan-100 text-cyan-700',        dot: 'bg-cyan-500' },
+  Bold:          { bg: 'bg-red-50 border-red-100',          badge: 'bg-red-100 text-red-700',          dot: 'bg-red-500' },
+  Witty:         { bg: 'bg-amber-50 border-amber-100',     badge: 'bg-amber-100 text-amber-700',      dot: 'bg-amber-500' },
 };
 
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 5;
 
 export default function FixTab() {
   const { plan } = useAuth();
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
   const [draft, setDraft] = useState('');
   const [messageType, setMessageType] = useState(MESSAGE_TYPES[0]);
   const [relationship, setRelationship] = useState(RELATIONSHIPS[5]);
@@ -46,7 +64,7 @@ export default function FixTab() {
 
   async function handleFix() {
     if (!draft.trim()) return;
-    if (plan !== 'pro' && usageCount >= FREE_LIMIT) {
+    if (plan === 'free' && usageCount >= FREE_LIMIT) {
       setShowUpgrade(true);
       return;
     }
@@ -54,9 +72,18 @@ export default function FixTab() {
     setError('');
     setFixes([]);
     try {
-      const result = await fixMessage(draft.trim(), messageType, relationship);
+      const tp = getToneProfile();
+      const result = await fixMessage(draft.trim(), messageType, relationship, {
+        toneProfile: {
+          formality: tp.formality,
+          lengthPreference: tp.lengthPreference,
+          emojiEnabled: tp.emojiEnabled,
+          customInstructions: tp.customInstructions,
+        },
+        ...getContactPersonalization(),
+      });
       setFixes(result);
-      if (plan !== 'pro') bumpUsage();
+      if (plan === 'free') bumpUsage();
     } catch (e) {
       if (e instanceof LimitReachedError) {
         setShowUpgrade(true);
@@ -114,6 +141,14 @@ export default function FixTab() {
           </div>
         </div>
 
+        {/* Contact picker */}
+        <ContactSelector
+          contacts={contacts}
+          relationships={relationships}
+          selectedContactId={selectedContactId}
+          onSelect={setSelectedContactId}
+        />
+
         {/* Textarea */}
         <div className="relative">
           <textarea
@@ -132,7 +167,7 @@ export default function FixTab() {
 
         {/* Submit */}
         <div className="flex items-center justify-between">
-          {plan !== 'pro' && (
+          {plan === 'free' && (
             <span className="text-xs text-gray-400">
               {remaining > 0 ? `${remaining} fix${remaining === 1 ? '' : 'es'} left today` : 'Daily limit reached'}
             </span>

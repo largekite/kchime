@@ -1,8 +1,8 @@
 'use client';
 
 import { useProgress } from '@/hooks/useProgress';
-import { allCategories, categoryMeta, getScenariosByCategory } from '@/lib/scenarios';
-import { BADGES, BADGE_MAP } from '@/lib/gamification';
+import { allCategories, categoryMeta, getScenariosByCategory, scenarios } from '@/lib/scenarios';
+import { BADGES, BADGE_MAP, getDailyMultiplier } from '@/lib/gamification';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -87,7 +87,7 @@ export default function DashboardTab() {
   });
 
   const totalCompleted = completedScenarios.length;
-  const totalScenarios = 47;
+  const totalScenarios = scenarios.length;
 
   function getCategoryStats(cat: ScenarioCategory) {
     const all = getScenariosByCategory(cat);
@@ -97,23 +97,45 @@ export default function DashboardTab() {
 
   const DAILY_GOAL = getDailyGoal();
   const streakFreezes = getStreakFreezes();
+  const { multiplier, label: multiplierLabel } = getDailyMultiplier(progress?.consecutiveDailyGoals ?? 0);
 
   const handleShare = useCallback(async () => {
     try {
       const html2canvas = (await import('html2canvas')).default;
       if (!shareRef.current) return;
-      const canvas = await html2canvas(shareRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'kchime-progress.png';
-        a.click();
-        URL.revokeObjectURL(url);
+      const canvas = await html2canvas(shareRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
       });
-    } catch {
-      // fallback: just show the card
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // Try native share first (mobile)
+      if (navigator.share && navigator.canShare) {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], 'kchime-progress.png', { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'My KChime Progress',
+            files: [file],
+          });
+          return;
+        }
+      }
+
+      // Fallback: download the image
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'kchime-progress.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Share failed:', err);
+      }
     }
   }, []);
 
@@ -134,6 +156,9 @@ export default function DashboardTab() {
           <div className="text-right">
             <p className="text-2xl font-bold">{xp.toLocaleString()}</p>
             <p className="text-xs text-indigo-200">Total XP</p>
+            {multiplier > 1 && (
+              <p className="text-xs font-bold text-yellow-300 mt-0.5">{multiplierLabel} XP Bonus Active</p>
+            )}
           </div>
         </div>
         <div className="h-2.5 w-full rounded-full bg-white/20">
@@ -173,7 +198,7 @@ export default function DashboardTab() {
       {/* Badges */}
       <div className="rounded-2xl bg-white border border-gray-100 p-5 shadow-sm">
         <h2 className="text-base font-bold text-gray-900 mb-4">Badges</h2>
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-7 gap-2">
           {BADGES.map((badge) => {
             const earned = earnedBadges.includes(badge.id);
             return (

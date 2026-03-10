@@ -18,7 +18,7 @@ const MESSAGES = [
   { title: "Don't lose your streak! 🔥", body: "Your daily English practice is waiting. Just 3 minutes." },
   { title: "Time to practice! 💬", body: "Open KChime and complete today's conversation scenario." },
   { title: "Ready to sound more natural? 🎯", body: "A quick practice session will make a big difference." },
-  { title: "Your English coach is waiting 📚", body: "Pick up where you left off — 47 scenarios ready for you." },
+  { title: "Your English coach is waiting 📚", body: "Pick up where you left off — dozens of scenarios ready for you." },
 ];
 
 export async function POST(req: NextRequest) {
@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
     .map(({ endpoint }) => endpoint);
 
   if (expiredEndpoints.length > 0) {
-    await supabase.from('push_subscriptions').delete().in('endpoint', expiredEndpoints);
+    const { error: cleanupError } = await supabase.from('push_subscriptions').delete().in('endpoint', expiredEndpoints);
+    if (cleanupError) {
+      console.error('Failed to clean up expired push subscriptions:', cleanupError.message);
+    }
   }
 
   return NextResponse.json({ sent, failed, expired: expiredEndpoints.length });
