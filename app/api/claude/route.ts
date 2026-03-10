@@ -357,17 +357,38 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const { draft, messageType, relationship } = body;
       if (!draft) return NextResponse.json({ error: 'Missing draft' }, { status: 400 });
 
-      const ctx = [messageType && `Message type: ${messageType}`, relationship && `Relationship: ${relationship}`]
-        .filter(Boolean).join('. ');
+      // Message-type-specific tone sets and guidance
+      const FIX_TYPE_CONFIG: Record<string, { guidance: string; tones: [string, string, string] }> = {
+        'Casual text':    { guidance: 'This is a casual text message. Keep rewrites short, relaxed, and natural — like a real text. Use contractions, maybe abbreviations.', tones: ['Clean', 'Friendly', 'Punchy'] },
+        'Work email':     { guidance: 'This is a work email. Rewrites should be professional, clear, and well-structured. Use proper grammar and a professional sign-off if appropriate.', tones: ['Polished', 'Approachable', 'Confident'] },
+        'Slack / Teams':  { guidance: 'This is a Slack or Teams message. Keep it concise and direct but still professional. Okay to be slightly informal — no need for full email formality.', tones: ['Clean', 'Friendly', 'Direct'] },
+        'Formal letter':  { guidance: 'This is a formal letter or official communication. Use proper structure, formal language, and a respectful tone throughout.', tones: ['Polished', 'Diplomatic', 'Authoritative'] },
+        'Social media':   { guidance: 'This is a social media post or comment. Keep it engaging, authentic, and concise. Match the casual energy of social platforms.', tones: ['Smooth', 'Bold', 'Witty'] },
+      };
+
+      const RELATIONSHIP_GUIDANCE: Record<string, string> = {
+        'to my manager':  'Writing to a manager/supervisor — be respectful of hierarchy, clear, and proactive.',
+        'to a coworker':  'Writing to a peer/coworker — balanced tone, collaborative, and approachable.',
+        'to a client':    'Writing to a client — prioritize professionalism, service, and clarity.',
+        'to a friend':    'Writing to a friend — be natural, warm, and relaxed.',
+        'to my landlord': 'Writing to a landlord — be polite, clear about the issue, and firm if needed.',
+        'general':        'General audience — use a broadly appropriate tone.',
+      };
+
+      const typeConfig = FIX_TYPE_CONFIG[messageType ?? ''] ?? { guidance: 'Rewrite to sound natural in American English.', tones: ['Polished', 'Friendly', 'Confident'] as [string, string, string] };
+      const relGuidance = RELATIONSHIP_GUIDANCE[relationship ?? ''] ?? '';
+      const [t1, t2, t3] = typeConfig.tones;
 
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: `You are an American English writing coach helping non-native speakers sound natural and professional. Given a draft message, rewrite it in 3 ways: Polished (clean and professional), Friendly (warm and approachable), and Confident (direct and assertive). For each, list 2-3 short bullet improvements. Return ONLY valid JSON, no markdown:
-{"fixes":[{"tone":"Polished","text":"...","improvements":["...","..."]},{"tone":"Friendly","text":"...","improvements":["...","..."]},{"tone":"Confident","text":"...","improvements":["...","..."]}]}`,
+        system: `You are an American English writing coach helping non-native speakers sound natural. ${typeConfig.guidance}${relGuidance ? ' ' + relGuidance : ''}
+
+Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (balanced), "${t3}" (boldest). For each, list 2-3 short bullet improvements explaining what you changed and why. Return ONLY valid JSON, no markdown:
+{"fixes":[{"tone":"${t1}","text":"...","improvements":["...","..."]},{"tone":"${t2}","text":"...","improvements":["...","..."]},{"tone":"${t3}","text":"...","improvements":["...","..."]}]}`,
         messages: [{
           role: 'user',
-          content: `Draft: "${draft}"\n${ctx ? `\nContext: ${ctx}` : ''}\n\nRewrite in 3 tones.`,
+          content: `Draft: "${draft}"\n\nRewrite in 3 styles (${t1}, ${t2}, ${t3}).`,
         }],
       });
 
