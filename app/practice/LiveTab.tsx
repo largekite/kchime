@@ -142,8 +142,8 @@ export default function LiveTab() {
     setShowExplain(false);
   }
 
-  // Pro gate — show upgrade wall if not Pro and auth is resolved
-  if (!authLoading && plan !== 'pro') {
+  // Pro gate — show upgrade wall if free and auth is resolved
+  if (!authLoading && plan === 'free') {
     return (
       <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
         <p className="font-semibold text-gray-700 text-lg">Live Listen is a Pro feature</p>

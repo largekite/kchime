@@ -33,7 +33,7 @@ const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = 
   Witty:         { bg: 'bg-amber-50 border-amber-100',     badge: 'bg-amber-100 text-amber-700',      dot: 'bg-amber-500' },
 };
 
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 5;
 
 export default function FixTab() {
   const { plan } = useAuth();
@@ -64,7 +64,7 @@ export default function FixTab() {
 
   async function handleFix() {
     if (!draft.trim()) return;
-    if (plan !== 'pro' && usageCount >= FREE_LIMIT) {
+    if (plan === 'free' && usageCount >= FREE_LIMIT) {
       setShowUpgrade(true);
       return;
     }
@@ -83,7 +83,7 @@ export default function FixTab() {
         ...getContactPersonalization(),
       });
       setFixes(result);
-      if (plan !== 'pro') bumpUsage();
+      if (plan === 'free') bumpUsage();
     } catch (e) {
       if (e instanceof LimitReachedError) {
         setShowUpgrade(true);
@@ -167,7 +167,7 @@ export default function FixTab() {
 
         {/* Submit */}
         <div className="flex items-center justify-between">
-          {plan !== 'pro' && (
+          {plan === 'free' && (
             <span className="text-xs text-gray-400">
               {remaining > 0 ? `${remaining} fix${remaining === 1 ? '' : 'es'} left today` : 'Daily limit reached'}
             </span>

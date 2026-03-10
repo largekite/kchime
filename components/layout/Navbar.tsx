@@ -77,6 +77,9 @@ export function Navbar() {
                   {plan === 'pro' && (
                     <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700">Pro</span>
                   )}
+                  {plan === 'max' && (
+                    <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-xs font-semibold text-violet-700">Business</span>
+                  )}
                 </button>
               ) : (
                 <button

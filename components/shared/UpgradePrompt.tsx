@@ -63,7 +63,8 @@ export function UpgradePrompt({ reason, onClose }: Props) {
             '50 Quick Replies per day',
             '50 Work Replies per day',
             'Unlimited Fix My Message',
-            'Live Listen (real-time suggestions)',
+            'Live Listen & AI Conversation Partner',
+            'Works on iOS + web',
           ].map((f) => (
             <div key={f} className="flex items-center gap-2 text-sm text-indigo-800">
               <span className="text-indigo-500 font-bold">&#10003;</span>

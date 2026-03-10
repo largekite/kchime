@@ -121,7 +121,7 @@ export default function LandingPage() {
             <p className="text-4xl font-extrabold text-gray-900 mb-1">$0</p>
             <p className="text-sm text-gray-400 mb-8">forever</p>
             <ul className="space-y-3 mb-8">
-              {['10 Quick Replies per day', '3 Fix My Message per day', 'Keyboard extension', '4 reply styles'].map((f) => (
+              {['10 Quick Replies per day', '5 Work Replies per day', '5 Fix My Message per day', 'Keyboard extension', '4 reply styles'].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -144,10 +144,11 @@ export default function LandingPage() {
             </div>
             <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wider mb-2">Pro</p>
             <p className="text-4xl font-extrabold text-gray-900 mb-1">$7</p>
-            <p className="text-sm text-gray-400 mb-8">per month</p>
+            <p className="text-sm text-gray-400 mb-8">per month &middot; $60/yr</p>
             <ul className="space-y-3 mb-8">
               {[
                 '50 Quick Replies per day',
+                '50 Work Replies per day',
                 'Unlimited Fix My Message',
                 'Live Listen & Practice',
                 'Works on iOS + web',
@@ -167,15 +168,16 @@ export default function LandingPage() {
               Get Pro — $7/month
             </a>
           </div>
-          {/* Max */}
+          {/* Business */}
           <div className="rounded-2xl border border-gray-200 p-8">
-            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Max</p>
-            <p className="text-4xl font-extrabold text-gray-900 mb-1">$12</p>
-            <p className="text-sm text-gray-400 mb-8">per month</p>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Business</p>
+            <p className="text-4xl font-extrabold text-gray-900 mb-1">$19</p>
+            <p className="text-sm text-gray-400 mb-8">per month &middot; $180/yr</p>
             <ul className="space-y-3 mb-8">
               {[
-                'Unlimited replies',
-                'Everything in Pro',
+                'Unlimited replies (all types)',
+                'Custom AI tone training',
+                'Team sharing (up to 5)',
                 'Priority support',
                 'Early access to new features',
               ].map((f) => (
@@ -188,10 +190,10 @@ export default function LandingPage() {
               ))}
             </ul>
             <a
-              href="mailto:hello@kchime.app?subject=KChime Max"
-              className="block text-center rounded-xl border border-gray-300 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              href="/reply"
+              className="block text-center rounded-xl bg-gray-900 py-3 text-sm font-semibold text-white hover:bg-gray-700 transition"
             >
-              Join Waitlist
+              Get Business — $19/month
             </a>
           </div>
         </div>

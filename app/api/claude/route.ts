@@ -9,12 +9,14 @@ const MODEL_QUALITY = 'claude-sonnet-4-6';
 // Daily limits per tier
 const FREE_LIMITS = {
   'replies': 10,
-  'work-reply': 3,
+  'work-reply': 5,
+  'fix-message': 5,
 } as const;
 
 const PRO_LIMITS = {
   'replies': 50,
   'work-reply': 50,
+  'fix-message': 50,
 } as const;
 
 export const dynamic = 'force-dynamic';
@@ -62,13 +64,13 @@ function getToday(): string {
  */
 async function isRateLimited(
   userId: string,
-  mode: 'replies' | 'work-reply',
+  mode: 'replies' | 'work-reply' | 'fix-message',
   limit: number,
 ): Promise<boolean> {
   const today = getToday();
   const supabase = createServiceClient();
 
-  const column = mode === 'replies' ? 'quick_reply_count' : 'work_reply_count';
+  const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
 
   const { data, error } = await supabase
     .from('daily_usage')
@@ -117,14 +119,14 @@ export async function POST(req: NextRequest) {
     const { mode } = body;
 
     // Rate-limited modes
-    if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply') {
+    if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message') {
       const { plan, userId } = await getSubscription(req);
 
       // Max tier gets unlimited
       if (plan !== 'max') {
         const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
         if (userId) {
-          const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply';
+          const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
           const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
           if (blocked) {
             return NextResponse.json(

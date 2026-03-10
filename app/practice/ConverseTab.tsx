@@ -190,7 +190,7 @@ export default function ConverseTab() {
   };
 
   // Pro gate
-  if (!authLoading && plan !== 'pro') {
+  if (!authLoading && plan === 'free') {
     return (
       <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
         <div className="text-4xl">🎙️</div>
