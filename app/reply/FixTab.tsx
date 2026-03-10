@@ -7,11 +7,21 @@ import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Check, Copy, Wand2 } from 'lucide-react';
 
 const MESSAGE_TYPES = ['Casual text', 'Work email', 'Slack / Teams', 'Formal letter', 'Social media'];
 const RELATIONSHIPS = ['to my manager', 'to a coworker', 'to a client', 'to a friend', 'to my landlord', 'general'];
+
+/** Map contact relationship names to the closest dropdown value. */
+const REL_NAME_TO_DROPDOWN: Record<string, string> = {
+  Boss: 'to my manager',
+  Coworker: 'to a coworker',
+  Client: 'to a client',
+  Friend: 'to a friend',
+  Family: 'to a friend', // closest match
+  Teacher: 'general',
+};
 
 const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = {
   // Work email
@@ -41,6 +51,19 @@ export default function FixTab() {
   const [draft, setDraft] = useState('');
   const [messageType, setMessageType] = useState(MESSAGE_TYPES[0]);
   const [relationship, setRelationship] = useState(RELATIONSHIPS[5]);
+
+  /** When a contact is selected, auto-update the relationship dropdown to match. */
+  const handleContactSelect = useCallback((id: string) => {
+    setSelectedContactId(id);
+    if (!id) return;
+    const contact = contacts.find((c) => c.id === id);
+    if (!contact?.relationshipId) return;
+    const rel = relationships.find((r) => r.id === contact.relationshipId);
+    if (rel) {
+      const mapped = REL_NAME_TO_DROPDOWN[rel.name];
+      if (mapped) setRelationship(mapped);
+    }
+  }, [contacts, relationships, setSelectedContactId]);
   const [fixes, setFixes] = useState<MessageFix[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -125,7 +148,7 @@ export default function FixTab() {
               contacts={contacts}
               relationships={relationships}
               selectedContactId={selectedContactId}
-              onSelect={setSelectedContactId}
+              onSelect={handleContactSelect}
             />
           )}
         </div>

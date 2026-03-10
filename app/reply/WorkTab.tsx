@@ -6,7 +6,7 @@ import { fetchWorkReplies, LimitReachedError } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
 const PRESETS: WorkplacePreset[] = [
@@ -17,6 +17,12 @@ const PRESETS: WorkplacePreset[] = [
   'Deliver Constructive Feedback',
   'Escalate Issue Professionally',
 ];
+
+/** Map contact relationship names to the closest preset. */
+const REL_NAME_TO_PRESET: Record<string, WorkplacePreset> = {
+  Boss: 'Reply to Manager',
+  Client: 'Reply to Client',
+};
 
 function SkeletonCard() {
   return (
@@ -44,6 +50,19 @@ export default function WorkTab() {
   const [result, setResult] = useState<WorkReplyResult | null>(null);
   const [error, setError] = useState('');
   const [showUpgrade, setShowUpgrade] = useState(false);
+
+  /** When a contact is selected, auto-update the preset if there's a clear match. */
+  const handleContactSelect = useCallback((id: string) => {
+    setSelectedContactId(id);
+    if (!id) return;
+    const contact = contacts.find((c) => c.id === id);
+    if (!contact?.relationshipId) return;
+    const rel = relationships.find((r) => r.id === contact.relationshipId);
+    if (rel) {
+      const mapped = REL_NAME_TO_PRESET[rel.name];
+      if (mapped) setPreset(mapped);
+    }
+  }, [contacts, relationships, setSelectedContactId]);
 
   async function handleAnalyze() {
     if (!preset) {
@@ -92,7 +111,7 @@ export default function WorkTab() {
               contacts={contacts}
               relationships={relationships}
               selectedContactId={selectedContactId}
-              onSelect={setSelectedContactId}
+              onSelect={handleContactSelect}
             />
           )}
         </div>
