@@ -117,8 +117,8 @@ export default function FixTab() {
 
       {/* Input card */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 space-y-4">
-        {/* Selectors */}
-        <div className="flex flex-wrap gap-3">
+        {/* Message type + recipient — single row */}
+        <div className="flex items-end gap-3 flex-wrap">
           <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
             <label className="text-xs font-medium text-gray-500">Message type</label>
             <select
@@ -130,7 +130,7 @@ export default function FixTab() {
             </select>
           </div>
           <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-xs font-medium text-gray-500">This is</label>
+            <label className="text-xs font-medium text-gray-500">Sending to</label>
             <select
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
@@ -139,15 +139,15 @@ export default function FixTab() {
               {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
             </select>
           </div>
+          {contacts.length > 0 && (
+            <ContactSelector
+              contacts={contacts}
+              relationships={relationships}
+              selectedContactId={selectedContactId}
+              onSelect={setSelectedContactId}
+            />
+          )}
         </div>
-
-        {/* Contact picker */}
-        <ContactSelector
-          contacts={contacts}
-          relationships={relationships}
-          selectedContactId={selectedContactId}
-          onSelect={setSelectedContactId}
-        />
 
         {/* Textarea */}
         <div className="relative">
