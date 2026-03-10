@@ -237,15 +237,51 @@ export async function POST(req: NextRequest) {
       const { message, preset } = body;
       if (!message || !preset) return NextResponse.json({ error: 'Missing message or preset' }, { status: 400 });
 
+      // Preset-specific strategies and context guidance
+      const PRESET_CONFIG: Record<string, { context: string; strategies: [string, string, string] }> = {
+        'Reply to Manager': {
+          context: 'You are replying to your manager or supervisor. Show respect for their authority while still communicating effectively. Be mindful of hierarchy.',
+          strategies: ['Respectful', 'Balanced', 'Proactive'],
+        },
+        'Reply to Direct Report': {
+          context: 'You are replying to someone you manage. Be supportive and clear. Guide without micromanaging. Show leadership and approachability.',
+          strategies: ['Supportive', 'Clear & Direct', 'Mentoring'],
+        },
+        'Reply to Client': {
+          context: 'You are replying to an external client or customer. Prioritize professionalism, service orientation, and protecting the relationship. Be solution-focused.',
+          strategies: ['Service-First', 'Professional', 'Partnership'],
+        },
+        'Push Back Politely': {
+          context: 'You need to decline, disagree, or push back on something while maintaining the relationship. Set boundaries without burning bridges.',
+          strategies: ['Gentle Redirect', 'Firm but Fair', 'Counter-Proposal'],
+        },
+        'Deliver Constructive Feedback': {
+          context: 'You need to give constructive criticism or feedback. Be specific, actionable, and kind. Focus on behavior, not the person.',
+          strategies: ['Encouraging', 'Straightforward', 'Growth-Focused'],
+        },
+        'Escalate Issue Professionally': {
+          context: 'You need to escalate a problem up the chain or flag a serious concern. Be factual, solution-oriented, and urgent without being alarmist.',
+          strategies: ['Measured', 'Fact-Based', 'Urgent & Clear'],
+        },
+      };
+
+      const config = PRESET_CONFIG[preset] ?? {
+        context: `Context: ${preset}`,
+        strategies: ['Diplomatic', 'Direct', 'Bold'] as [string, string, string],
+      };
+      const [s1, s2, s3] = config.strategies;
+
       const response = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: `You are an expert workplace communication strategist. Given a workplace message and the context of how to reply, generate exactly 3 strategic reply variations: one safe/diplomatic, one balanced/direct, one bold/assertive. Each reply should be professional and appropriate for the workplace. Return ONLY valid JSON with this exact shape, no markdown:
+        system: `You are an expert workplace communication strategist. ${config.context}
+
+Generate exactly 3 strategic reply variations with these strategies: "${s1}" (safest), "${s2}" (balanced), "${s3}" (boldest). Each reply should be professional, natural, and appropriate for this specific workplace relationship. Return ONLY valid JSON with this exact shape, no markdown:
 {
   "variations": [
-    { "strategy": "Diplomatic", "text": "...", "risk": "Low", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 },
-    { "strategy": "Direct", "text": "...", "risk": "Medium", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 },
-    { "strategy": "Bold", "text": "...", "risk": "High", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 }
+    { "strategy": "${s1}", "text": "...", "risk": "Low", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 },
+    { "strategy": "${s2}", "text": "...", "risk": "Medium", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 },
+    { "strategy": "${s3}", "text": "...", "risk": "High", "powerPosition": "...", "assertiveness": 1-10, "warmth": 1-10 }
   ],
   "bestChoiceIndex": 0
 }
@@ -253,7 +289,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
         messages: [
           {
             role: 'user',
-            content: `Context: ${preset}\n\nMessage received:\n"${message}"\n\nGenerate 3 strategic reply variations.`,
+            content: `Workplace scenario: ${preset}\n\nMessage received:\n"${message}"\n\nGenerate 3 strategic reply variations.`,
           },
         ],
       });
