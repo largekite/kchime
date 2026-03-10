@@ -58,7 +58,6 @@ export function Navbar() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span className="text-xl font-bold tracking-tight text-gray-900">KChime</span>
-            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">beta</span>
           </div>
 
           {/* Auth */}
