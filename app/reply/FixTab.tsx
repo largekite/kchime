@@ -183,11 +183,7 @@ export default function FixTab() {
             <select
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              disabled={!!selectedContactId}
-              className={clsx(
-                'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400',
-                selectedContactId && 'opacity-60 cursor-not-allowed',
-              )}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             >
               {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
             </select>
