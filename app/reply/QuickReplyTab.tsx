@@ -11,7 +11,7 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { getToneProfile } from '@/lib/storage';
 import type { Context, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Briefcase, Home, MessageSquare, Music, Globe } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -24,6 +24,16 @@ const CONTEXT_ICONS: Record<Context, LucideIcon> = {
   Family: Home,
 };
 
+/** Map contact relationship names to the closest context chip. */
+const REL_NAME_TO_CONTEXT: Record<string, Context> = {
+  Boss: 'Office',
+  Coworker: 'Office',
+  Client: 'Office',
+  Friend: 'Text',
+  Family: 'Family',
+  Teacher: 'Any',
+};
+
 export default function QuickReplyTab() {
   const [input, setInput] = useState('');
   const [context, setContext] = useState<Context>('Any');
@@ -34,6 +44,19 @@ export default function QuickReplyTab() {
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
   const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
+
+  /** When a contact is selected, auto-update the context chip to match. */
+  const handleContactSelect = useCallback((id: string) => {
+    setSelectedContactId(id);
+    if (!id) return;
+    const contact = contacts.find((c) => c.id === id);
+    if (!contact?.relationshipId) return;
+    const rel = relationships.find((r) => r.id === contact.relationshipId);
+    if (rel) {
+      const mapped = REL_NAME_TO_CONTEXT[rel.name];
+      if (mapped) setContext(mapped);
+    }
+  }, [contacts, relationships, setSelectedContactId]);
 
   const { isListening, isSupported, start, stop, transcript, reset: resetTranscript } = useSpeechRecognition({
     onSilence: (t) => {
@@ -101,21 +124,28 @@ export default function QuickReplyTab() {
       <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
         {/* Context + contact chips — single row */}
         <div className="mb-3 flex items-center gap-2 flex-wrap">
-          {CONTEXTS.map((c) => (
-            <button
-              key={c}
-              onClick={() => setContext(c)}
-              className={clsx(
-                'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
-                context === c
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              )}
-            >
-              {(() => { const Icon = CONTEXT_ICONS[c]; return <Icon className="h-3.5 w-3.5" />; })()}
-              {c}
-            </button>
-          ))}
+          {CONTEXTS.map((c) => {
+            const lockedByContact = !!selectedContactId && context !== c
+              && Object.values(REL_NAME_TO_CONTEXT).includes(context);
+            return (
+              <button
+                key={c}
+                onClick={() => { if (!lockedByContact) setContext(c); }}
+                disabled={lockedByContact}
+                className={clsx(
+                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
+                  context === c
+                    ? 'bg-indigo-600 text-white'
+                    : lockedByContact
+                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                )}
+              >
+                {(() => { const Icon = CONTEXT_ICONS[c]; return <Icon className="h-3.5 w-3.5" />; })()}
+                {c}
+              </button>
+            );
+          })}
 
           {/* Separator + contact chip */}
           {contacts.length > 0 && (
@@ -125,7 +155,7 @@ export default function QuickReplyTab() {
                 contacts={contacts}
                 relationships={relationships}
                 selectedContactId={selectedContactId}
-                onSelect={setSelectedContactId}
+                onSelect={handleContactSelect}
                 inline
               />
             </>
