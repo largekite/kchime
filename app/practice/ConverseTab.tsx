@@ -54,12 +54,15 @@ export default function ConverseTab() {
   const [isLoadingHints, setIsLoadingHints] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const abortRef = useRef(false);
+
   const handleUserSpeech = useCallback(
     async (transcript: string) => {
       if (!selectedPersona || isProcessingRef.current || isAiSpeaking) return;
       if (!transcript.trim()) return;
 
       isProcessingRef.current = true;
+      abortRef.current = false;
       setIsProcessing(true);
       setHints([]);
       const userTurn: Turn = { speaker: 'user', text: transcript };
@@ -75,12 +78,15 @@ export default function ConverseTab() {
           newHistory.map((t) => ({ speaker: t.speaker, text: t.text })),
           transcript,
         );
+        if (abortRef.current) return;
         const aiTurn: Turn = { speaker: 'ai', text: aiReply };
         setHistory((prev) => [...prev, aiTurn]);
         setIsAiSpeaking(true);
         speakText(aiReply, () => setIsAiSpeaking(false));
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Something went wrong.');
+        if (!abortRef.current) {
+          setError(e instanceof Error ? e.message : 'Something went wrong.');
+        }
       } finally {
         isProcessingRef.current = false;
         setIsProcessing(false);
@@ -110,6 +116,7 @@ export default function ConverseTab() {
   }
 
   function handleReset() {
+    abortRef.current = true;
     stop();
     window.speechSynthesis.cancel();
     setSelectedPersona(null);

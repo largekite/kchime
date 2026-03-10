@@ -1,7 +1,7 @@
 'use client';
 
 import { useProgress } from '@/hooks/useProgress';
-import { allCategories, categoryMeta, getScenariosByCategory } from '@/lib/scenarios';
+import { allCategories, categoryMeta, getScenariosByCategory, scenarios } from '@/lib/scenarios';
 import { BADGES, BADGE_MAP, getDailyMultiplier } from '@/lib/gamification';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -87,7 +87,7 @@ export default function DashboardTab() {
   });
 
   const totalCompleted = completedScenarios.length;
-  const totalScenarios = 47;
+  const totalScenarios = scenarios.length;
 
   function getCategoryStats(cat: ScenarioCategory) {
     const all = getScenariosByCategory(cat);

@@ -23,16 +23,19 @@ async function upsertSubscription(
 
 
 export async function POST(req: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: 'Stripe environment variables not configured' }, { status: 500 });
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const body = await req.text();
   const sig = req.headers.get('stripe-signature') ?? '';
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Webhook signature verification failed';
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
   }
 
   try {
@@ -76,8 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Webhook processing failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

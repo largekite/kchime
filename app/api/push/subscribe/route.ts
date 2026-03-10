@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   if (!subscription?.endpoint) return NextResponse.json({ error: 'Missing subscription' }, { status: 400 });
 
   const supabase = createServiceClient();
-  await supabase.from('push_subscriptions').upsert(
+  const { error: upsertError } = await supabase.from('push_subscriptions').upsert(
     {
       user_id: user.id,
       endpoint: subscription.endpoint,
@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
     },
     { onConflict: 'endpoint' },
   );
+
+  if (upsertError) {
+    return NextResponse.json({ error: 'Failed to save subscription' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -40,7 +44,11 @@ export async function DELETE(req: NextRequest) {
   if (!endpoint) return NextResponse.json({ error: 'Missing endpoint' }, { status: 400 });
 
   const supabase = createServiceClient();
-  await supabase.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint);
+  const { error: deleteError } = await supabase.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint);
+
+  if (deleteError) {
+    return NextResponse.json({ error: 'Failed to remove subscription' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -22,12 +22,16 @@ export async function GET(req: NextRequest) {
   // Generate a short code from user ID
   const code = user.id.replace(/-/g, '').slice(0, 8).toUpperCase();
 
-  await supabase.from('referrals').insert({
+  const { error: insertError } = await supabase.from('referrals').insert({
     referrer_id: user.id,
     code,
     total_referred: 0,
     total_activated: 0,
   });
+
+  if (insertError) {
+    return NextResponse.json({ error: 'Failed to create referral code' }, { status: 500 });
+  }
 
   return NextResponse.json({ code, total_referred: 0, total_activated: 0 });
 }

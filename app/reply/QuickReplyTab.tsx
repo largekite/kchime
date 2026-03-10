@@ -40,7 +40,9 @@ export default function QuickReplyTab() {
       setInput(t);
       stop();
       // Auto-submit after speech ends
-      handleSubmit(t);
+      handleSubmit(t).catch((e) => {
+        setError(e instanceof Error ? e.message : 'Something went wrong.');
+      });
     },
   });
 

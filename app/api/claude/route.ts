@@ -23,7 +23,14 @@ export const dynamic = 'force-dynamic';
 
 function parseJson<T>(raw: string): T {
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  if (!cleaned) throw new Error('Empty response from AI');
   return JSON.parse(cleaned) as T;
+}
+
+function extractText(message: Anthropic.Message): string {
+  const block = message.content[0];
+  if (!block || block.type !== 'text') throw new Error('Unexpected response format');
+  return block.text;
 }
 
 function getAnthropic() {
@@ -60,6 +67,7 @@ function getToday(): string {
 
 /**
  * Checks and increments usage for authenticated users.
+ * Uses optimistic locking to prevent race conditions.
  * Returns true if the request should be blocked.
  */
 async function isRateLimited(
@@ -72,22 +80,44 @@ async function isRateLimited(
 
   const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
 
-  const { data, error } = await supabase
+  // Ensure a row exists for today
+  await supabase.from('daily_usage').upsert(
+    { user_id: userId, date: today },
+    { onConflict: 'user_id,date', ignoreDuplicates: true },
+  );
+
+  // Read current count
+  const { data } = await supabase
     .from('daily_usage')
     .select(column)
     .eq('user_id', userId)
     .eq('date', today)
     .single();
 
-  const currentCount: number = (!error && data ? (data as Record<string, number>)[column] : 0) ?? 0;
+  const currentCount: number = (data ? (data as Record<string, number>)[column] : 0) ?? 0;
 
   if (currentCount >= limit) return true;
 
-  // Upsert the incremented count
-  await supabase.from('daily_usage').upsert(
-    { user_id: userId, date: today, [column]: currentCount + 1 },
-    { onConflict: 'user_id,date' },
-  );
+  // Increment with optimistic lock: only update if count hasn't changed
+  const { data: updated } = await supabase
+    .from('daily_usage')
+    .update({ [column]: currentCount + 1 })
+    .eq('user_id', userId)
+    .eq('date', today)
+    .eq(column, currentCount)
+    .select(column)
+    .single();
+
+  // If no row was updated, another request incremented first — re-check
+  if (!updated) {
+    const { data: recheck } = await supabase
+      .from('daily_usage')
+      .select(column)
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+    return ((recheck as Record<string, number>)?.[column] ?? 0) >= limit;
+  }
 
   return false;
 }
@@ -136,13 +166,11 @@ export async function POST(req: NextRequest) {
       // Anonymous users: client-side tracking is sufficient (no server state)
     }
 
-    // Live Listen is Pro-only — block at API level too
+    // Live Listen is Pro-only — block at API level
     if (mode === 'explain') {
       const { plan } = await getSubscription(req);
       if (plan === 'free') {
-        // explain is used by Live Listen — allow it for now (nice-to-have gating)
-        // If you want to gate it hard, uncomment the next lines:
-        // return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+        return NextResponse.json({ error: 'pro_required' }, { status: 403 });
       }
     }
 
@@ -205,7 +233,7 @@ export async function POST(req: NextRequest) {
         ],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ replies: { tone: string; text: string }[] }>(raw);
       return NextResponse.json(parsed);
     }
@@ -226,7 +254,7 @@ export async function POST(req: NextRequest) {
         ],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ natural: boolean; feedback: string; suggestion?: string }>(raw);
       return NextResponse.json(parsed);
     }
@@ -247,7 +275,7 @@ export async function POST(req: NextRequest) {
         ],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ phrases: { phrase: string; meaning: string; tip?: string }[] }>(raw);
       return NextResponse.json(parsed);
     }
@@ -315,7 +343,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
         ],
       });
 
-      const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+      const raw = extractText(response);
       const parsed = parseJson<{
         variations: { strategy: string; text: string; risk: string; powerPosition: string; assertiveness: number; warmth: number }[];
         bestChoiceIndex: number;
@@ -341,7 +369,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
         ],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ followUp: string }>(raw);
       return NextResponse.json(parsed);
     }
@@ -363,7 +391,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
         ],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{
         title: string;
         category: string;
@@ -414,7 +442,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         }],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ fixes: { tone: string; text: string; improvements: string[] }[] }>(raw);
       return NextResponse.json(parsed);
     }
@@ -435,7 +463,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         }],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ aiReply: string }>(raw);
       return NextResponse.json(parsed);
     }
@@ -457,7 +485,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         }],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }>(raw);
       return NextResponse.json(parsed);
     }
@@ -501,6 +529,9 @@ Each reply must be under 20 words, use contractions, and sound like a real Ameri
               }
             }
             if (buffer.trim()) controller.enqueue(encoder.encode(buffer.trim() + '\n'));
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : 'Stream error';
+            controller.enqueue(encoder.encode(JSON.stringify({ error: errMsg }) + '\n'));
           } finally {
             controller.close();
           }
@@ -528,7 +559,7 @@ Each reply must be under 20 words, use contractions, and sound like a real Ameri
         }],
       });
 
-      const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+      const raw = extractText(message);
       const parsed = parseJson<{ variations: { tone: string; text: string }[] }>(raw);
       return NextResponse.json(parsed);
     }
