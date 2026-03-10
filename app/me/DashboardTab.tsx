@@ -103,18 +103,39 @@ export default function DashboardTab() {
     try {
       const html2canvas = (await import('html2canvas')).default;
       if (!shareRef.current) return;
-      const canvas = await html2canvas(shareRef.current, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'kchime-progress.png';
-        a.click();
-        URL.revokeObjectURL(url);
+      const canvas = await html2canvas(shareRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
       });
-    } catch {
-      // fallback: just show the card
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // Try native share first (mobile)
+      if (navigator.share && navigator.canShare) {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], 'kchime-progress.png', { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'My KChime Progress',
+            files: [file],
+          });
+          return;
+        }
+      }
+
+      // Fallback: download the image
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'kchime-progress.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Share failed:', err);
+      }
     }
   }, []);
 
