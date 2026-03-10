@@ -124,28 +124,21 @@ export default function QuickReplyTab() {
       <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
         {/* Context + contact chips — single row */}
         <div className="mb-3 flex items-center gap-2 flex-wrap">
-          {CONTEXTS.map((c) => {
-            const lockedByContact = !!selectedContactId && context !== c
-              && Object.values(REL_NAME_TO_CONTEXT).includes(context);
-            return (
-              <button
-                key={c}
-                onClick={() => { if (!lockedByContact) setContext(c); }}
-                disabled={lockedByContact}
-                className={clsx(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
-                  context === c
-                    ? 'bg-indigo-600 text-white'
-                    : lockedByContact
-                      ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                )}
-              >
-                {(() => { const Icon = CONTEXT_ICONS[c]; return <Icon className="h-3.5 w-3.5" />; })()}
-                {c}
-              </button>
-            );
-          })}
+          {CONTEXTS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setContext(c)}
+              className={clsx(
+                'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
+                context === c
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              )}
+            >
+              {(() => { const Icon = CONTEXT_ICONS[c]; return <Icon className="h-3.5 w-3.5" />; })()}
+              {c}
+            </button>
+          ))}
 
           {/* Separator + contact chip */}
           {contacts.length > 0 && (
