@@ -6,8 +6,8 @@ import type { PronunciationScore } from '@/lib/pronunciation';
 import { getScenarioById, categoryMeta } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
-import { recordNaturalReply } from '@/lib/storage';
-import { getLevel } from '@/lib/gamification';
+import { recordNaturalReply, getProgress } from '@/lib/storage';
+import { getLevel, getDailyMultiplier } from '@/lib/gamification';
 import { BadgeToast } from '@/components/BadgeToast';
 import { LevelUpToast } from '@/components/LevelUpToast';
 import { XpPopup } from '@/components/XpPopup';
@@ -125,11 +125,13 @@ export default function ScenarioChatPage({
       setStep('result');
 
       let totalXpGained = 0;
+      const currentProgress = getProgress();
+      const { multiplier } = getDailyMultiplier(currentProgress.consecutiveDailyGoals ?? 0);
 
       if (!alreadyDone) {
         const updated = completeScenario(scenarioId);
         setCompleted(true);
-        totalXpGained += 50;
+        totalXpGained += Math.round(50 * multiplier);
 
         // Check level up
         const newLevel = getLevel(updated.xp ?? xp + 50);

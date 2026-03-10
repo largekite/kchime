@@ -81,7 +81,11 @@ export type BadgeId =
   | 'explorer'
   | 'halfway'
   | 'master'
-  | 'natural';
+  | 'natural'
+  | 'ten_down'
+  | 'fifteen_strong'
+  | 'twenty_club'
+  | 'quiz_streak_7';
 
 export interface Badge {
   id: BadgeId;
@@ -102,6 +106,10 @@ export interface Progress {
   naturalReplies: number; // count of natural feedback ratings
   streakFreezes: number; // available streak freeze tokens
   frozeStreak?: boolean; // true if the current streak was saved by a freeze today
+  quizCompletedDates: string[]; // dates (YYYY-MM-DD) the daily quiz was answered correctly
+  dailyBonusMultiplier?: number; // current daily XP multiplier (1.0–3.0)
+  lastBonusDate?: string; // YYYY-MM-DD of last bonus-eligible completion
+  consecutiveDailyGoals?: number; // consecutive days daily goal was met
 }
 
 export interface ConversationRound {

@@ -1,7 +1,10 @@
 'use client';
 
 import { getPhraseOfTheDay, getRecentPhrases } from '@/lib/daily-phrases';
-import type { DailyPhrase } from '@/types';
+import { recordQuizCompletion } from '@/lib/storage';
+import { XpPopup } from '@/components/XpPopup';
+import { BadgeToast } from '@/components/BadgeToast';
+import type { BadgeId, DailyPhrase } from '@/types';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Lightbulb, BookOpen, Volume2 } from 'lucide-react';
@@ -20,9 +23,26 @@ export default function DailyTab() {
 
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showArchive, setShowArchive] = useState(false);
+  const [quizXp, setQuizXp] = useState(0);
+  const [showQuizXp, setShowQuizXp] = useState(false);
+  const [quizBadges, setQuizBadges] = useState<BadgeId[]>([]);
 
   const quizAnswered = selectedAnswer !== null;
   const quizCorrect = selectedAnswer === todayPhrase.quiz.correctIndex;
+
+  function handleQuizAnswer(index: number) {
+    setSelectedAnswer(index);
+    if (index === todayPhrase.quiz.correctIndex) {
+      const result = recordQuizCompletion();
+      if (result.xpAwarded > 0) {
+        setQuizXp(result.xpAwarded);
+        setShowQuizXp(true);
+      }
+      if (result.newBadges.length > 0) {
+        setQuizBadges(result.newBadges);
+      }
+    }
+  }
 
   function handleSpeak(text: string) {
     speakText(text, () => {});
@@ -30,6 +50,9 @@ export default function DailyTab() {
 
   return (
     <div className="space-y-6 max-w-xl mx-auto">
+      {quizBadges.length > 0 && (
+        <BadgeToast newBadges={quizBadges} onDismiss={() => setQuizBadges([])} />
+      )}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Phrase of the Day</h1>
         <p className="text-sm text-gray-500 mt-1">Learn a new expression every day with cultural context.</p>
@@ -89,7 +112,7 @@ export default function DailyTab() {
               {todayPhrase.quiz.options.map((option, i) => (
                 <button
                   key={i}
-                  onClick={() => setSelectedAnswer(i)}
+                  onClick={() => handleQuizAnswer(i)}
                   disabled={quizAnswered}
                   className={clsx(
                     'w-full text-left rounded-xl border px-4 py-2.5 text-sm transition',
@@ -107,9 +130,14 @@ export default function DailyTab() {
               ))}
             </div>
             {quizAnswered && (
-              <p className={clsx('mt-3 text-sm font-medium', quizCorrect ? 'text-emerald-700' : 'text-amber-700')}>
-                {quizCorrect ? 'Correct! You got it.' : 'Not quite — check the answer highlighted above.'}
-              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <p className={clsx('text-sm font-medium', quizCorrect ? 'text-emerald-700' : 'text-amber-700')}>
+                  {quizCorrect ? 'Correct! You got it.' : 'Not quite — check the answer highlighted above.'}
+                </p>
+                {showQuizXp && (
+                  <XpPopup amount={quizXp} onDone={() => setShowQuizXp(false)} />
+                )}
+              </div>
             )}
           </div>
         </div>

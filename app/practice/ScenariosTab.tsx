@@ -2,7 +2,8 @@
 
 import { allCategories, categoryMeta, getDailyPicks, getScenariosByCategory, scenarios } from '@/lib/scenarios';
 import { useProgress } from '@/hooks/useProgress';
-import { getDailyGoal } from '@/lib/storage';
+import { getDailyGoal, getProgress } from '@/lib/storage';
+import { getDailyMultiplier } from '@/lib/gamification';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { useState } from 'react';
@@ -21,6 +22,8 @@ export default function ScenariosTab() {
 
   const dailyPicks = getDailyPicks();
   const goalPercent = Math.min((todayCount / DAILY_GOAL) * 100, 100);
+  const currentProgress = getProgress();
+  const { multiplier, label: multiplierLabel } = getDailyMultiplier(currentProgress.consecutiveDailyGoals ?? 0);
 
   // Search results (across all built-in scenarios)
   const searchQuery = search.trim().toLowerCase();
@@ -64,6 +67,9 @@ export default function ScenariosTab() {
           <div className="text-right">
             <p className="text-3xl font-bold">{streak}</p>
             <p className="text-sm text-indigo-100">day streak</p>
+            {multiplier > 1 && (
+              <p className="text-xs font-bold text-yellow-300 mt-0.5">{multiplierLabel} XP</p>
+            )}
           </div>
         </div>
         <div className="mt-3 h-2 w-full rounded-full bg-white/20">
