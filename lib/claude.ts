@@ -3,6 +3,14 @@ import { createClient } from '@/lib/supabase';
 
 const TONES: Tone[] = ['Casual', 'Funny', 'Warm', 'Safe'];
 
+/** Re-throw timeout errors with a user-friendly message. */
+function wrapTimeout(err: unknown): never {
+  if (err instanceof DOMException && err.name === 'TimeoutError') {
+    throw new Error('Request timed out — please try again.');
+  }
+  throw err;
+}
+
 /** Special error thrown when the free-tier daily limit is reached. */
 export class LimitReachedError extends Error {
   constructor(public readonly limit: number) {
@@ -24,12 +32,15 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return {};
 }
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 async function post(body: Record<string, unknown>): Promise<Response> {
   const authHeader = await getAuthHeader();
   return fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 }
 
@@ -40,7 +51,7 @@ export interface ReplyPersonalization {
 }
 
 export async function fetchReplies(prompt: string, context: Context, personalization?: ReplyPersonalization): Promise<Reply[]> {
-  const res = await post({ mode: 'replies', prompt, context, ...personalization });
+  const res = await post({ mode: 'replies', prompt, context, ...personalization }).catch(wrapTimeout);
 
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
@@ -65,7 +76,8 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: JSON.stringify({ mode: 'replies-stream', prompt, context, ...personalization }),
-  });
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  }).catch(wrapTimeout);
 
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
@@ -107,7 +119,7 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
 }
 
 export async function evaluateResponse(openingLine: string, userReply: string): Promise<EvaluationResult> {
-  const res = await post({ mode: 'evaluate', openingLine, userReply });
+  const res = await post({ mode: 'evaluate', openingLine, userReply }).catch(wrapTimeout);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -118,7 +130,7 @@ export async function evaluateResponse(openingLine: string, userReply: string): 
 }
 
 export async function explainPhrases(text: string): Promise<PhraseExplanation[]> {
-  const res = await post({ mode: 'explain', text });
+  const res = await post({ mode: 'explain', text }).catch(wrapTimeout);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -133,7 +145,7 @@ export async function continueConversation(
   scenarioContext: string,
   history: { speaker: 'other' | 'user'; text: string }[],
 ): Promise<string> {
-  const res = await post({ mode: 'continue-conversation', scenarioContext, history });
+  const res = await post({ mode: 'continue-conversation', scenarioContext, history }).catch(wrapTimeout);
   if (!res.ok) throw new Error('Failed to continue conversation');
   const data = await res.json() as { followUp: string };
   return data.followUp;
@@ -146,7 +158,7 @@ export async function generateScenario(conversation: string): Promise<{
   context: string;
   suggestedReplies: string[];
 }> {
-  const res = await post({ mode: 'generate-scenario', conversation });
+  const res = await post({ mode: 'generate-scenario', conversation }).catch(wrapTimeout);
   if (!res.ok) throw new Error('Failed to generate scenario');
   return res.json();
 }
@@ -163,7 +175,7 @@ export async function fixMessage(
   relationship: string,
   personalization?: ReplyPersonalization,
 ): Promise<MessageFix[]> {
-  const res = await post({ mode: 'fix-message', draft, messageType, relationship, ...personalization });
+  const res = await post({ mode: 'fix-message', draft, messageType, relationship, ...personalization }).catch(wrapTimeout);
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 3);
@@ -180,7 +192,7 @@ export async function converseDebrief(
   persona: string,
   history: { speaker: 'ai' | 'user'; text: string }[],
 ): Promise<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }> {
-  const res = await post({ mode: 'converse-debrief', persona, history });
+  const res = await post({ mode: 'converse-debrief', persona, history }).catch(wrapTimeout);
   if (!res.ok) throw new Error('Failed to get debrief');
   return res.json();
 }
@@ -190,7 +202,7 @@ export async function aiConverse(
   history: { speaker: 'ai' | 'user'; text: string }[],
   userMessage: string,
 ): Promise<string> {
-  const res = await post({ mode: 'ai-converse', persona, history, userMessage });
+  const res = await post({ mode: 'ai-converse', persona, history, userMessage }).catch(wrapTimeout);
   if (!res.ok) throw new Error('Failed to get AI response');
   const data = await res.json() as { aiReply: string };
   return data.aiReply;

@@ -27,11 +27,21 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(reply.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      return;
+      // Fallback: select text from a temporary textarea
+      const ta = document.createElement('textarea');
+      ta.value = reply.text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   function handleSpeak() {

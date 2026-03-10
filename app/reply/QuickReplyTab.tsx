@@ -153,7 +153,7 @@ export default function QuickReplyTab() {
           ) : (input || transcript) ? (
             <button
               type="button"
-              onClick={() => { setInput(''); setReplies([]); setError(''); setCurrentPrompt(''); setContext('Any'); resetTranscript(); }}
+              onClick={() => { setInput(''); setError(''); resetTranscript(); }}
               className="absolute right-2.5 top-2.5 rounded-full p-0.5 text-gray-400 hover:text-gray-600 transition"
               title="Clear"
             >

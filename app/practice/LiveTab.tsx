@@ -30,6 +30,7 @@ export default function LiveTab() {
   const [showExplain, setShowExplain] = useState(false);
   const [explaining, setExplaining] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [copiedId, setCopiedId] = useState('');
   const { save: savePhrase } = useSavedPhrases();
 
   function getPersonalization(): ReplyPersonalization {
@@ -249,10 +250,14 @@ export default function LiveTab() {
                   </p>
                   <p className="text-sm text-gray-900">{reply.text}</p>
                   <button
-                    onClick={() => navigator.clipboard.writeText(reply.text).catch(() => {})}
+                    onClick={() => {
+                      navigator.clipboard.writeText(reply.text).catch(() => {});
+                      setCopiedId(reply.id);
+                      setTimeout(() => setCopiedId(''), 2000);
+                    }}
                     className="mt-1.5 text-xs text-gray-400 hover:text-gray-700 transition"
                   >
-                    Copy
+                    {copiedId === reply.id ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
               ))}
