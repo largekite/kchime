@@ -145,7 +145,7 @@ export default function PackDetailPage() {
       {/* Back + Header */}
       <div>
         <button
-          onClick={() => router.push('/packs')}
+          onClick={() => router.push('/practice?mode=packs')}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-teal-600 transition mb-3"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -12,12 +12,15 @@ export function LevelUpToast({ level, levelName, onDone }: Props) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setVisible(true), 50);
-    const t = setTimeout(() => {
+    const showTimer = setTimeout(() => setVisible(true), 50);
+    const hideTimer = setTimeout(() => {
       setVisible(false);
       setTimeout(onDone, 300);
     }, 3500);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
   }, [onDone]);
 
   return (

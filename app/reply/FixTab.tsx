@@ -71,11 +71,15 @@ export default function FixTab() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [usageCount, setUsageCount] = useState(() => {
     if (typeof window === 'undefined') return 0;
-    const stored = localStorage.getItem('fix_usage');
-    if (!stored) return 0;
-    const { date, count } = JSON.parse(stored) as { date: string; count: number };
-    if (date !== new Date().toISOString().split('T')[0]) return 0;
-    return count;
+    try {
+      const stored = localStorage.getItem('fix_usage');
+      if (!stored) return 0;
+      const { date, count } = JSON.parse(stored) as { date: string; count: number };
+      if (date !== new Date().toISOString().split('T')[0]) return 0;
+      return count;
+    } catch {
+      return 0;
+    }
   });
 
   function bumpUsage() {
@@ -87,6 +91,7 @@ export default function FixTab() {
 
   async function handleFix() {
     if (!draft.trim()) return;
+    setError('');
     if (plan === 'free' && usageCount >= FREE_LIMIT) {
       setShowUpgrade(true);
       return;
@@ -121,11 +126,19 @@ export default function FixTab() {
   async function handleCopy(text: string, id: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(''), 1800);
     } catch {
-      // clipboard API may fail if page is not focused
+      // Fallback for browsers that block clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
     }
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(''), 2000);
   }
 
   const remaining = FREE_LIMIT - usageCount;

@@ -325,7 +325,7 @@ export async function POST(req: NextRequest) {
       };
 
       const config = PRESET_CONFIG[preset] ?? {
-        context: `Context: ${preset}`,
+        context: 'Context: general workplace communication.',
         strategies: ['Diplomatic', 'Direct', 'Bold'] as [string, string, string],
       };
       const [s1, s2, s3] = config.strategies;

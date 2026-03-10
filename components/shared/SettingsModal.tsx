@@ -53,11 +53,12 @@ export function SettingsModal({ open, onClose }: Props) {
 
   async function handleDigestToggle(enabled: boolean) {
     if (!session) return;
+    const previous = weeklyDigest;
     setDigestSaving(true);
     setWeeklyDigest(enabled);
     setDigestConfirmed(false);
     try {
-      await fetch('/api/email/preference', {
+      const res = await fetch('/api/email/preference', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,8 +66,14 @@ export function SettingsModal({ open, onClose }: Props) {
         },
         body: JSON.stringify({ enabled }),
       });
-      setDigestConfirmed(true);
-      setTimeout(() => setDigestConfirmed(false), 2000);
+      if (!res.ok) {
+        setWeeklyDigest(previous); // rollback on failure
+      } else {
+        setDigestConfirmed(true);
+        setTimeout(() => setDigestConfirmed(false), 2000);
+      }
+    } catch {
+      setWeeklyDigest(previous); // rollback on network error
     } finally {
       setDigestSaving(false);
     }

@@ -112,6 +112,7 @@ export default function ConverseTab() {
     setHistory([{ speaker: 'ai', text: persona.opener }]);
     setError('');
     setDebrief(null);
+    setHints([]);
     reset();
     setIsAiSpeaking(true);
     speakText(persona.opener, () => setIsAiSpeaking(false));
