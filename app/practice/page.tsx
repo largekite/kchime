@@ -13,11 +13,11 @@ const PacksTab = dynamic(() => import('./PacksTab'), { ssr: false, loading: () =
 
 type PracticeMode = 'scenarios' | 'converse' | 'live' | 'packs';
 
-const MODES: { id: PracticeMode; label: string; Icon: typeof Dumbbell }[] = [
-  { id: 'scenarios', label: 'Scenarios', Icon: Dumbbell },
-  { id: 'converse', label: 'Converse', Icon: Users },
-  { id: 'live', label: 'Live Listen', Icon: Mic },
-  { id: 'packs', label: 'Packs', Icon: Package },
+const MODES: { id: PracticeMode; label: string; subtitle: string; Icon: typeof Dumbbell }[] = [
+  { id: 'scenarios', label: 'Scenarios', subtitle: 'Guided role-play drills', Icon: Dumbbell },
+  { id: 'converse', label: 'Converse', subtitle: 'Chat with an AI partner', Icon: Users },
+  { id: 'live', label: 'Live Listen', subtitle: 'Get reply suggestions live', Icon: Mic },
+  { id: 'packs', label: 'Packs', subtitle: 'Themed phrase sets', Icon: Package },
 ];
 
 export default function PracticeHubPage() {
@@ -33,7 +33,7 @@ export default function PracticeHubPage() {
     <div className="space-y-4">
       {/* Mode selector */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" role="tablist" aria-label="Practice modes">
-        {MODES.map(({ id, label, Icon }) => (
+        {MODES.map(({ id, label, subtitle, Icon }) => (
           <button
             key={id}
             onClick={() => switchMode(id)}
@@ -47,8 +47,13 @@ export default function PracticeHubPage() {
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'
             )}
           >
-            <Icon className="h-4 w-4" />
-            {label}
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="flex flex-col items-start leading-tight">
+              <span>{label}</span>
+              <span className={clsx('text-[10px] font-normal', mode === id ? 'text-indigo-200' : 'text-gray-400')}>
+                {subtitle}
+              </span>
+            </span>
           </button>
         ))}
       </div>
