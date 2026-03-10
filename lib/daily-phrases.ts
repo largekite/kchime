@@ -161,15 +161,189 @@ export const dailyPhrases: DailyPhrase[] = [
     category: 'cultural',
     quiz: { question: 'Responding with "that\'s a lot" shows:', options: ['You\'re bored', 'Empathy and validation', 'You want them to stop talking', 'You think they\'re exaggerating'], correctIndex: 1 },
   },
+  {
+    phrase: 'Hang in there',
+    meaning: 'Stay strong / keep going through a tough time.',
+    example: '"Finals week is brutal." — "Hang in there, you\'re almost done!"',
+    culturalNote: 'Americans use encouraging phrases like this to show support without overstepping. It acknowledges difficulty while expressing confidence the person can handle it.',
+    category: 'idiom',
+    quiz: { question: '"Hang in there" is used to:', options: ['Tell someone to wait', 'Encourage someone going through a hard time', 'Ask someone to hold something', 'Say goodbye'], correctIndex: 1 },
+  },
+  {
+    phrase: 'I feel you',
+    meaning: 'I understand what you\'re going through / I relate to that.',
+    example: '"Working from home gets lonely sometimes." — "I feel you."',
+    culturalNote: 'This is more empathetic than "I understand." It signals emotional connection and shared experience. It\'s casual — you\'d use it with friends, not in a formal meeting.',
+    category: 'slang',
+    quiz: { question: '"I feel you" expresses:', options: ['Physical touch', 'Deep empathy and understanding', 'Disagreement', 'Confusion'], correctIndex: 1 },
+  },
+  {
+    phrase: 'It\'s giving...',
+    meaning: 'It reminds me of / it has the vibe of (used to describe an energy or aesthetic).',
+    example: '"That outfit is giving main character energy."',
+    culturalNote: 'Originally from Black and LGBTQ+ communities, this expression went mainstream through social media. It\'s used to describe the vibe or energy something projects. Understanding where slang originates helps you use it respectfully.',
+    category: 'slang',
+    quiz: { question: '"This coffee shop is giving cozy vibes" means:', options: ['The shop is giving away things', 'The shop has a cozy atmosphere', 'The shop is closing', 'The shop is new'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Touch base',
+    meaning: 'To briefly check in or reconnect with someone.',
+    example: '"Let\'s touch base next week about the project timeline."',
+    culturalNote: 'A baseball metaphor used heavily in American workplaces. It means a quick, informal check-in — not a long meeting. Knowing the difference between "touch base" (quick) and "deep dive" (thorough) helps in office settings.',
+    category: 'cultural',
+    quiz: { question: '"Let\'s touch base tomorrow" means:', options: ['Let\'s play baseball', 'Let\'s have a quick check-in', 'Let\'s cancel the meeting', 'Let\'s shake hands'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Ghost someone',
+    meaning: 'To suddenly stop responding to someone\'s messages without explanation.',
+    example: '"We texted for weeks and then he just ghosted me."',
+    culturalNote: 'Ghosting is considered rude in American culture but extremely common, especially in dating. Understanding this word helps you talk about modern social dynamics and shows awareness of current cultural norms.',
+    category: 'slang',
+    quiz: { question: 'If someone "ghosted" you, they:', options: ['Scared you', 'Stopped replying to your messages', 'Sent you a Halloween costume', 'Talked about you behind your back'], correctIndex: 1 },
+  },
+  {
+    phrase: 'That\'s fair',
+    meaning: 'I see your point / that\'s a reasonable take.',
+    example: '"I don\'t think we should rush this." — "That\'s fair."',
+    culturalNote: 'This is a graceful way to concede a point in a discussion without fully giving up your position. It acknowledges the other person\'s logic. Americans value appearing reasonable in disagreements.',
+    category: 'filler',
+    quiz: { question: '"That\'s fair" is used when you:', options: ['Strongly disagree', 'Think something costs the right price', 'Acknowledge someone made a valid point', 'Want to end the conversation'], correctIndex: 2 },
+  },
+  {
+    phrase: 'Vibe check',
+    meaning: 'Assessing the mood or energy of a person or situation.',
+    example: '"Vibe check — is everyone feeling good about this plan?"',
+    culturalNote: 'Originally Gen Z internet slang, "vibe check" has entered casual workplace and social language. It\'s a playful way to gauge how people are feeling. Using it shows you\'re tuned into current American English.',
+    category: 'slang',
+    quiz: { question: 'A "vibe check" is:', options: ['A medical test', 'Checking someone\'s mood or energy', 'A background check', 'A fact-check'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Give me a sec',
+    meaning: 'Wait a moment, please.',
+    example: '"Give me a sec, I need to find that email."',
+    culturalNote: 'Americans shorten everything: "second" becomes "sec", "minute" becomes "min." These shortened forms feel natural and friendly. The formal equivalent — "one moment please" — is reserved for customer service or professional settings.',
+    category: 'filler',
+    quiz: { question: '"Give me a sec" is equivalent to:', options: ['Give me a secret', 'Wait a moment', 'Give me a second chance', 'Leave me alone'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Read the room',
+    meaning: 'To sense the social atmosphere and adjust your behavior accordingly.',
+    example: '"He started joking around during the serious meeting — he really didn\'t read the room."',
+    culturalNote: 'Social awareness is highly valued in American culture. "Reading the room" means picking up on unspoken cues — body language, tone, energy level — and adapting. It\'s a crucial skill for fitting in socially.',
+    category: 'idiom',
+    quiz: { question: 'Someone who "can\'t read the room" is:', options: ['Illiterate', 'Unaware of the social situation', 'Looking for a book', 'Very intelligent'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Bet',
+    meaning: 'Okay / sounds good / I agree (casual affirmation).',
+    example: '"Pick you up at 7?" — "Bet."',
+    culturalNote: 'Short for "you bet" or used as standalone agreement. Very casual and popular among younger Americans. Using it signals comfort with informal American English. In more formal settings, stick with "sounds good."',
+    category: 'slang',
+    quiz: { question: 'Someone responds "bet" to your plan. This means:', options: ['They want to gamble', 'They agree', 'They\'re unsure', 'They\'re being sarcastic'], correctIndex: 1 },
+  },
+  {
+    phrase: 'On the same page',
+    meaning: 'To have a shared understanding about something.',
+    example: '"Before we start, let\'s make sure we\'re all on the same page."',
+    culturalNote: 'Essential workplace phrase. Americans value alignment and hate surprises in professional settings. Getting "on the same page" is about preventing miscommunication — a core value in American work culture.',
+    category: 'idiom',
+    quiz: { question: '"Are we on the same page?" asks if you:', options: ['Are reading the same book', 'Share the same understanding', 'Are in the same location', 'Have the same schedule'], correctIndex: 1 },
+  },
+  {
+    phrase: 'That slaps',
+    meaning: 'That\'s really good / impressive (used for food, music, etc.).',
+    example: '"Have you tried the new ramen place? It slaps."',
+    culturalNote: 'Originally used about music ("this song slaps"), it now applies to anything great — especially food. It\'s enthusiastic and casual. Knowing which slang fits which context (food, music, experiences) helps you sound natural.',
+    category: 'slang',
+    quiz: { question: '"This pasta slaps" means:', options: ['The pasta hit someone', 'The pasta is incredibly good', 'The pasta is spicy', 'The pasta is loud'], correctIndex: 1 },
+  },
+  {
+    phrase: 'At the end of the day',
+    meaning: 'Ultimately / when everything is considered.',
+    example: '"At the end of the day, we just want the project to succeed."',
+    culturalNote: 'A common transitional phrase used to summarize or get to the core point. Americans use it to cut through complexity and state what really matters. Overusing it can sound repetitive — mix it with "ultimately" or "bottom line."',
+    category: 'filler',
+    quiz: { question: '"At the end of the day" means:', options: ['At nighttime', 'When everything is considered', 'After work hours', 'Tomorrow'], correctIndex: 1 },
+  },
+  {
+    phrase: 'No cap',
+    meaning: 'No lie / I\'m being completely serious.',
+    example: '"That was the best pizza I\'ve ever had, no cap."',
+    culturalNote: '"Cap" means lie in modern American slang, so "no cap" means "no lie." It\'s very casual and mostly used by younger Americans. In professional settings, you\'d say "seriously" or "honestly" instead.',
+    category: 'slang',
+    quiz: { question: '"No cap" means:', options: ['No hat', 'No limit', 'No lie / I\'m serious', 'No problem'], correctIndex: 2 },
+  },
+  {
+    phrase: 'Drop the ball',
+    meaning: 'To make a mistake or fail to follow through on a responsibility.',
+    example: '"I dropped the ball on sending that report — I\'m sorry."',
+    culturalNote: 'Another sports metaphor (from football/baseball). Americans use it to own up to mistakes in a way that feels direct but not overly dramatic. Taking accountability quickly is respected in American culture.',
+    category: 'idiom',
+    quiz: { question: '"I dropped the ball" means:', options: ['I literally dropped a ball', 'I failed to do something I was supposed to', 'I quit my job', 'I made a great play'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Spill the tea',
+    meaning: 'Share the gossip / tell me the juicy details.',
+    example: '"You went on a date last night? Spill the tea!"',
+    culturalNote: 'Originated in drag culture and popularized through social media. "Tea" means gossip or truth. Americans love indirect ways of asking for gossip — it makes the conversation feel playful rather than nosy.',
+    category: 'slang',
+    quiz: { question: '"Spill the tea" means:', options: ['Pour a drink', 'Make a mess', 'Share gossip or details', 'Tell a lie'], correctIndex: 2 },
+  },
+  {
+    phrase: 'Super',
+    meaning: 'Very / really (used as an intensifier).',
+    example: '"I\'m super excited about the concert this weekend!"',
+    culturalNote: 'Americans use "super" as a casual intensifier constantly: super tired, super busy, super helpful. It sits between "pretty" (mild) and "incredibly" (strong). Using "super" naturally in conversation is a mark of fluent casual English.',
+    category: 'filler',
+    quiz: { question: '"I\'m super into this show" means:', options: ['I\'m physically inside the show', 'I really like this show', 'I\'m a superhero', 'I watch too much TV'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Call it a day',
+    meaning: 'To stop working or doing something for now.',
+    example: '"We\'ve been at this for hours — let\'s call it a day."',
+    culturalNote: 'This signals you\'ve done enough and it\'s time to stop. It\'s commonly used at work but also applies to any activity. Americans value work-life balance language — knowing phrases like this helps set boundaries naturally.',
+    category: 'idiom',
+    quiz: { question: '"Let\'s call it a day" means:', options: ['Let\'s name today', 'Let\'s stop and rest', 'Let\'s make a phone call', 'Let\'s start working harder'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Big picture',
+    meaning: 'The overall situation or perspective, not the small details.',
+    example: '"Don\'t get lost in the details — think about the big picture."',
+    culturalNote: 'Americans frequently contrast "big picture" thinking with getting "in the weeds" (too focused on details). In meetings, asking "what\'s the big picture here?" shows strategic thinking and is valued in workplace culture.',
+    category: 'cultural',
+    quiz: { question: '"Let\'s focus on the big picture" means:', options: ['Let\'s take a photo', 'Let\'s look at the overall strategy', 'Let\'s watch a movie', 'Let\'s zoom in on details'], correctIndex: 1 },
+  },
+  {
+    phrase: 'Wild',
+    meaning: 'Crazy / unbelievable / extreme.',
+    example: '"She quit her job and moved to Japan." — "That\'s wild."',
+    culturalNote: '"Wild" has replaced "crazy" in many casual contexts because it feels less judgmental. When Americans say something is "wild," they usually mean it\'s surprising or impressive — not necessarily bad. Tone matters with this word.',
+    category: 'slang',
+    quiz: { question: '"That story is wild" means:', options: ['The story is about nature', 'The story is unbelievable or extreme', 'The story is poorly written', 'The story is boring'], correctIndex: 1 },
+  },
 ];
 
-/** Get the phrase of the day based on the current date. */
+/** Deterministic shuffle seeded by year so order feels fresh each year. */
+function seededShuffle(arr: DailyPhrase[], seed: number): DailyPhrase[] {
+  const copy = [...arr];
+  let s = seed;
+  for (let i = copy.length - 1; i > 0; i--) {
+    s = (s * 16807 + 0) % 2147483647; // Park-Miller LCG
+    const j = s % (i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/** Get the phrase of the day based on the current date with yearly shuffle. */
 export function getPhraseOfTheDay(): DailyPhrase {
   const today = new Date();
+  const year = today.getFullYear();
   const dayOfYear = Math.floor(
-    (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000,
+    (today.getTime() - new Date(year, 0, 0).getTime()) / 86400000,
   );
-  return dailyPhrases[dayOfYear % dailyPhrases.length];
+  const shuffled = seededShuffle(dailyPhrases, year);
+  return shuffled[dayOfYear % shuffled.length];
 }
 
 /** Get an archive of recent phrases (last 7 days). */
@@ -178,12 +352,14 @@ export function getRecentPhrases(): { date: string; phrase: DailyPhrase }[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() - i);
+    const year = d.getFullYear();
     const dayOfYear = Math.floor(
-      (d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000,
+      (d.getTime() - new Date(year, 0, 0).getTime()) / 86400000,
     );
+    const shuffled = seededShuffle(dailyPhrases, year);
     result.push({
       date: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-      phrase: dailyPhrases[dayOfYear % dailyPhrases.length],
+      phrase: shuffled[dayOfYear % shuffled.length],
     });
   }
   return result;
