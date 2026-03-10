@@ -9,7 +9,7 @@ import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, MicOff, RotateCcw, Lightbulb } from 'lucide-react';
-import type { Reply } from '@/types';
+import type { Context, Reply } from '@/types';
 
 interface Persona {
   id: string;
@@ -17,15 +17,17 @@ interface Persona {
   emoji: string;
   scene: string;
   opener: string;
+  /** Matches a key in CONTEXT_CONFIG so hints use the right tone set. */
+  context: Context;
 }
 
 const PERSONAS: Persona[] = [
-  { id: 'barista', name: 'Barista', emoji: '☕', scene: 'Coffee shop order', opener: "Hey! What can I get started for you today?" },
-  { id: 'coworker', name: 'Coworker', emoji: '💼', scene: 'Monday morning chat', opener: "Hey, how was your weekend? Do anything fun?" },
-  { id: 'receptionist', name: 'Receptionist', emoji: '🏥', scene: 'Scheduling appointment', opener: "Good afternoon! How can I help you today?" },
-  { id: 'neighbor', name: 'Neighbor', emoji: '🏠', scene: 'Friendly hallway run-in', opener: "Oh hey! I keep meaning to ask — have you tried that new restaurant on the corner?" },
-  { id: 'interviewer', name: 'Job Interviewer', emoji: '👔', scene: 'Job interview', opener: "Great to meet you! Tell me a little bit about yourself." },
-  { id: 'server', name: 'Restaurant Server', emoji: '🍽️', scene: 'Ordering food', opener: "Welcome in! Can I start you off with something to drink?" },
+  { id: 'barista', name: 'Barista', emoji: '☕', scene: 'Coffee shop order', opener: "Hey! What can I get started for you today?", context: 'Any' },
+  { id: 'coworker', name: 'Coworker', emoji: '💼', scene: 'Monday morning chat', opener: "Hey, how was your weekend? Do anything fun?", context: 'Office' },
+  { id: 'receptionist', name: 'Receptionist', emoji: '🏥', scene: 'Scheduling appointment', opener: "Good afternoon! How can I help you today?", context: 'Any' },
+  { id: 'neighbor', name: 'Neighbor', emoji: '🏠', scene: 'Friendly hallway run-in', opener: "Oh hey! I keep meaning to ask — have you tried that new restaurant on the corner?", context: 'Text' },
+  { id: 'interviewer', name: 'Job Interviewer', emoji: '👔', scene: 'Job interview', opener: "Great to meet you! Tell me a little bit about yourself.", context: 'Office' },
+  { id: 'server', name: 'Restaurant Server', emoji: '🍽️', scene: 'Ordering food', opener: "Welcome in! Can I start you off with something to drink?", context: 'Any' },
 ];
 
 interface Turn {
@@ -172,7 +174,7 @@ export default function ConverseTab() {
           customInstructions: tp.customInstructions,
         },
       };
-      for await (const reply of fetchRepliesStream(lastAiTurn.text, 'Any', personalization)) {
+      for await (const reply of fetchRepliesStream(lastAiTurn.text, selectedPersona?.context ?? 'Any', personalization)) {
         collected.push(reply);
         setHints([...collected]);
         if (collected.length >= 2) break;
