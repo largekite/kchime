@@ -1,8 +1,9 @@
 'use client';
 
-import { fetchRepliesStream, explainPhrases } from '@/lib/claude';
+import { fetchRepliesStream, explainPhrases, type ReplyPersonalization } from '@/lib/claude';
 import { useSavedPhrases } from '@/hooks/useSavedPhrases';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { getToneProfile } from '@/lib/storage';
 import type { Context, ConversationRound, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useCallback, useRef, useState, useEffect } from 'react';
@@ -31,6 +32,18 @@ export default function LiveTab() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { save: savePhrase } = useSavedPhrases();
 
+  function getPersonalization(): ReplyPersonalization {
+    const tp = getToneProfile();
+    return {
+      toneProfile: {
+        formality: tp.formality,
+        lengthPreference: tp.lengthPreference,
+        emojiEnabled: tp.emojiEnabled,
+        customInstructions: tp.customInstructions,
+      },
+    };
+  }
+
   const handleSilence = useCallback(
     async (transcript: string) => {
       if (!autoMode || !transcript.trim() || isProcessingRef.current) return;
@@ -41,7 +54,7 @@ export default function LiveTab() {
       setRounds((prev) => [...prev, { id: roundId, transcript, replies: [] }]);
       resetTranscript();
       try {
-        for await (const reply of fetchRepliesStream(transcript, 'Any')) {
+        for await (const reply of fetchRepliesStream(transcript, 'Any', getPersonalization())) {
           setLoading(false);
           setRounds((prev) =>
             prev.map((r) => r.id === roundId ? { ...r, replies: [...r.replies, reply] } : r)
@@ -78,7 +91,7 @@ export default function LiveTab() {
     setRounds((prev) => [...prev, { id: roundId, transcript: text, replies: [] }]);
     resetTranscript();
     try {
-      for await (const reply of fetchRepliesStream(text, 'Any')) {
+      for await (const reply of fetchRepliesStream(text, 'Any', getPersonalization())) {
         setLoading(false);
         setRounds((prev) =>
           prev.map((r) => r.id === roundId ? { ...r, replies: [...r.replies, reply] } : r)

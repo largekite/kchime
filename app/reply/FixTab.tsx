@@ -1,6 +1,7 @@
 'use client';
 
 import { fixMessage, LimitReachedError, type MessageFix } from '@/lib/claude';
+import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
@@ -68,7 +69,15 @@ export default function FixTab() {
     setError('');
     setFixes([]);
     try {
-      const result = await fixMessage(draft.trim(), messageType, relationship);
+      const tp = getToneProfile();
+      const result = await fixMessage(draft.trim(), messageType, relationship, {
+        toneProfile: {
+          formality: tp.formality,
+          lengthPreference: tp.lengthPreference,
+          emojiEnabled: tp.emojiEnabled,
+          customInstructions: tp.customInstructions,
+        },
+      });
       setFixes(result);
       if (plan !== 'pro') bumpUsage();
     } catch (e) {

@@ -59,12 +59,12 @@ export async function fetchReplies(prompt: string, context: Context, personaliza
   }));
 }
 
-export async function* fetchRepliesStream(prompt: string, context: Context): AsyncGenerator<Reply> {
+export async function* fetchRepliesStream(prompt: string, context: Context, personalization?: ReplyPersonalization): AsyncGenerator<Reply> {
   const authHeader = await getAuthHeader();
   const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeader },
-    body: JSON.stringify({ mode: 'replies-stream', prompt, context }),
+    body: JSON.stringify({ mode: 'replies-stream', prompt, context, ...personalization }),
   });
 
   if (res.status === 429) {
@@ -161,8 +161,9 @@ export async function fixMessage(
   draft: string,
   messageType: string,
   relationship: string,
+  personalization?: ReplyPersonalization,
 ): Promise<MessageFix[]> {
-  const res = await post({ mode: 'fix-message', draft, messageType, relationship });
+  const res = await post({ mode: 'fix-message', draft, messageType, relationship, ...personalization });
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 3);
@@ -195,8 +196,8 @@ export async function aiConverse(
   return data.aiReply;
 }
 
-export async function fetchPackVariations(prompt: string): Promise<{ tone: string; text: string }[]> {
-  const res = await post({ mode: 'pack-variations', prompt });
+export async function fetchPackVariations(prompt: string, personalization?: ReplyPersonalization): Promise<{ tone: string; text: string }[]> {
+  const res = await post({ mode: 'pack-variations', prompt, ...personalization });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
     throw new Error(err.error ?? `Request failed: ${res.status}`);

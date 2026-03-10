@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
 import { getPackById, REPLY_PACKS } from '@/lib/reply-packs';
 import { fetchPackVariations } from '@/lib/claude';
-import { recordPackScenarioView, getProgress } from '@/lib/storage';
+import { recordPackScenarioView, getProgress, getToneProfile } from '@/lib/storage';
 import { XpPopup } from '@/components/XpPopup';
 import { BadgeToast } from '@/components/BadgeToast';
 import type { BadgeId } from '@/types';
@@ -93,7 +93,15 @@ export default function PackDetailPage() {
     setLoadingAi(true);
     setAiVariations([]);
     try {
-      const variations = await fetchPackVariations(message);
+      const tp = getToneProfile();
+      const variations = await fetchPackVariations(message, {
+        toneProfile: {
+          formality: tp.formality,
+          lengthPreference: tp.lengthPreference,
+          emojiEnabled: tp.emojiEnabled,
+          customInstructions: tp.customInstructions,
+        },
+      });
       setAiVariations(variations);
     } catch {
       // Silently fail — seed replies are still available

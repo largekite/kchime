@@ -135,6 +135,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Build personalization note from tone profile (shared across modes)
+    function buildPersonalizationNote(
+      tp?: { formality: number; lengthPreference: string; emojiEnabled: boolean; customInstructions?: string },
+      rp?: { name: string; formality: number; warmth: number; brevity: number; directness: number; emojiAllowed: boolean },
+      cn?: string,
+    ): string {
+      const parts: string[] = [];
+      if (tp) {
+        const formalityDesc = tp.formality < 0.3 ? 'casual' : tp.formality > 0.65 ? 'formal' : 'balanced';
+        const lengthDesc = tp.lengthPreference === 'short' ? 'very brief (under 10 words)' : tp.lengthPreference === 'verbose' ? 'detailed (20+ words)' : 'medium length (10-20 words)';
+        parts.push(`User prefers ${formalityDesc} tone, ${lengthDesc} replies.`);
+        if (tp.emojiEnabled) parts.push('Include emojis where natural.');
+        else parts.push('Do NOT include emojis.');
+        if (tp.customInstructions) parts.push(`User note: ${tp.customInstructions}`);
+      }
+      if (rp) {
+        parts.push(`Replying to their ${rp.name}. Formality: ${rp.formality}/10, Warmth: ${rp.warmth}/10, Brevity: ${rp.brevity}/10, Directness: ${rp.directness}/10.`);
+        if (rp.emojiAllowed) parts.push('Emojis are appropriate for this relationship.');
+      }
+      if (cn) {
+        parts.push(`Notes about the person: ${cn}`);
+      }
+      return parts.length > 0 ? `\nPersonalization: ${parts.join(' ')}` : '';
+    }
+
     // Context-specific tone sets and rich descriptions
     const CONTEXT_CONFIG: Record<string, { description: string; tones: string[] }> = {
       Any:    { description: 'Context: general/any setting. Reply naturally for any everyday situation.', tones: ['Casual', 'Funny', 'Warm', 'Safe'] },
@@ -152,24 +177,7 @@ export async function POST(req: NextRequest) {
       const contextNote = config.description;
       const toneLabels = config.tones;
 
-      // Build personalization instructions from tone profile, relationship, and contact
-      const personalization: string[] = [];
-      if (toneProfile) {
-        const formalityDesc = toneProfile.formality < 0.3 ? 'casual' : toneProfile.formality > 0.65 ? 'formal' : 'balanced';
-        const lengthDesc = toneProfile.lengthPreference === 'short' ? 'very brief (under 10 words)' : toneProfile.lengthPreference === 'verbose' ? 'detailed (20+ words)' : 'medium length (10-20 words)';
-        personalization.push(`User prefers ${formalityDesc} tone, ${lengthDesc} replies.`);
-        if (toneProfile.emojiEnabled) personalization.push('Include emojis where natural.');
-        else personalization.push('Do NOT include emojis.');
-        if (toneProfile.customInstructions) personalization.push(`User note: ${toneProfile.customInstructions}`);
-      }
-      if (relationshipProfile) {
-        personalization.push(`Replying to their ${relationshipProfile.name}. Formality: ${relationshipProfile.formality}/10, Warmth: ${relationshipProfile.warmth}/10, Brevity: ${relationshipProfile.brevity}/10, Directness: ${relationshipProfile.directness}/10.`);
-        if (relationshipProfile.emojiAllowed) personalization.push('Emojis are appropriate for this relationship.');
-      }
-      if (contactNotes) {
-        personalization.push(`Notes about the person: ${contactNotes}`);
-      }
-      const personalizationNote = personalization.length > 0 ? `\nPersonalization: ${personalization.join(' ')}` : '';
+      const personalizationNote = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
       const toneJson = toneLabels.map(t => `{"tone":"${t}","text":"..."}`).join(',');
       const toneList = toneLabels.join(', ');
@@ -354,7 +362,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
     }
 
     if (mode === 'fix-message') {
-      const { draft, messageType, relationship } = body;
+      const { draft, messageType, relationship, toneProfile } = body;
       if (!draft) return NextResponse.json({ error: 'Missing draft' }, { status: 400 });
 
       // Message-type-specific tone sets and guidance
@@ -378,11 +386,12 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const typeConfig = FIX_TYPE_CONFIG[messageType ?? ''] ?? { guidance: 'Rewrite to sound natural in American English.', tones: ['Polished', 'Friendly', 'Confident'] as [string, string, string] };
       const relGuidance = RELATIONSHIP_GUIDANCE[relationship ?? ''] ?? '';
       const [t1, t2, t3] = typeConfig.tones;
+      const fixPersonalization = buildPersonalizationNote(toneProfile);
 
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: `You are an American English writing coach helping non-native speakers sound natural. ${typeConfig.guidance}${relGuidance ? ' ' + relGuidance : ''}
+        system: `You are an American English writing coach helping non-native speakers sound natural. ${typeConfig.guidance}${relGuidance ? ' ' + relGuidance : ''}${fixPersonalization}
 
 Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (balanced), "${t3}" (boldest). For each, list 2-3 short bullet improvements explaining what you changed and why. Return ONLY valid JSON, no markdown:
 {"fixes":[{"tone":"${t1}","text":"...","improvements":["...","..."]},{"tone":"${t2}","text":"...","improvements":["...","..."]},{"tone":"${t3}","text":"...","improvements":["...","..."]}]}`,
@@ -441,13 +450,14 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'replies-stream') {
-      const { prompt, context } = body;
+      const { prompt, context, toneProfile } = body;
       if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
       const config = CONTEXT_CONFIG[context ?? 'Any'] ?? CONTEXT_CONFIG.Any;
       const contextNote = config.description;
       const toneLabels = config.tones;
       const ndjsonExample = toneLabels.map(t => `{"tone":"${t}","text":"reply here"}`).join('\n');
+      const streamPersonalization = buildPersonalizationNote(toneProfile);
 
       const encoder = new TextEncoder();
       const readable = new ReadableStream({
@@ -458,7 +468,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
               max_tokens: 512,
               system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies. Output each reply as a separate JSON object on its own line (NDJSON), in this exact order, with no other text before or after:
 ${ndjsonExample}
-Each reply must be under 20 words, use contractions, and sound like a real American would say it.`,
+Each reply must be under 20 words, use contractions, and sound like a real American would say it.${streamPersonalization}`,
               messages: [{
                 role: 'user',
                 content: `Someone said: "${prompt}"\n${contextNote}`,
@@ -490,13 +500,15 @@ Each reply must be under 20 words, use contractions, and sound like a real Ameri
     }
 
     if (mode === 'pack-variations') {
-      const { prompt } = body;
+      const { prompt, toneProfile } = body;
       if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+
+      const packPersonalization = buildPersonalizationNote(toneProfile);
 
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 512,
-        system: `You are an American English conversation coach. Given a message someone sent, generate 4 natural reply variations in different tones: Casual, Funny, Warm, and Safe. Each reply should sound like a real American would say it. Use contractions. Keep each reply under 25 words. Return ONLY valid JSON: {"variations":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown.`,
+        system: `You are an American English conversation coach. Given a message someone sent, generate 4 natural reply variations in different tones: Casual, Funny, Warm, and Safe. Each reply should sound like a real American would say it. Use contractions. Keep each reply under 25 words. Return ONLY valid JSON: {"variations":[{"tone":"Casual","text":"..."},{"tone":"Funny","text":"..."},{"tone":"Warm","text":"..."},{"tone":"Safe","text":"..."}]}. No markdown.${packPersonalization}`,
         messages: [{
           role: 'user',
           content: `Someone said: "${prompt}"\n\nGenerate 4 reply variations (Casual, Funny, Warm, Safe).`,

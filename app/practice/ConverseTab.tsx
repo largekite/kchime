@@ -1,8 +1,9 @@
 'use client';
 
-import { aiConverse, converseDebrief, fetchRepliesStream } from '@/lib/claude';
+import { aiConverse, converseDebrief, fetchRepliesStream, type ReplyPersonalization } from '@/lib/claude';
 import { speakText } from '@/lib/speech';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
@@ -155,7 +156,16 @@ export default function ConverseTab() {
     setHints([]);
     try {
       const collected: Reply[] = [];
-      for await (const reply of fetchRepliesStream(lastAiTurn.text, 'Any')) {
+      const tp = getToneProfile();
+      const personalization: ReplyPersonalization = {
+        toneProfile: {
+          formality: tp.formality,
+          lengthPreference: tp.lengthPreference,
+          emojiEnabled: tp.emojiEnabled,
+          customInstructions: tp.customInstructions,
+        },
+      };
+      for await (const reply of fetchRepliesStream(lastAiTurn.text, 'Any', personalization)) {
         collected.push(reply);
         setHints([...collected]);
         if (collected.length >= 2) break;
