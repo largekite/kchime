@@ -208,8 +208,8 @@ export async function fetchPackVariations(prompt: string, personalization?: Repl
 
 const STRATEGY_LABELS = ['A', 'B', 'C'];
 
-export async function fetchWorkReplies(message: string, preset: WorkplacePreset): Promise<WorkReplyResult> {
-  const res = await post({ mode: 'work-reply', message, preset });
+export async function fetchWorkReplies(message: string, preset: WorkplacePreset, personalization?: ReplyPersonalization): Promise<WorkReplyResult> {
+  const res = await post({ mode: 'work-reply', message, preset, ...personalization });
 
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 2 })) as { limit?: number };

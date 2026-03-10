@@ -242,8 +242,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === 'work-reply') {
-      const { message, preset } = body;
+      const { message, preset, relationshipProfile, contactNotes } = body;
       if (!message || !preset) return NextResponse.json({ error: 'Missing message or preset' }, { status: 400 });
+
+      const workPersonalization = buildPersonalizationNote(undefined, relationshipProfile, contactNotes);
 
       // Preset-specific strategies and context guidance
       const PRESET_CONFIG: Record<string, { context: string; strategies: [string, string, string] }> = {
@@ -282,7 +284,7 @@ export async function POST(req: NextRequest) {
       const response = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: `You are an expert workplace communication strategist. ${config.context}
+        system: `You are an expert workplace communication strategist. ${config.context}${workPersonalization}
 
 Generate exactly 3 strategic reply variations with these strategies: "${s1}" (safest), "${s2}" (balanced), "${s3}" (boldest). Each reply should be professional, natural, and appropriate for this specific workplace relationship. Return ONLY valid JSON with this exact shape, no markdown:
 {
@@ -362,7 +364,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
     }
 
     if (mode === 'fix-message') {
-      const { draft, messageType, relationship, toneProfile } = body;
+      const { draft, messageType, relationship, toneProfile, relationshipProfile, contactNotes } = body;
       if (!draft) return NextResponse.json({ error: 'Missing draft' }, { status: 400 });
 
       // Message-type-specific tone sets and guidance
@@ -386,7 +388,7 @@ powerPosition must be one of: "Neutral", "Assertive", "Deferential", "Collaborat
       const typeConfig = FIX_TYPE_CONFIG[messageType ?? ''] ?? { guidance: 'Rewrite to sound natural in American English.', tones: ['Polished', 'Friendly', 'Confident'] as [string, string, string] };
       const relGuidance = RELATIONSHIP_GUIDANCE[relationship ?? ''] ?? '';
       const [t1, t2, t3] = typeConfig.tones;
-      const fixPersonalization = buildPersonalizationNote(toneProfile);
+      const fixPersonalization = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',
@@ -500,10 +502,10 @@ Each reply must be under 20 words, use contractions, and sound like a real Ameri
     }
 
     if (mode === 'pack-variations') {
-      const { prompt, toneProfile } = body;
+      const { prompt, toneProfile, relationshipProfile, contactNotes } = body;
       if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
-      const packPersonalization = buildPersonalizationNote(toneProfile);
+      const packPersonalization = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
       const message = await getAnthropic().messages.create({
         model: 'claude-sonnet-4-6',

@@ -1,6 +1,8 @@
 'use client';
 
+import { ContactSelector } from '@/components/shared/ContactSelector';
 import { fixMessage, LimitReachedError, type MessageFix } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
 import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
@@ -35,6 +37,7 @@ const FREE_LIMIT = 3;
 
 export default function FixTab() {
   const { plan } = useAuth();
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
   const [draft, setDraft] = useState('');
   const [messageType, setMessageType] = useState(MESSAGE_TYPES[0]);
   const [relationship, setRelationship] = useState(RELATIONSHIPS[5]);
@@ -77,6 +80,7 @@ export default function FixTab() {
           emojiEnabled: tp.emojiEnabled,
           customInstructions: tp.customInstructions,
         },
+        ...getContactPersonalization(),
       });
       setFixes(result);
       if (plan !== 'pro') bumpUsage();
@@ -136,6 +140,14 @@ export default function FixTab() {
             </select>
           </div>
         </div>
+
+        {/* Contact picker */}
+        <ContactSelector
+          contacts={contacts}
+          relationships={relationships}
+          selectedContactId={selectedContactId}
+          onSelect={setSelectedContactId}
+        />
 
         {/* Textarea */}
         <div className="relative">

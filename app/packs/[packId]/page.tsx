@@ -2,8 +2,10 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useMemo } from 'react';
+import { ContactSelector } from '@/components/shared/ContactSelector';
 import { getPackById, REPLY_PACKS } from '@/lib/reply-packs';
 import { fetchPackVariations } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
 import { recordPackScenarioView, getProgress, getToneProfile } from '@/lib/storage';
 import { XpPopup } from '@/components/XpPopup';
 import { BadgeToast } from '@/components/BadgeToast';
@@ -32,6 +34,7 @@ export default function PackDetailPage() {
   const packId = params.packId as string;
   const pack = getPackById(packId);
 
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [aiVariations, setAiVariations] = useState<{ tone: string; text: string }[]>([]);
   const [loadingAi, setLoadingAi] = useState(false);
@@ -101,6 +104,7 @@ export default function PackDetailPage() {
           emojiEnabled: tp.emojiEnabled,
           customInstructions: tp.customInstructions,
         },
+        ...getContactPersonalization(),
       });
       setAiVariations(variations);
     } catch {
@@ -179,6 +183,14 @@ export default function PackDetailPage() {
           className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
         />
       </div>
+
+      {/* Contact picker */}
+      <ContactSelector
+        contacts={contacts}
+        relationships={relationships}
+        selectedContactId={selectedContactId}
+        onSelect={setSelectedContactId}
+      />
 
       {/* Scenarios list — matches iOS ScenarioRow */}
       <div className="space-y-3">

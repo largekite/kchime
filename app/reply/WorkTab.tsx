@@ -1,7 +1,9 @@
 'use client';
 
+import { ContactSelector } from '@/components/shared/ContactSelector';
 import { WorkReplyCard } from '@/components/work-reply/WorkReplyCard';
 import { fetchWorkReplies, LimitReachedError } from '@/lib/claude';
+import { useContacts } from '@/hooks/useContacts';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
 import { useState } from 'react';
@@ -35,6 +37,7 @@ function SkeletonCard() {
 }
 
 export default function WorkTab() {
+  const { contacts, relationships, selectedContactId, setSelectedContactId, getContactPersonalization } = useContacts();
   const [preset, setPreset] = useState<WorkplacePreset | null>(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,7 +60,7 @@ export default function WorkTab() {
     setResult(null);
 
     try {
-      const data = await fetchWorkReplies(message.trim(), preset);
+      const data = await fetchWorkReplies(message.trim(), preset, getContactPersonalization());
       setResult(data);
       incrementWorkReplyCount();
     } catch (err) {
@@ -109,6 +112,16 @@ export default function WorkTab() {
           placeholder="Paste the Slack message, email, feedback, or message you received..."
           rows={5}
           className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-500 focus:outline-none resize-none"
+        />
+      </div>
+
+      {/* Contact picker */}
+      <div className="mb-4">
+        <ContactSelector
+          contacts={contacts}
+          relationships={relationships}
+          selectedContactId={selectedContactId}
+          onSelect={setSelectedContactId}
         />
       </div>
 
