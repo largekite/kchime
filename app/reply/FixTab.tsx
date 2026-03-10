@@ -117,8 +117,21 @@ export default function FixTab() {
 
       {/* Input card */}
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 space-y-4">
-        {/* Message type + recipient — single row */}
-        <div className="flex items-end gap-3 flex-wrap">
+        {/* Section header with contact picker — matches WorkTab pattern */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-gray-700">Message details</p>
+          {contacts.length > 0 && (
+            <ContactSelector
+              contacts={contacts}
+              relationships={relationships}
+              selectedContactId={selectedContactId}
+              onSelect={setSelectedContactId}
+            />
+          )}
+        </div>
+
+        {/* Message type + recipient dropdowns */}
+        <div className="flex gap-3 flex-wrap">
           <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
             <label className="text-xs font-medium text-gray-500">Message type</label>
             <select
@@ -139,14 +152,6 @@ export default function FixTab() {
               {RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}
             </select>
           </div>
-          {contacts.length > 0 && (
-            <ContactSelector
-              contacts={contacts}
-              relationships={relationships}
-              selectedContactId={selectedContactId}
-              onSelect={setSelectedContactId}
-            />
-          )}
         </div>
 
         {/* Textarea */}
