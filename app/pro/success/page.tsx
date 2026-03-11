@@ -1,14 +1,19 @@
-import Link from 'next/link';
+'use client';
 
-export const metadata = {
-  title: 'You\'re Pro! — KChime',
-};
+import Link from 'next/link';
+import { useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ProSuccessPage() {
+  const { refreshPlan } = useAuth();
+
+  useEffect(() => {
+    refreshPlan();
+  }, [refreshPlan]);
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
-        {/* Icon */}
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
           <svg className="h-10 w-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
