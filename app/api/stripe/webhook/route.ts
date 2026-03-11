@@ -8,20 +8,33 @@ async function upsertSubscription(
   userId: string,
   plan: 'pro' | 'free',
   periodEnd: Date | null,
+  stripeCustomerId?: string,
 ) {
   const supabase = createServiceClient();
-  const { error } = await supabase.from('subscriptions').upsert(
-    {
-      user_id: userId,
-      plan,
-      period_end: periodEnd?.toISOString() ?? null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' },
-  );
+  const payload: Record<string, unknown> = {
+    user_id: userId,
+    plan,
+    period_end: periodEnd?.toISOString() ?? null,
+    updated_at: new Date().toISOString(),
+  };
+  if (stripeCustomerId) payload.stripe_customer_id = stripeCustomerId;
+  const { error } = await supabase
+    .from('subscriptions')
+    .upsert(payload, { onConflict: 'user_id' });
   if (error) throw new Error(`Failed to upsert subscription: ${error.message}`);
 }
 
+async function clearPlanByCustomer(stripeCustomerId: string) {
+  const supabase = createServiceClient();
+  await supabase
+    .from('subscriptions')
+    .update({ plan: 'free' })
+    .eq('stripe_customer_id', stripeCustomerId);
+}
+
+function getCustomerId(sub: Stripe.Subscription): string {
+  return typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+}
 
 export async function POST(req: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -41,6 +54,17 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (event.type) {
+
+      // Payment link checkout — user_id comes from client_reference_id
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const userId = session.client_reference_id;
+        const custId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+        if (!userId || !custId) break;
+        await upsertSubscription(userId, 'pro', null, custId);
+        break;
+      }
+
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
@@ -58,9 +82,11 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
         const userId = sub.metadata?.user_id;
-        if (!userId) break;
-
-        await upsertSubscription(userId, 'free', null);
+        if (userId) {
+          await upsertSubscription(userId, 'free', null);
+        } else {
+          await clearPlanByCustomer(getCustomerId(sub));
+        }
         break;
       }
 
@@ -72,9 +98,11 @@ export async function POST(req: NextRequest) {
 
         const sub = await stripe.subscriptions.retrieve(subscriptionId);
         const userId = sub.metadata?.user_id;
-        if (!userId) break;
-
-        await upsertSubscription(userId, 'free', null);
+        if (userId) {
+          await upsertSubscription(userId, 'free', null);
+        } else {
+          await clearPlanByCustomer(getCustomerId(sub));
+        }
         break;
       }
     }
