@@ -1,15 +1,50 @@
-export async function speakText(text: string, onEnd: () => void): Promise<void> {
-  if (typeof window === 'undefined' || !window.speechSynthesis) {
+let currentAudio: HTMLAudioElement | null = null;
+
+export function cancelSpeech() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.src = '';
+    currentAudio = null;
+  }
+}
+
+export async function speakText(text: string, onEnd: () => void, token?: string): Promise<void> {
+  if (typeof window === 'undefined') {
     onEnd();
     return;
   }
-  window.speechSynthesis.cancel();
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  utterance.rate = 0.95;
-  utterance.onend = onEnd;
-  utterance.onerror = onEnd;
+  cancelSpeech();
 
-  window.speechSynthesis.speak(utterance);
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) throw new Error('TTS failed');
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      currentAudio = null;
+      onEnd();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      currentAudio = null;
+      onEnd();
+    };
+
+    await audio.play();
+  } catch {
+    onEnd();
+  }
 }

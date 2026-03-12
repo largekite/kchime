@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Lightbulb, BookOpen, Volume2 } from 'lucide-react';
 import { speakText } from '@/lib/speech';
+import { useAuth } from '@/context/AuthContext';
 
 const CATEGORY_BADGE: Record<DailyPhrase['category'], { label: string; color: string }> = {
   idiom: { label: 'Idiom', color: 'bg-purple-100 text-purple-700' },
@@ -18,6 +19,7 @@ const CATEGORY_BADGE: Record<DailyPhrase['category'], { label: string; color: st
 };
 
 export default function DailyTab() {
+  const { session } = useAuth();
   const todayPhrase = getPhraseOfTheDay();
   const recentPhrases = getRecentPhrases();
 
@@ -64,7 +66,7 @@ export default function DailyTab() {
   }
 
   function handleSpeak(text: string) {
-    speakText(text, () => {});
+    speakText(text, () => {}, session?.access_token);
   }
 
   return (

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { ShareCardModal } from '@/components/shared/ShareCardModal';
-import { speakText } from '@/lib/speech';
+import { speakText, cancelSpeech } from '@/lib/speech';
+import { useAuth } from '@/context/AuthContext';
 import type { Context, Reply, SavedPhrase } from '@/types';
 import { getToneStyle } from '@/lib/tone-styles';
 import { Bookmark, BookmarkCheck, Check, Copy, Share2, Square, Volume2 } from 'lucide-react';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Props) {
+  const { session } = useAuth();
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -46,12 +48,12 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
 
   function handleSpeak() {
     if (speaking) {
-      window.speechSynthesis.cancel();
+      cancelSpeech();
       setSpeaking(false);
       return;
     }
     setSpeaking(true);
-    speakText(reply.text, () => setSpeaking(false));
+    speakText(reply.text, () => setSpeaking(false), session?.access_token);
   }
 
   function handleSave() {

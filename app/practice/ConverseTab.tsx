@@ -1,7 +1,7 @@
 'use client';
 
 import { aiConverse, converseDebrief, fetchRepliesStream, type ReplyPersonalization } from '@/lib/claude';
-import { speakText } from '@/lib/speech';
+import { speakText, cancelSpeech } from '@/lib/speech';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
@@ -42,7 +42,7 @@ interface Debrief {
 }
 
 export default function ConverseTab() {
-  const { plan, loading: authLoading } = useAuth();
+  const { plan, session, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
@@ -84,7 +84,7 @@ export default function ConverseTab() {
         const aiTurn: Turn = { speaker: 'ai', text: aiReply };
         setHistory((prev) => [...prev, aiTurn]);
         setIsAiSpeaking(true);
-        speakText(aiReply, () => setIsAiSpeaking(false));
+        speakText(aiReply, () => setIsAiSpeaking(false), session?.access_token);
       } catch (e) {
         if (!abortRef.current) {
           setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -115,13 +115,13 @@ export default function ConverseTab() {
     setHints([]);
     reset();
     setIsAiSpeaking(true);
-    speakText(persona.opener, () => setIsAiSpeaking(false));
+    speakText(persona.opener, () => setIsAiSpeaking(false), session?.access_token);
   }
 
   function handleReset() {
     abortRef.current = true;
     stop();
-    window.speechSynthesis.cancel();
+    cancelSpeech();
     setSelectedPersona(null);
     setHistory([]);
     setError('');
@@ -142,7 +142,7 @@ export default function ConverseTab() {
 
   async function handleFinishSession() {
     stop();
-    window.speechSynthesis.cancel();
+    cancelSpeech();
     setIsAiSpeaking(false);
     setIsDebriefing(true);
     try {

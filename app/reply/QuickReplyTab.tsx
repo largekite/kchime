@@ -12,7 +12,7 @@ import { getToneProfile } from '@/lib/storage';
 import type { Context, Reply, SavedPhrase } from '@/types';
 import clsx from 'clsx';
 import { useCallback, useState } from 'react';
-import { Briefcase, Home, MessageSquare, Music, Globe } from 'lucide-react';
+import { Briefcase, Home, MessageSquare, Music, Globe, Mic } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const CONTEXTS: Context[] = ['Any', 'Office', 'Text', 'Party', 'Family'];
@@ -206,9 +206,7 @@ export default function QuickReplyTab() {
               className="absolute right-2.5 top-2.5 rounded-full p-1 text-gray-300 hover:text-indigo-500 transition"
               title="Speak"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm0 2a1 1 0 0 0-1 1v7a1 1 0 0 0 2 0V5a1 1 0 0 0-1-1zm6 7a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
-              </svg>
+              <Mic className="h-4 w-4" />
             </button>
           ) : null}
         </div>

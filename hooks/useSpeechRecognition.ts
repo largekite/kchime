@@ -89,6 +89,8 @@ export function useSpeechRecognition({
       if (onSilence && currentTranscript.trim()) {
         silenceTimerRef.current = setTimeout(() => {
           onSilence(currentTranscript);
+          setTranscript('');
+          transcriptRef.current = '';
         }, silenceMs);
       }
     },
