@@ -44,7 +44,12 @@ interface Debrief {
 export default function ConverseTab() {
   const { plan, session, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
+  const [selectedPersona, _setSelectedPersona] = useState<Persona | null>(null);
+  const selectedPersonaRef = useRef<Persona | null>(null);
+  const setSelectedPersona = useCallback((p: Persona | null) => {
+    selectedPersonaRef.current = p;
+    _setSelectedPersona(p);
+  }, []);
   const [history, setHistory] = useState<Turn[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const isAiSpeakingRef = useRef(false);
@@ -70,7 +75,8 @@ export default function ConverseTab() {
     async (transcript: string) => {
       // Use refs for guards — the onSilence callback captures a stale closure,
       // so reading state directly would use an outdated value.
-      if (!selectedPersona || isProcessingRef.current || isAiSpeakingRef.current) return;
+      const persona = selectedPersonaRef.current;
+      if (!persona || isProcessingRef.current || isAiSpeakingRef.current) return;
       if (!transcript.trim()) return;
 
       isProcessingRef.current = true;
@@ -86,7 +92,7 @@ export default function ConverseTab() {
 
       try {
         const aiReply = await aiConverse(
-          selectedPersona.name,
+          persona.name,
           newHistory.map((t) => ({ speaker: t.speaker, text: t.text })),
           transcript,
         );
@@ -108,7 +114,7 @@ export default function ConverseTab() {
         setIsProcessing(false);
       }
     },
-    [selectedPersona, setAiSpeaking, session],
+    [setAiSpeaking, session],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({

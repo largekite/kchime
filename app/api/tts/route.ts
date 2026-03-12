@@ -31,7 +31,7 @@ async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'
 }
 
 // Returns true if within limit and increments, false if limit reached.
-// Uses a single upsert+update round-trip to minimise DB calls.
+// Uses optimistic locking to prevent concurrent requests from bypassing limits.
 async function checkAndIncrement(userId: string, today: string, limit: number): Promise<boolean> {
   const supabase = createServiceClient();
 
@@ -45,11 +45,26 @@ async function checkAndIncrement(userId: string, today: string, limit: number): 
   const count = (data as { tts_count: number } | null)?.tts_count ?? 0;
   if (count >= limit) return false;
 
-  await supabase
+  // Optimistic lock: only update if count hasn't changed since we read it
+  const { data: updated } = await supabase
     .from('daily_usage')
     .update({ tts_count: count + 1 })
     .eq('user_id', userId)
-    .eq('date', today);
+    .eq('date', today)
+    .eq('tts_count', count)
+    .select('tts_count')
+    .single();
+
+  // If no row was updated, another request incremented first — re-check
+  if (!updated) {
+    const { data: recheck } = await supabase
+      .from('daily_usage')
+      .select('tts_count')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+    return ((recheck as { tts_count: number } | null)?.tts_count ?? 0) < limit;
+  }
 
   return true;
 }
@@ -66,12 +81,8 @@ export async function POST(req: NextRequest) {
   if (userId) {
     const today = new Date().toISOString().split('T')[0];
 
-    // Kick off OpenAI and DB usage update in parallel to hide DB latency
-    const [withinLimit, ttsResponse] = await Promise.all([
-      checkAndIncrement(userId, today, limit),
-      openai.audio.speech.create({ model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3' }),
-    ]);
-
+    // Check and increment limit BEFORE calling OpenAI to avoid wasting API calls
+    const withinLimit = await checkAndIncrement(userId, today, limit);
     if (!withinLimit) {
       return new Response(JSON.stringify({ error: 'limit_reached' }), {
         status: 429,
@@ -79,6 +90,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const ttsResponse = await openai.audio.speech.create({
+      model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3',
+    });
     const buffer = await ttsResponse.arrayBuffer();
     return new Response(buffer, {
       headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },

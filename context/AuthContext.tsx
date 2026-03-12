@@ -57,38 +57,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (syncedRef.current === userId) return;
     syncedRef.current = userId;
 
-    const progress = getProgress();
-    const phrases = getSavedPhrases();
+    try {
+      const progress = getProgress();
+      const phrases = getSavedPhrases();
 
-    // Upsert progress
-    await supabase.from('user_progress').upsert(
-      { user_id: userId, data: progress, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' },
-    );
-
-    // Upsert saved phrases
-    if (phrases.length > 0) {
-      await supabase.from('saved_phrases').upsert(
-        phrases.map((p) => ({ ...p, user_id: userId })),
-        { onConflict: 'id,user_id' },
+      // Upsert progress
+      await supabase.from('user_progress').upsert(
+        { user_id: userId, data: progress, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' },
       );
+
+      // Upsert saved phrases
+      if (phrases.length > 0) {
+        await supabase.from('saved_phrases').upsert(
+          phrases.map((p) => ({ ...p, user_id: userId })),
+          { onConflict: 'id,user_id' },
+        );
+      }
+    } catch {
+      // Non-critical: sync failure shouldn't block auth flow
     }
   }, [supabase]);
 
   /** Pull progress from cloud and merge into localStorage. */
   const pullFromCloud = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('user_progress')
-      .select('data')
-      .eq('user_id', userId)
-      .single();
-    if (data?.data) {
-      const local = getProgress();
-      // Merge: take whichever has more completed scenarios / higher XP
-      const cloud = data.data as ReturnType<typeof getProgress>;
-      if ((cloud.xp ?? 0) > local.xp || cloud.completedScenarios.length > local.completedScenarios.length) {
-        saveProgress(cloud);
+    try {
+      const { data } = await supabase
+        .from('user_progress')
+        .select('data')
+        .eq('user_id', userId)
+        .single();
+      if (data?.data) {
+        const local = getProgress();
+        const cloud = data.data as ReturnType<typeof getProgress>;
+        // Merge field-by-field: take the best of each dimension
+        const merged = {
+          ...local,
+          xp: Math.max(local.xp ?? 0, cloud.xp ?? 0),
+          completedScenarios: [
+            ...new Set([...(local.completedScenarios ?? []), ...(cloud.completedScenarios ?? [])]),
+          ],
+          streak: Math.max(local.streak ?? 0, cloud.streak ?? 0),
+          lastActiveDate: [local.lastActiveDate, cloud.lastActiveDate]
+            .filter(Boolean)
+            .sort()
+            .pop() ?? local.lastActiveDate,
+        };
+        saveProgress(merged);
       }
+    } catch {
+      // Non-critical: pull failure shouldn't block auth flow
     }
   }, [supabase]);
 
