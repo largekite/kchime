@@ -7,7 +7,7 @@ import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, MicOff, RotateCcw, Lightbulb } from 'lucide-react';
 import type { Context, Reply } from '@/types';
 
@@ -94,7 +94,7 @@ export default function ConverseTab() {
         setIsProcessing(false);
       }
     },
-    [selectedPersona, isAiSpeaking],
+    [selectedPersona, isAiSpeaking, session],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({
@@ -187,11 +187,14 @@ export default function ConverseTab() {
     }
   }
 
-  // Count user turns only
-  const userTurns = history.filter((t) => t.speaker === 'user').length;
-  const userWords = history
-    .filter((t) => t.speaker === 'user')
-    .reduce((acc, t) => acc + t.text.trim().split(/\s+/).length, 0);
+  // Count user turns only — memoized so they don't recompute on unrelated re-renders
+  const { userTurns, userWords } = useMemo(() => {
+    const turns = history.filter((t) => t.speaker === 'user');
+    return {
+      userTurns: turns.length,
+      userWords: turns.reduce((acc, t) => acc + t.text.trim().split(/\s+/).length, 0),
+    };
+  }, [history]);
 
   const fluencyColor: Record<string, string> = {
     'Excellent': 'text-emerald-600',

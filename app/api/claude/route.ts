@@ -33,8 +33,10 @@ function extractText(message: Anthropic.Message): string {
   return block.text;
 }
 
+let _anthropic: Anthropic | null = null;
 function getAnthropic() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return _anthropic;
 }
 
 /** Returns { plan, userId } from the Bearer token if present. */
@@ -80,18 +82,11 @@ async function isRateLimited(
 
   const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
 
-  // Ensure a row exists for today (insert only, skip if row already exists)
-  await supabase.from('daily_usage').upsert(
-    { user_id: userId, date: today },
-    { onConflict: 'user_id,date' },
-  );
-
-  // Read current count
+  // Ensure a row exists for today and read the current count in one round-trip
   const { data } = await supabase
     .from('daily_usage')
+    .upsert({ user_id: userId, date: today }, { onConflict: 'user_id,date' })
     .select(column)
-    .eq('user_id', userId)
-    .eq('date', today)
     .single();
 
   const currentCount: number = (data ? (data as Record<string, number>)[column] : 0) ?? 0;
@@ -470,7 +465,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         system: `You are roleplaying as a ${persona} in a realistic American English conversation. Respond naturally and briefly (under 25 words). Keep the conversation moving forward naturally. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
         messages: [{
           role: 'user',
-          content: `Conversation so far:\n${historyText}\nLearner: "${userMessage}"\n\nWhat does the ${persona} say next?`,
+          content: `Conversation so far:\n${historyText}\n\nWhat does the ${persona} say next?`,
         }],
       });
 

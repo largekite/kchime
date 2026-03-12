@@ -13,12 +13,12 @@ export function useSavedPhrases() {
 
   const save = useCallback((phrase: SavedPhrase) => {
     savePhrase(phrase);
-    setPhrases(getSavedPhrases());
+    setPhrases((prev) => [phrase, ...prev]);
   }, []);
 
   const remove = useCallback((id: string) => {
     deletePhrase(id);
-    setPhrases(getSavedPhrases());
+    setPhrases((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
   return { phrases, save, remove };

@@ -1,0 +1,306 @@
+/* KChime extension injected UI — content.css */
+
+/* ── Trigger button ──────────────────────────────────────────────────────── */
+
+#kchime-widget {
+  position: absolute;
+  z-index: 2147483646;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  pointer-events: none;
+}
+
+#kchime-btn {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px 5px 9px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.35);
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+#kchime-btn:hover {
+  background: #4338ca;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+  transform: translateY(-1px);
+}
+
+#kchime-btn:active { transform: translateY(0); }
+
+#kchime-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* ── Panel ───────────────────────────────────────────────────────────────── */
+
+#kchime-panel {
+  position: absolute;
+  z-index: 2147483647;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.13), 0 2px 8px rgba(0,0,0,0.06);
+  min-width: 290px;
+  max-width: 370px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  animation: kchime-pop 0.15s ease;
+}
+
+@keyframes kchime-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+#kchime-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+#kchime-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: -0.01em;
+}
+
+#kchime-platform-badge {
+  font-size: 10px;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 20px;
+  padding: 2px 7px;
+}
+
+#kchime-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 17px;
+  line-height: 1;
+  padding: 0 2px;
+  transition: color 0.1s;
+  display: flex;
+  align-items: center;
+}
+
+#kchime-close:hover { color: #374151; }
+
+/* ── Tone chips ──────────────────────────────────────────────────────────── */
+
+#kchime-tones {
+  display: flex;
+  gap: 5px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+#kchime-tones::-webkit-scrollbar { display: none; }
+
+.kchime-tone-chip {
+  flex-shrink: 0;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.kchime-tone-chip:hover {
+  border-color: var(--tone-color);
+  color: var(--tone-color);
+}
+
+.kchime-tone-chip.active {
+  background: var(--tone-color);
+  border-color: var(--tone-color);
+  color: #fff;
+}
+
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+
+#kchime-loading {
+  padding: 18px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.kchime-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: kchime-spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes kchime-spin { to { transform: rotate(360deg); } }
+
+/* ── Error ───────────────────────────────────────────────────────────────── */
+
+#kchime-error {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #991b1b;
+  background: #fef2f2;
+  line-height: 1.5;
+}
+
+#kchime-error a { color: #4f46e5; }
+
+/* ── Reply items ─────────────────────────────────────────────────────────── */
+
+#kchime-replies {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+
+#kchime-replies::-webkit-scrollbar { width: 4px; }
+#kchime-replies::-webkit-scrollbar-track { background: transparent; }
+#kchime-replies::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
+
+.kchime-reply-item {
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: default;
+  transition: background 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kchime-reply-item:hover { background: #f9fafb; }
+
+.kchime-reply-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.kchime-reply-text {
+  font-size: 13px;
+  color: #111827;
+  flex: 1;
+  line-height: 1.45;
+}
+
+.kchime-reply-tone {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6d28d9;
+  background: #ede9fe;
+  border-radius: 20px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.kchime-reply-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.kchime-reply-btn {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 7px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  border: 1px solid transparent;
+}
+
+.kchime-reply-use {
+  background: #4f46e5;
+  color: #fff;
+  border-color: #4f46e5;
+}
+
+.kchime-reply-use:hover { background: #4338ca; border-color: #4338ca; }
+
+.kchime-reply-copy {
+  background: #fff;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+.kchime-reply-copy:hover { background: #f3f4f6; }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+
+#kchime-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+#kchime-regen {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+#kchime-regen:hover { background: #f3f4f6; color: #374151; }
+
+#kchime-footer-brand {
+  font-size: 10px;
+  color: #d1d5db;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+#kchime-footer-brand:hover { color: #9ca3af; }

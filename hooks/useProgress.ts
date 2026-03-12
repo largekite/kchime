@@ -1,6 +1,6 @@
 'use client';
 
-import { getProgress, markScenarioComplete, addRecentPrompt, getTodayScenarioCount } from '@/lib/storage';
+import { getProgress, markScenarioComplete, addRecentPrompt } from '@/lib/storage';
 import { getLevel } from '@/lib/gamification';
 import { useCallback, useEffect, useState } from 'react';
 import type { BadgeId, Progress } from '@/types';
@@ -26,10 +26,17 @@ export function useProgress() {
 
   const addPrompt = useCallback((prompt: string) => {
     addRecentPrompt(prompt);
-    setProgress(getProgress());
+    setProgress((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        recentPrompts: [prompt, ...prev.recentPrompts.filter((p) => p !== prompt)].slice(0, 5),
+      };
+    });
   }, []);
 
-  const todayCount = getTodayScenarioCount();
+  const today = new Date().toISOString().split('T')[0];
+  const todayCount = progress?.daily?.find((d) => d.date === today)?.scenariosCompleted ?? 0;
   const xp = progress?.xp ?? 0;
   const levelInfo = getLevel(xp);
 
