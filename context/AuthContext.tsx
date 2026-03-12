@@ -17,6 +17,7 @@ interface AuthContextValue {
   /** Sign in with email + password (returning users). */
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
+  sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshPlan: () => Promise<void>;
 }
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextValue>({
   signUpWithEmail: async () => ({ error: null }),
   signInWithPassword: async () => ({ error: null }),
   signInWithGoogle: async () => ({ error: null }),
+  sendPasswordReset: async () => ({ error: null }),
   signOut: async () => {},
   refreshPlan: async () => {},
 });
@@ -142,6 +144,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   }, [supabase]);
 
+  const sendPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset`,
+    });
+    return { error: error?.message ?? null };
+  }, [supabase]);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, [supabase]);
@@ -151,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchPlan]);
 
   return (
-    <AuthContext.Provider value={{ user, session, plan, loading, signUpWithEmail, signInWithPassword, signInWithGoogle, signOut, refreshPlan }}>
+    <AuthContext.Provider value={{ user, session, plan, loading, signUpWithEmail, signInWithPassword, signInWithGoogle, sendPasswordReset, signOut, refreshPlan }}>
       {children}
     </AuthContext.Provider>
   );

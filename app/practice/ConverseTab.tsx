@@ -384,19 +384,20 @@ export default function ConverseTab() {
 
           {/* Mic button + Hint + Finish session */}
           <div className="sticky bottom-6 flex flex-col items-center gap-3 pt-2">
-            <div className="flex items-center gap-4">
-              {/* Hint button — show after AI has spoken at least once */}
-              {history.length >= 1 && !isProcessing && !isAiSpeaking && (
-                <button
-                  onClick={handleHint}
-                  disabled={isLoadingHints}
-                  className="h-10 w-10 rounded-full border border-amber-200 bg-amber-50 flex items-center justify-center hover:bg-amber-100 transition disabled:opacity-40"
-                  title="Need a hint?"
-                >
-                  <Lightbulb className={clsx('h-5 w-5 text-amber-600', isLoadingHints && 'animate-pulse')} />
-                </button>
-              )}
+            {/* Hint button — shown above mic, centered */}
+            {history.length >= 1 && !isProcessing && !isAiSpeaking && (
+              <button
+                onClick={handleHint}
+                disabled={isLoadingHints}
+                className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
+                title="Need a hint?"
+              >
+                <Lightbulb className={clsx('h-3.5 w-3.5', isLoadingHints && 'animate-pulse')} />
+                {isLoadingHints ? 'Loading hint…' : 'Hint'}
+              </button>
+            )}
 
+            <div className="flex items-center">
               <button
                 onClick={handleToggleMic}
                 disabled={!isSupported || isProcessing || isAiSpeaking}

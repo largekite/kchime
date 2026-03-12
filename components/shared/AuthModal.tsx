@@ -9,10 +9,10 @@ interface Props {
   onSent?: () => void;
 }
 
-type Mode = 'sign-in' | 'sign-up';
+type Mode = 'sign-in' | 'sign-up' | 'forgot';
 
 export function AuthModal({ onClose, onSent }: Props) {
-  const { signInWithPassword, signUpWithEmail, signInWithGoogle } = useAuth();
+  const { signInWithPassword, signUpWithEmail, signInWithGoogle, sendPasswordReset } = useAuth();
   const [mode, setMode] = useState<Mode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,31 +21,41 @@ export function AuthModal({ onClose, onSent }: Props) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [signUpSent, setSignUpSent] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
     setLoading(true);
     setError('');
+
+    if (mode === 'forgot') {
+      if (!email.trim()) return;
+      const { error } = await sendPasswordReset(email.trim());
+      setLoading(false);
+      if (error) setError(error);
+      else setResetSent(true);
+      return;
+    }
+
+    if (!email.trim() || !password.trim()) return;
 
     if (mode === 'sign-up') {
       const { error } = await signUpWithEmail(email.trim(), password.trim());
       setLoading(false);
-      if (error) {
-        setError(error);
-      } else {
-        setSignUpSent(true);
-        onSent?.();
-      }
+      if (error) setError(error);
+      else { setSignUpSent(true); onSent?.(); }
     } else {
       const { error } = await signInWithPassword(email.trim(), password.trim());
       setLoading(false);
-      if (error) {
-        setError(error);
-      } else {
-        onClose();
-      }
+      if (error) setError(error);
+      else onClose();
     }
+  }
+
+  function switchMode(m: Mode) {
+    setMode(m);
+    setError('');
+    setResetSent(false);
   }
 
   return (
@@ -60,13 +70,49 @@ export function AuthModal({ onClose, onSent }: Props) {
             <p className="text-sm text-gray-500">
               We sent a confirmation link to <strong>{email}</strong>. Click it to verify your account.
             </p>
-            <button
-              onClick={onClose}
-              className="mt-6 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
-            >
+            <button onClick={onClose} className="mt-6 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition">
               Got it
             </button>
           </div>
+        ) : resetSent ? (
+          <div className="text-center py-4">
+            <p className="text-xl font-bold text-gray-900 mb-2">Check your email</p>
+            <p className="text-sm text-gray-500">
+              We sent a password reset link to <strong>{email}</strong>.
+            </p>
+            <button onClick={onClose} className="mt-6 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition">
+              Got it
+            </button>
+          </div>
+        ) : mode === 'forgot' ? (
+          <>
+            <p className="text-xl font-bold text-gray-900">Reset your password</p>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Enter your email and we&apos;ll send you a reset link.</p>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                autoFocus
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              />
+              {error && <p className="text-xs text-red-600">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+              >
+                {loading ? 'Sending…' : 'Send reset link'}
+              </button>
+            </form>
+            <p className="mt-4 text-center text-xs text-gray-400">
+              <button onClick={() => switchMode('sign-in')} className="text-indigo-600 font-medium hover:underline">
+                Back to sign in
+              </button>
+            </p>
+          </>
         ) : (
           <>
             <p className="text-xl font-bold text-gray-900">
@@ -107,6 +153,17 @@ export function AuthModal({ onClose, onSent }: Props) {
                 </button>
               </div>
               {error && <p className="text-xs text-red-600">{error}</p>}
+              {mode === 'sign-in' && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('forgot')}
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={loading}
@@ -118,14 +175,12 @@ export function AuthModal({ onClose, onSent }: Props) {
               </button>
             </form>
 
-            {/* Divider */}
             <div className="relative flex items-center my-4">
               <div className="flex-grow border-t border-gray-200" />
               <span className="mx-3 text-xs text-gray-400">or</span>
               <div className="flex-grow border-t border-gray-200" />
             </div>
 
-            {/* Google OAuth */}
             <button
               type="button"
               disabled={googleLoading}
@@ -155,20 +210,14 @@ export function AuthModal({ onClose, onSent }: Props) {
               {mode === 'sign-in' ? (
                 <>
                   Don&apos;t have an account?{' '}
-                  <button
-                    onClick={() => { setMode('sign-up'); setError(''); }}
-                    className="text-indigo-600 font-medium hover:underline"
-                  >
+                  <button onClick={() => switchMode('sign-up')} className="text-indigo-600 font-medium hover:underline">
                     Sign up
                   </button>
                 </>
               ) : (
                 <>
                   Already have an account?{' '}
-                  <button
-                    onClick={() => { setMode('sign-in'); setError(''); }}
-                    className="text-indigo-600 font-medium hover:underline"
-                  >
+                  <button onClick={() => switchMode('sign-in')} className="text-indigo-600 font-medium hover:underline">
                     Sign in
                   </button>
                 </>
