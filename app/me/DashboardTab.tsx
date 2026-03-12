@@ -284,41 +284,41 @@ export default function DashboardTab() {
         </div>
       </div>
 
-      {/* Share card (hidden, used for screenshot) */}
-      <div ref={shareRef} className="rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-700 p-6 text-white shadow-xl" style={{ fontFamily: 'system-ui, sans-serif' }}>
-        <div className="flex items-center gap-2 mb-4">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white/80" aria-hidden>
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Share card — inline styles required for html2canvas to render correctly */}
+      <div ref={shareRef} style={{ fontFamily: 'system-ui, sans-serif', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderRadius: '16px', padding: '24px', color: '#ffffff', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span className="font-bold text-sm text-white/80">KChime</span>
+          <span style={{ fontWeight: 700, fontSize: '14px', color: 'rgba(255,255,255,0.8)' }}>KChime</span>
         </div>
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div className="text-center">
-            <p className="text-3xl font-bold">{streak}</p>
-            <p className="text-xs text-indigo-200">Day Streak</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '30px', fontWeight: 700, margin: 0 }}>{streak}</p>
+            <p style={{ fontSize: '12px', color: '#a5b4fc', margin: 0 }}>Day Streak</p>
           </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold">{totalCompleted}</p>
-            <p className="text-xs text-indigo-200">Scenarios</p>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '30px', fontWeight: 700, margin: 0 }}>{totalCompleted}</p>
+            <p style={{ fontSize: '12px', color: '#a5b4fc', margin: 0 }}>Scenarios</p>
           </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold">{xp}</p>
-            <p className="text-xs text-indigo-200">XP</p>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '30px', fontWeight: 700, margin: 0 }}>{xp}</p>
+            <p style={{ fontSize: '12px', color: '#a5b4fc', margin: 0 }}>XP</p>
           </div>
         </div>
-        <div className="flex items-center justify-between">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p className="text-xs text-indigo-200">Level {levelInfo.level}</p>
-            <p className="font-bold">{levelInfo.name}</p>
+            <p style={{ fontSize: '12px', color: '#a5b4fc', margin: 0 }}>Level {levelInfo.level}</p>
+            <p style={{ fontWeight: 700, margin: 0 }}>{levelInfo.name}</p>
           </div>
-          <div className="flex gap-1">
+          <div style={{ display: 'flex', gap: '4px' }}>
             {earnedBadges.slice(0, 5).map((bid) => (
-              <span key={bid} className="text-xs font-semibold text-white/80">{BADGE_MAP[bid].name}</span>
+              <span key={bid} style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>{BADGE_MAP[bid].name}</span>
             ))}
           </div>
         </div>
-        <p className="text-xs text-indigo-300 mt-3">kchime.com · Practice English every day</p>
+        <p style={{ fontSize: '12px', color: '#c7d2fe', marginTop: '12px', marginBottom: 0 }}>kchime.com · Practice English every day</p>
       </div>
 
       {/* Share button */}
