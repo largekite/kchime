@@ -457,16 +457,39 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
       const { persona, history, userMessage } = body;
       if (!persona || !history || !userMessage) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-      const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'Learner'}: "${h.text}"`).join('\n');
+      // Build proper multi-turn messages so Claude tracks the conversation naturally.
+      // The history alternates ai/user turns starting with an AI opener.
+      // We map ai turns → assistant role, user turns → user role.
+      // Claude requires messages to start with a user role, so we prepend a
+      // short framing message before the AI's opening line.
+      const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+      for (const turn of history) {
+        const role = turn.speaker === 'ai' ? 'assistant' as const : 'user' as const;
+        // Claude requires alternating roles — merge consecutive same-role messages
+        if (messages.length > 0 && messages[messages.length - 1].role === role) {
+          messages[messages.length - 1].content += '\n' + turn.text;
+        } else {
+          messages.push({ role, content: turn.text });
+        }
+      }
+
+      // Claude requires the first message to be from the user role.
+      // If the conversation starts with the AI opener, prepend a user framing message.
+      if (messages.length > 0 && messages[0].role === 'assistant') {
+        messages.unshift({ role: 'user', content: `[Start of conversation with ${persona}]` });
+      }
+
+      // Ensure the last message is from the user (it should be, since we just added the user turn)
+      // If not, append the userMessage as a user turn
+      if (messages.length === 0 || messages[messages.length - 1].role !== 'user') {
+        messages.push({ role: 'user', content: userMessage });
+      }
 
       const message = await getAnthropic().messages.create({
         model: MODEL_FAST,
         max_tokens: 128,
-        system: `You are roleplaying as a ${persona} in a realistic American English conversation. Respond naturally and briefly (under 25 words). Keep the conversation moving forward naturally. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
-        messages: [{
-          role: 'user',
-          content: `Conversation so far:\n${historyText}\n\nWhat does the ${persona} say next?`,
-        }],
+        system: `You are roleplaying as a ${persona} in a realistic American English conversation with a language learner. Respond naturally and briefly (under 25 words). Keep the conversation moving forward — ask a new question or change the topic if the current one is winding down. Never repeat something you already said. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
+        messages,
       });
 
       const raw = extractText(message);
