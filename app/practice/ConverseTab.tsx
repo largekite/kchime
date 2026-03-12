@@ -47,6 +47,7 @@ export default function ConverseTab() {
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const isAiSpeakingRef = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const isProcessingRef = useRef(false);
   const [error, setError] = useState('');
@@ -57,10 +58,19 @@ export default function ConverseTab() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const abortRef = useRef(false);
+  const startRef = useRef<() => void>(() => {});
+
+  // Helper to set both state (for UI) and ref (for stale-closure-safe guards)
+  const setAiSpeaking = useCallback((value: boolean) => {
+    isAiSpeakingRef.current = value;
+    setIsAiSpeaking(value);
+  }, []);
 
   const handleUserSpeech = useCallback(
     async (transcript: string) => {
-      if (!selectedPersona || isProcessingRef.current || isAiSpeaking) return;
+      // Use refs for guards — the onSilence callback captures a stale closure,
+      // so reading state directly would use an outdated value.
+      if (!selectedPersona || isProcessingRef.current || isAiSpeakingRef.current) return;
       if (!transcript.trim()) return;
 
       isProcessingRef.current = true;
@@ -83,8 +93,12 @@ export default function ConverseTab() {
         if (abortRef.current) return;
         const aiTurn: Turn = { speaker: 'ai', text: aiReply };
         setHistory((prev) => [...prev, aiTurn]);
-        setIsAiSpeaking(true);
-        speakText(aiReply, () => setIsAiSpeaking(false), session?.access_token);
+        setAiSpeaking(true);
+        speakText(aiReply, () => {
+          setAiSpeaking(false);
+          // Auto-resume listening after AI finishes speaking
+          startRef.current();
+        }, session?.access_token);
       } catch (e) {
         if (!abortRef.current) {
           setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -94,7 +108,7 @@ export default function ConverseTab() {
         setIsProcessing(false);
       }
     },
-    [selectedPersona, isAiSpeaking, session],
+    [selectedPersona, setAiSpeaking, session],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({
@@ -102,6 +116,9 @@ export default function ConverseTab() {
     silenceMs: 1800,
     continuous: true,
   });
+
+  // Keep ref in sync so callbacks can use it without circular deps
+  startRef.current = start;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,8 +131,12 @@ export default function ConverseTab() {
     setDebrief(null);
     setHints([]);
     reset();
-    setIsAiSpeaking(true);
-    speakText(persona.opener, () => setIsAiSpeaking(false), session?.access_token);
+    setAiSpeaking(true);
+    speakText(persona.opener, () => {
+      setAiSpeaking(false);
+      // Auto-start listening after the AI opener finishes
+      if (isSupported) startRef.current();
+    }, session?.access_token);
   }
 
   function handleReset() {
@@ -128,7 +149,7 @@ export default function ConverseTab() {
     setDebrief(null);
     setHints([]);
     reset();
-    setIsAiSpeaking(false);
+    setAiSpeaking(false);
   }
 
   function handleToggleMic() {
@@ -143,7 +164,7 @@ export default function ConverseTab() {
   async function handleFinishSession() {
     stop();
     cancelSpeech();
-    setIsAiSpeaking(false);
+    setAiSpeaking(false);
     setIsDebriefing(true);
     try {
       const result = await converseDebrief(
