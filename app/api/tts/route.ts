@@ -23,6 +23,30 @@ async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'
   }
 }
 
+// Returns true if within limit and increments, false if limit reached.
+// Uses a single upsert+update round-trip to minimise DB calls.
+async function checkAndIncrement(userId: string, today: string, limit: number): Promise<boolean> {
+  const supabase = createServiceClient();
+
+  // Ensure the row exists, then fetch current count
+  const { data } = await supabase
+    .from('daily_usage')
+    .upsert({ user_id: userId, date: today }, { onConflict: 'user_id,date' })
+    .select('tts_count')
+    .single();
+
+  const count = (data as { tts_count: number } | null)?.tts_count ?? 0;
+  if (count >= limit) return false;
+
+  await supabase
+    .from('daily_usage')
+    .update({ tts_count: count + 1 })
+    .eq('user_id', userId)
+    .eq('date', today);
+
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   const { text } = await req.json() as { text: string };
   if (!text) return new Response('Missing text', { status: 400 });
@@ -30,38 +54,31 @@ export async function POST(req: NextRequest) {
   const { plan, userId } = await getSubscription(req);
   const limit = plan === 'pro' ? PRO_TTS_LIMIT : FREE_TTS_LIMIT;
 
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
   if (userId) {
     const today = new Date().toISOString().split('T')[0];
-    const supabase = createServiceClient();
 
-    await supabase.from('daily_usage').upsert(
-      { user_id: userId, date: today },
-      { onConflict: 'user_id,date' },
-    );
+    // Kick off OpenAI and DB usage update in parallel to hide DB latency
+    const [withinLimit, ttsResponse] = await Promise.all([
+      checkAndIncrement(userId, today, limit),
+      openai.audio.speech.create({ model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3' }),
+    ]);
 
-    const { data } = await supabase
-      .from('daily_usage')
-      .select('tts_count')
-      .eq('user_id', userId)
-      .eq('date', today)
-      .single();
-
-    const count = (data as { tts_count: number } | null)?.tts_count ?? 0;
-    if (count >= limit) {
+    if (!withinLimit) {
       return new Response(JSON.stringify({ error: 'limit_reached' }), {
         status: 429,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    await supabase
-      .from('daily_usage')
-      .update({ tts_count: count + 1 })
-      .eq('user_id', userId)
-      .eq('date', today);
+    const buffer = await ttsResponse.arrayBuffer();
+    return new Response(buffer, {
+      headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
+    });
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  // No auth — anonymous user, no usage tracking
   const response = await openai.audio.speech.create({
     model: 'tts-1',
     voice: 'nova',
@@ -71,9 +88,6 @@ export async function POST(req: NextRequest) {
 
   const buffer = await response.arrayBuffer();
   return new Response(buffer, {
-    headers: {
-      'Content-Type': 'audio/mpeg',
-      'Cache-Control': 'no-store',
-    },
+    headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
   });
 }
