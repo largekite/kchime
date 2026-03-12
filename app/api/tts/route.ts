@@ -7,6 +7,13 @@ export const dynamic = 'force-dynamic';
 const FREE_TTS_LIMIT = 20;
 const PRO_TTS_LIMIT = 100;
 
+// Cache the OpenAI client as a singleton to avoid connection setup overhead per request
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
+
 async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'; userId: string | null }> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) return { plan: 'free', userId: null };
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
   const { plan, userId } = await getSubscription(req);
   const limit = plan === 'pro' ? PRO_TTS_LIMIT : FREE_TTS_LIMIT;
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const openai = getOpenAI();
 
   if (userId) {
     const today = new Date().toISOString().split('T')[0];
@@ -79,7 +86,7 @@ export async function POST(req: NextRequest) {
   }
 
   // No auth — anonymous user, no usage tracking
-  const response = await openai.audio.speech.create({
+  const response = await getOpenAI().audio.speech.create({
     model: 'tts-1',
     voice: 'nova',
     input: text,
