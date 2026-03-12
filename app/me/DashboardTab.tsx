@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import clsx from 'clsx';
 import type { DailyProgress, ScenarioCategory } from '@/types';
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { getDailyGoal, getStreakFreezes } from '@/lib/storage';
 
 function ActivityHeatmap({ daily }: { daily: DailyProgress[] }) {
@@ -79,6 +79,8 @@ function shortDay(dateStr: string) {
 export default function DashboardTab() {
   const { progress, streak, completedScenarios, todayCount, xp, levelInfo, earnedBadges } = useProgress();
   const shareRef = useRef<HTMLDivElement>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState(false);
 
   const last7 = getLast7Days();
   const chartData = last7.map((date) => {
@@ -100,12 +102,14 @@ export default function DashboardTab() {
   const { multiplier, label: multiplierLabel } = getDailyMultiplier(progress?.consecutiveDailyGoals ?? 0);
 
   const handleShare = useCallback(async () => {
+    if (!shareRef.current) return;
+    setSharing(true);
+    setShareError(false);
     try {
       const html2canvas = (await import('html2canvas')).default;
-      if (!shareRef.current) return;
       const canvas = await html2canvas(shareRef.current, {
         scale: 2,
-        backgroundColor: '#ffffff',
+        backgroundColor: null,
         useCORS: true,
         logging: false,
       });
@@ -117,10 +121,7 @@ export default function DashboardTab() {
         const blob = await res.blob();
         const file = new File([blob], 'kchime-progress.png', { type: 'image/png' });
         if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: 'My KChime Progress',
-            files: [file],
-          });
+          await navigator.share({ title: 'My KChime Progress', files: [file] });
           return;
         }
       }
@@ -134,8 +135,11 @@ export default function DashboardTab() {
       document.body.removeChild(a);
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        console.error('Share failed:', err);
+        setShareError(true);
+        setTimeout(() => setShareError(false), 3000);
       }
+    } finally {
+      setSharing(false);
     }
   }, []);
 
@@ -320,12 +324,13 @@ export default function DashboardTab() {
       {/* Share button */}
       <button
         onClick={handleShare}
-        className="w-full rounded-xl border-2 border-dashed border-indigo-200 py-3 text-sm font-semibold text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center justify-center gap-2"
+        disabled={sharing}
+        className="w-full rounded-xl border-2 border-dashed border-indigo-200 py-3 text-sm font-semibold text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center justify-center gap-2 disabled:opacity-50"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
-        Share My Progress
+        {sharing ? 'Preparing…' : shareError ? 'Failed — try again' : 'Share My Progress'}
       </button>
 
       {/* Motivation */}
