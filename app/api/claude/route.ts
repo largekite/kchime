@@ -454,6 +454,9 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'ai-converse') {
+      const { plan } = await getSubscription(req);
+      if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+
       const { persona, history, userMessage } = body;
       if (!persona || !history || !userMessage) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
@@ -498,6 +501,9 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'converse-debrief') {
+      const { plan } = await getSubscription(req);
+      if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+
       const { persona, history } = body;
       if (!persona || !history) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
