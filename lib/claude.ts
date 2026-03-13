@@ -203,6 +203,10 @@ export async function aiConverse(
   userMessage: string,
 ): Promise<string> {
   const res = await post({ mode: 'ai-converse', persona, history, userMessage }).catch(wrapTimeout);
+  if (res.status === 429) {
+    const err = await res.json().catch(() => ({ limit: 20 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 20);
+  }
   if (!res.ok) throw new Error('Failed to get AI response');
   const data = await res.json() as { aiReply: string };
   return data.aiReply;

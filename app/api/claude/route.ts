@@ -8,15 +8,17 @@ const MODEL_QUALITY = 'claude-sonnet-4-6';
 
 // Daily limits per tier
 const FREE_LIMITS = {
-  'replies': 10,
-  'work-reply': 5,
-  'fix-message': 5,
+  'replies': 5,
+  'work-reply': 3,
+  'fix-message': 3,
+  'ai-converse': 0,
 } as const;
 
 const PRO_LIMITS = {
-  'replies': 50,
-  'work-reply': 50,
-  'fix-message': 50,
+  'replies': 20,
+  'work-reply': 15,
+  'fix-message': 15,
+  'ai-converse': 20,
 } as const;
 
 export const dynamic = 'force-dynamic';
@@ -74,13 +76,13 @@ function getToday(): string {
  */
 async function isRateLimited(
   userId: string,
-  mode: 'replies' | 'work-reply' | 'fix-message',
+  mode: 'replies' | 'work-reply' | 'fix-message' | 'ai-converse',
   limit: number,
 ): Promise<boolean> {
   const today = getToday();
   const supabase = createServiceClient();
 
-  const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
+  const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : mode === 'fix-message' ? 'fix_message_count' : 'ai_converse_count';
 
   // Ensure a row exists for today and read the current count in one round-trip
   const { data } = await supabase
@@ -454,8 +456,18 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'ai-converse') {
-      const { plan } = await getSubscription(req);
+      const { plan, userId } = await getSubscription(req);
       if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+
+      if (userId) {
+        const blocked = await isRateLimited(userId, 'ai-converse', PRO_LIMITS['ai-converse']);
+        if (blocked) {
+          return NextResponse.json(
+            { error: 'limit_reached', limit: PRO_LIMITS['ai-converse'] },
+            { status: 429 },
+          );
+        }
+      }
 
       const { persona, history, userMessage } = body;
       if (!persona || !history || !userMessage) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });

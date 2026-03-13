@@ -1,6 +1,6 @@
 'use client';
 
-import { aiConverse, converseDebrief, fetchRepliesStream, type ReplyPersonalization } from '@/lib/claude';
+import { aiConverse, converseDebrief, fetchRepliesStream, LimitReachedError, type ReplyPersonalization } from '@/lib/claude';
 import { speakText, cancelSpeech } from '@/lib/speech';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { getToneProfile } from '@/lib/storage';
@@ -110,7 +110,11 @@ export default function ConverseTab() {
         }, session?.access_token);
       } catch (e) {
         if (!abortRef.current) {
-          setError(e instanceof Error ? e.message : 'Something went wrong.');
+          if (e instanceof LimitReachedError) {
+            setError(`Daily conversation limit reached (${e.limit}/day). Resets tomorrow!`);
+          } else {
+            setError(e instanceof Error ? e.message : 'Something went wrong.');
+          }
           // Restart mic on error since speakText won't run to do it
           startRef.current();
         }
