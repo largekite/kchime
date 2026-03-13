@@ -108,6 +108,18 @@ export function useSpeechRecognition({
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SR) return;
 
+    // Stop any existing recognition instance to prevent zombie listeners
+    // that would pile up after repeated start() calls (e.g. after each AI response).
+    if (recognitionRef.current) {
+      try { recognitionRef.current.onend = null; recognitionRef.current.stop(); } catch { /* already stopped */ }
+      recognitionRef.current = null;
+    }
+
+    // Reset transcript state for a fresh listening session
+    transcriptRef.current = '';
+    setTranscript('');
+    clearSilenceTimer();
+
     stoppedRef.current = false;
     const recognition = new SR();
     recognition.lang = 'en-US';
@@ -136,7 +148,8 @@ export function useSpeechRecognition({
 
     recognition.onend = () => {
       setIsListening(false);
-      if (continuous && !stoppedRef.current) {
+      // Only auto-restart if this is still the active recognition instance
+      if (continuous && !stoppedRef.current && recognitionRef.current === recognition) {
         try {
           recognition.start();
           setIsListening(true);
