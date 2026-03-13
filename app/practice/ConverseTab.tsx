@@ -64,6 +64,7 @@ export default function ConverseTab() {
 
   const abortRef = useRef(false);
   const startRef = useRef<() => void>(() => {});
+  const stopRef = useRef<() => void>(() => {});
 
   // Helper to set both state (for UI) and ref (for stale-closure-safe guards)
   const setAiSpeaking = useCallback((value: boolean) => {
@@ -83,6 +84,8 @@ export default function ConverseTab() {
       abortRef.current = false;
       setIsProcessing(true);
       setHints([]);
+      // Stop mic while processing + speaking so it doesn't silently drop speech
+      stopRef.current();
       const userTurn: Turn = { speaker: 'user', text: transcript };
       let newHistory: Turn[] = [];
       setHistory((prev) => {
@@ -108,6 +111,8 @@ export default function ConverseTab() {
       } catch (e) {
         if (!abortRef.current) {
           setError(e instanceof Error ? e.message : 'Something went wrong.');
+          // Restart mic on error since speakText won't run to do it
+          startRef.current();
         }
       } finally {
         isProcessingRef.current = false;
@@ -123,8 +128,9 @@ export default function ConverseTab() {
     continuous: true,
   });
 
-  // Keep ref in sync so callbacks can use it without circular deps
+  // Keep refs in sync so callbacks can use them without circular deps
   startRef.current = start;
+  stopRef.current = stop;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

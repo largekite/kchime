@@ -1,7 +1,18 @@
 let currentAudio: HTMLAudioElement | null = null;
 
-// In-memory cache: text → ArrayBuffer so repeated plays are instant
+// In-memory LRU cache: text → ArrayBuffer so repeated plays are instant.
+// Capped to prevent unbounded memory growth during long sessions.
+const MAX_CACHE_ENTRIES = 50;
 const audioCache = new Map<string, ArrayBuffer>();
+
+function cacheSet(key: string, value: ArrayBuffer) {
+  if (audioCache.size >= MAX_CACHE_ENTRIES) {
+    // Delete the oldest entry (first key in insertion order)
+    const oldest = audioCache.keys().next().value;
+    if (oldest !== undefined) audioCache.delete(oldest);
+  }
+  audioCache.set(key, value);
+}
 
 export function cancelSpeech() {
   if (currentAudio) {
@@ -54,7 +65,7 @@ export async function speakText(text: string, onEnd: () => void, token?: string)
     if (!res.ok) throw new Error('TTS failed');
 
     const buffer = await res.arrayBuffer();
-    audioCache.set(text, buffer);
+    cacheSet(text, buffer);
     playBuffer(buffer, onEnd);
   } catch {
     onEnd();
