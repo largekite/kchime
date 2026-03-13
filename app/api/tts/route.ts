@@ -4,8 +4,8 @@ import { createServiceClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
-const FREE_TTS_LIMIT = 10;
-const PRO_TTS_LIMIT = 50;
+const FREE_TTS_LIMIT = 15;
+const PRO_TTS_LIMIT = 60;
 
 // Cache the OpenAI client as a singleton to avoid connection setup overhead per request
 let _openai: OpenAI | null = null;
