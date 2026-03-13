@@ -227,7 +227,7 @@ export default function QuickReplyTab() {
 
         {error === 'sign_up' ? (
           <div className="mt-2 text-sm bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center justify-between">
-            <span className="text-blue-800">Sign up free to keep getting AI replies!</span>
+            <span className="text-blue-800">Sign up free to keep practicing!</span>
             <button onClick={() => setShowAuth(true)} className="ml-3 px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
               Sign Up
             </button>
