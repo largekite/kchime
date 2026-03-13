@@ -47,7 +47,7 @@ function playBuffer(buffer: ArrayBuffer, onEnd: () => void) {
   audio.play().catch(() => { cleanup(); onEnd(); });
 }
 
-export async function speakText(text: string, onEnd: () => void, token?: string): Promise<void> {
+export async function speakText(text: string, onEnd: () => void, token?: string, onError?: (code: string) => void): Promise<void> {
   if (typeof window === 'undefined') {
     onEnd();
     return;
@@ -75,7 +75,10 @@ export async function speakText(text: string, onEnd: () => void, token?: string)
       },
       body: JSON.stringify({ text }),
     });
-    if (!res.ok) throw new Error('TTS failed');
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      throw new Error(data.error ?? 'tts_failed');
+    }
 
     const buffer = await res.arrayBuffer();
     // Don't play or call onEnd if cancelled while fetching
@@ -85,6 +88,8 @@ export async function speakText(text: string, onEnd: () => void, token?: string)
     playBuffer(buffer, onEnd);
   } catch (e) {
     if (abort.signal.aborted) return;
+    const code = e instanceof Error ? e.message : 'tts_failed';
+    onError?.(code);
     onEnd();
   }
 }

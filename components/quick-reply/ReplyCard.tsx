@@ -21,6 +21,7 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
   const { session } = useAuth();
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [ttsError, setTtsError] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(saved);
 
@@ -53,7 +54,18 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
       return;
     }
     setSpeaking(true);
-    speakText(reply.text, () => setSpeaking(false), session?.access_token);
+    setTtsError('');
+    speakText(
+      reply.text,
+      () => setSpeaking(false),
+      session?.access_token,
+      (code) => {
+        setSpeaking(false);
+        if (code === 'limit_reached') setTtsError('Daily limit reached');
+        else setTtsError('Audio unavailable');
+        setTimeout(() => setTtsError(''), 3000);
+      },
+    );
   }
 
   function handleSave() {
@@ -100,6 +112,9 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
             {speaking ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
             {speaking ? 'Stop' : 'Speak'}
           </button>
+          {ttsError && (
+            <span className="text-xs text-red-500">{ttsError}</span>
+          )}
           <button
             onClick={handleSave}
             disabled={isSaved}
