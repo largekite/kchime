@@ -131,6 +131,7 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
 export async function evaluateResponse(openingLine: string, userReply: string): Promise<EvaluationResult> {
   const res = await post({ mode: 'evaluate', openingLine, userReply }).catch(wrapTimeout);
 
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
     throw new Error(err.error ?? `Request failed: ${res.status}`);
@@ -142,6 +143,7 @@ export async function evaluateResponse(openingLine: string, userReply: string): 
 export async function explainPhrases(text: string): Promise<PhraseExplanation[]> {
   const res = await post({ mode: 'explain', text }).catch(wrapTimeout);
 
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
     throw new Error(err.error ?? `Request failed: ${res.status}`);
@@ -156,6 +158,7 @@ export async function continueConversation(
   history: { speaker: 'other' | 'user'; text: string }[],
 ): Promise<string> {
   const res = await post({ mode: 'continue-conversation', scenarioContext, history }).catch(wrapTimeout);
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) throw new Error('Failed to continue conversation');
   const data = await res.json() as { followUp: string };
   return data.followUp;
@@ -169,6 +172,7 @@ export async function generateScenario(conversation: string): Promise<{
   suggestedReplies: string[];
 }> {
   const res = await post({ mode: 'generate-scenario', conversation }).catch(wrapTimeout);
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) throw new Error('Failed to generate scenario');
   return res.json();
 }
@@ -186,6 +190,7 @@ export async function fixMessage(
   personalization?: ReplyPersonalization,
 ): Promise<MessageFix[]> {
   const res = await post({ mode: 'fix-message', draft, messageType, relationship, ...personalization }).catch(wrapTimeout);
+  if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 3);
@@ -203,6 +208,7 @@ export async function converseDebrief(
   history: { speaker: 'ai' | 'user'; text: string }[],
 ): Promise<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }> {
   const res = await post({ mode: 'converse-debrief', persona, history }).catch(wrapTimeout);
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) throw new Error('Failed to get debrief');
   return res.json();
 }
@@ -213,6 +219,7 @@ export async function aiConverse(
   userMessage: string,
 ): Promise<string> {
   const res = await post({ mode: 'ai-converse', persona, history, userMessage }).catch(wrapTimeout);
+  if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 20 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 20);
@@ -224,6 +231,7 @@ export async function aiConverse(
 
 export async function fetchPackVariations(prompt: string, personalization?: ReplyPersonalization): Promise<{ tone: string; text: string }[]> {
   const res = await post({ mode: 'pack-variations', prompt, ...personalization });
+  if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
     throw new Error(err.error ?? `Request failed: ${res.status}`);
@@ -237,6 +245,7 @@ const STRATEGY_LABELS = ['A', 'B', 'C'];
 export async function fetchWorkReplies(message: string, preset: WorkplacePreset, personalization?: ReplyPersonalization): Promise<WorkReplyResult> {
   const res = await post({ mode: 'work-reply', message, preset, ...personalization });
 
+  if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 3);

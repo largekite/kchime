@@ -127,7 +127,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'daily-phrase' | 'pack-variations';
+      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'pack-variations';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -527,7 +527,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'converse-debrief') {
-      if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+      if (plan === 'free' || !userId) return NextResponse.json({ error: 'pro_required' }, { status: 403 });
 
       const { persona, history } = body;
       if (!persona || !history) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
