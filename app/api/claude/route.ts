@@ -41,7 +41,7 @@ function getAnthropic() {
   return _anthropic;
 }
 
-/** Returns { plan, userId } from the Bearer token if present. */
+/** Returns { plan, userId } from the Bearer token. Requires authentication. */
 async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'; userId: string | null }> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) return { plan: 'free', userId: null };
@@ -145,27 +145,27 @@ export async function POST(req: NextRequest) {
 
     const { mode } = body;
 
+    // Require authentication for all modes
+    const { plan, userId } = await getSubscription(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+    }
+
     // Rate-limited modes
     if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message') {
-      const { plan, userId } = await getSubscription(req);
-
       const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
-      if (userId) {
-        const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
-        const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
-        if (blocked) {
-          return NextResponse.json(
-            { error: 'limit_reached', limit: limits[rateLimitMode] },
-            { status: 429 },
-          );
-        }
+      const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
+      const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
+      if (blocked) {
+        return NextResponse.json(
+          { error: 'limit_reached', limit: limits[rateLimitMode] },
+          { status: 429 },
+        );
       }
-      // Anonymous users: client-side tracking is sufficient (no server state)
     }
 
     // Live Listen is Pro-only — block at API level
     if (mode === 'explain') {
-      const { plan } = await getSubscription(req);
       if (plan === 'free') {
         return NextResponse.json({ error: 'pro_required' }, { status: 403 });
       }
@@ -456,17 +456,14 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'ai-converse') {
-      const { plan, userId } = await getSubscription(req);
       if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
 
-      if (userId) {
-        const blocked = await isRateLimited(userId, 'ai-converse', PRO_LIMITS['ai-converse']);
-        if (blocked) {
-          return NextResponse.json(
-            { error: 'limit_reached', limit: PRO_LIMITS['ai-converse'] },
-            { status: 429 },
-          );
-        }
+      const blocked = await isRateLimited(userId, 'ai-converse', PRO_LIMITS['ai-converse']);
+      if (blocked) {
+        return NextResponse.json(
+          { error: 'limit_reached', limit: PRO_LIMITS['ai-converse'] },
+          { status: 429 },
+        );
       }
 
       const { persona, history, userMessage } = body;
@@ -513,7 +510,6 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'converse-debrief') {
-      const { plan } = await getSubscription(req);
       if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
 
       const { persona, history } = body;

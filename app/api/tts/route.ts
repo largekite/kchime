@@ -74,40 +74,29 @@ export async function POST(req: NextRequest) {
   if (!text) return new Response('Missing text', { status: 400 });
 
   const { plan, userId } = await getSubscription(req);
-  const limit = plan === 'pro' ? PRO_TTS_LIMIT : FREE_TTS_LIMIT;
-
-  const openai = getOpenAI();
-
-  if (userId) {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Check and increment limit BEFORE calling OpenAI to avoid wasting API calls
-    const withinLimit = await checkAndIncrement(userId, today, limit);
-    if (!withinLimit) {
-      return new Response(JSON.stringify({ error: 'limit_reached' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const ttsResponse = await openai.audio.speech.create({
-      model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3',
-    });
-    const buffer = await ttsResponse.arrayBuffer();
-    return new Response(buffer, {
-      headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'auth_required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  // No auth — anonymous user, no usage tracking
-  const response = await getOpenAI().audio.speech.create({
-    model: 'tts-1',
-    voice: 'nova',
-    input: text,
-    response_format: 'mp3',
-  });
+  const limit = plan === 'pro' ? PRO_TTS_LIMIT : FREE_TTS_LIMIT;
+  const today = new Date().toISOString().split('T')[0];
 
-  const buffer = await response.arrayBuffer();
+  // Check and increment limit BEFORE calling OpenAI to avoid wasting API calls
+  const withinLimit = await checkAndIncrement(userId, today, limit);
+  if (!withinLimit) {
+    return new Response(JSON.stringify({ error: 'limit_reached' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const ttsResponse = await getOpenAI().audio.speech.create({
+    model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3',
+  });
+  const buffer = await ttsResponse.arrayBuffer();
   return new Response(buffer, {
     headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
   });
