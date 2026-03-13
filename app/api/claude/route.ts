@@ -229,8 +229,8 @@ export async function POST(req: NextRequest) {
       const toneList = toneLabels.join(', ');
 
       const message = await getAnthropic().messages.create({
-        model: MODEL_QUALITY,
-        max_tokens: 512,
+        model: MODEL_FAST,
+        max_tokens: 384,
         system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`,
         messages: [
           {
@@ -552,8 +552,8 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         async start(controller) {
           try {
             const stream = getAnthropic().messages.stream({
-              model: MODEL_QUALITY,
-              max_tokens: 512,
+              model: MODEL_FAST,
+              max_tokens: 384,
               system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies. Output each reply as a separate JSON object on its own line (NDJSON), in this exact order, with no other text before or after:
 ${ndjsonExample}
 Each reply must be under 20 words, use contractions, and sound like a real American would say it.${streamPersonalization}`,
