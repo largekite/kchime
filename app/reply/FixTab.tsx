@@ -44,7 +44,7 @@ const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = 
   Witty:         { bg: 'bg-amber-50 border-amber-100',     badge: 'bg-amber-100 text-amber-700',      dot: 'bg-amber-500' },
 };
 
-const FREE_LIMIT = 5;
+const FREE_LIMIT = 1;
 
 export default function FixTab() {
   const { plan } = useAuth();
@@ -279,7 +279,7 @@ export default function FixTab() {
 
       {showUpgrade && (
         <UpgradePrompt
-          reason="You've used your 5 free Fix My Message for today. Upgrade for 20 per day."
+          reason="You've used your 1 free Fix My Message for today. Upgrade for 8 per day."
           onClose={() => setShowUpgrade(false)}
         />
       )}

@@ -121,7 +121,7 @@ export default function LandingPage() {
             <p className="text-4xl font-extrabold text-gray-900 mb-1">$0</p>
             <p className="text-sm text-gray-400 mb-8">forever</p>
             <ul className="space-y-3 mb-8">
-              {['10 Quick Replies per day', '5 Work Replies per day', '5 Fix My Message per day', 'Keyboard extension', '4 reply styles'].map((f) => (
+              {['5 Quick Replies per day', '1 Work Reply per day', '1 Fix My Message per day', 'Keyboard extension', '4 reply styles'].map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                   <svg className="h-4 w-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -148,8 +148,8 @@ export default function LandingPage() {
             <ul className="space-y-3 mb-8">
               {[
                 '25 Quick Replies per day',
-                '20 Work Replies per day',
-                '20 Fix My Message per day',
+                '8 Work Replies per day',
+                '8 Fix My Message per day',
                 'Live Listen & Practice',
                 'Works on iOS + web',
               ].map((f) => (

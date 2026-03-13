@@ -205,7 +205,7 @@ export default function WorkTab() {
 
       {showUpgrade && (
         <UpgradePrompt
-          reason="You've used your 5 free Work Replies for today. Upgrade for 20 per day."
+          reason="You've used your 1 free Work Reply for today. Upgrade for 8 per day."
           onClose={() => setShowUpgrade(false)}
         />
       )}

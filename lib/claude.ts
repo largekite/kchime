@@ -63,7 +63,7 @@ export async function fetchReplies(prompt: string, context: Context, personaliza
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 8 })) as { limit?: number };
+    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 8);
   }
   if (!res.ok) {
@@ -90,7 +90,7 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 8 })) as { limit?: number };
+    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 8);
   }
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
@@ -192,8 +192,8 @@ export async function fixMessage(
   const res = await post({ mode: 'fix-message', draft, messageType, relationship, ...personalization }).catch(wrapTimeout);
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 5);
+    const err = await res.json().catch(() => ({ limit: 1 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 1);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -249,8 +249,8 @@ export async function fetchWorkReplies(message: string, preset: WorkplacePreset,
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 5);
+    const err = await res.json().catch(() => ({ limit: 1 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 1);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };

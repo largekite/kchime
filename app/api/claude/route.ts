@@ -8,16 +8,16 @@ const MODEL_QUALITY = 'claude-sonnet-4-6';
 
 // Daily limits per tier
 const FREE_LIMITS = {
-  'replies': 8,
-  'work-reply': 5,
-  'fix-message': 5,
+  'replies': 5,
+  'work-reply': 1,
+  'fix-message': 1,
   'ai-converse': 0,
 } as const;
 
 const PRO_LIMITS = {
   'replies': 25,
-  'work-reply': 20,
-  'fix-message': 20,
+  'work-reply': 8,
+  'fix-message': 8,
   'ai-converse': 25,
 } as const;
 
