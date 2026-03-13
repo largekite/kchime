@@ -21,6 +21,11 @@ const PRO_LIMITS = {
   'ai-converse': 25,
 } as const;
 
+// Anonymous users get 3 free reply calls before sign-up is required.
+// Tracked in-memory by IP; resets on server restart (acceptable for a soft gate).
+const ANON_REPLY_LIMIT = 3;
+const anonUsage = new Map<string, number>();
+
 export const dynamic = 'force-dynamic';
 
 function parseJson<T>(raw: string): T {
@@ -145,14 +150,26 @@ export async function POST(req: NextRequest) {
 
     const { mode } = body;
 
-    // Require authentication for all modes
     const { plan, userId } = await getSubscription(req);
+
+    // Anonymous users: allow 3 free reply calls, then require sign-up.
+    // Only replies/replies-stream are available without auth.
     if (!userId) {
-      return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+      if (mode !== 'replies' && mode !== 'replies-stream') {
+        return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+      }
+      const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? 'unknown';
+      const anonKey = `anon:${ip}`;
+      const count = anonUsage.get(anonKey) ?? 0;
+      if (count >= ANON_REPLY_LIMIT) {
+        return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+      }
+      anonUsage.set(anonKey, count + 1);
+      // Fall through to handle the request without further rate limiting
     }
 
-    // Rate-limited modes
-    if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message') {
+    // Rate-limited modes (authenticated users only)
+    if (userId && (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message')) {
       const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
       const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
       const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
@@ -456,7 +473,7 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'ai-converse') {
-      if (plan === 'free') return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+      if (plan === 'free' || !userId) return NextResponse.json({ error: 'pro_required' }, { status: 403 });
 
       const blocked = await isRateLimited(userId, 'ai-converse', PRO_LIMITS['ai-converse']);
       if (blocked) {

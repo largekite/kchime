@@ -19,6 +19,14 @@ export class LimitReachedError extends Error {
   }
 }
 
+/** Thrown when the user must sign up / log in to continue. */
+export class AuthRequiredError extends Error {
+  constructor() {
+    super('auth_required');
+    this.name = 'AuthRequiredError';
+  }
+}
+
 async function getAuthHeader(): Promise<Record<string, string>> {
   try {
     const supabase = createClient();
@@ -53,6 +61,7 @@ export interface ReplyPersonalization {
 export async function fetchReplies(prompt: string, context: Context, personalization?: ReplyPersonalization): Promise<Reply[]> {
   const res = await post({ mode: 'replies', prompt, context, ...personalization }).catch(wrapTimeout);
 
+  if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 10 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 10);
@@ -79,6 +88,7 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   }).catch(wrapTimeout);
 
+  if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 10 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 10);
