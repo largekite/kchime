@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     .single();
 
   const isPro = sub?.plan === 'pro';
-  const limit = isPro ? 50 : 10;
+  const limit = isPro ? 25 : 8;
 
   const { data } = await supabase
     .from('daily_usage')

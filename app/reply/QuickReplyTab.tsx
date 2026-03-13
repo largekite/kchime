@@ -1,8 +1,9 @@
 'use client';
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
+import { AuthModal } from '@/components/shared/AuthModal';
 import { ContactSelector } from '@/components/shared/ContactSelector';
-import { fetchRepliesStream } from '@/lib/claude';
+import { fetchRepliesStream, AuthRequiredError } from '@/lib/claude';
 import type { ReplyPersonalization } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { useProgress } from '@/hooks/useProgress';
@@ -40,6 +41,7 @@ export default function QuickReplyTab() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showAuth, setShowAuth] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
@@ -97,7 +99,11 @@ export default function QuickReplyTab() {
       }
       addPrompt(text);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      if (e instanceof AuthRequiredError) {
+        setError('sign_up');
+      } else {
+        setError(e instanceof Error ? e.message : 'Something went wrong.');
+      }
     } finally {
       setLoading(false);
     }
@@ -219,9 +225,16 @@ export default function QuickReplyTab() {
           {loading ? 'Generating replies…' : 'Get Replies'}
         </button>
 
-        {error && (
+        {error === 'sign_up' ? (
+          <div className="mt-2 text-sm bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center justify-between">
+            <span className="text-blue-800">Sign up free to keep practicing!</span>
+            <button onClick={() => setShowAuth(true)} className="ml-3 px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+              Sign Up
+            </button>
+          </div>
+        ) : error ? (
           <p className="mt-2 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-        )}
+        ) : null}
       </div>
 
       {/* Recent prompts */}
@@ -289,6 +302,7 @@ export default function QuickReplyTab() {
           <p className="text-sm text-gray-400 mt-1">Type or speak a phrase and get 4 natural ways to reply.</p>
         </div>
       )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

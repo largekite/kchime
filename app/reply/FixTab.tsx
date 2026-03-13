@@ -1,11 +1,12 @@
 'use client';
 
 import { ContactSelector } from '@/components/shared/ContactSelector';
-import { fixMessage, LimitReachedError, type MessageFix } from '@/lib/claude';
+import { fixMessage, LimitReachedError, AuthRequiredError, type MessageFix } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
+import { AuthModal } from '@/components/shared/AuthModal';
 import clsx from 'clsx';
 import { useCallback, useState } from 'react';
 import { Check, Copy, Wand2 } from 'lucide-react';
@@ -69,6 +70,7 @@ export default function FixTab() {
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState('');
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [usageCount, setUsageCount] = useState(() => {
     if (typeof window === 'undefined') return 0;
     try {
@@ -113,7 +115,9 @@ export default function FixTab() {
       setFixes(result);
       if (plan === 'free') bumpUsage();
     } catch (e) {
-      if (e instanceof LimitReachedError) {
+      if (e instanceof AuthRequiredError) {
+        setShowAuth(true);
+      } else if (e instanceof LimitReachedError) {
         setShowUpgrade(true);
       } else {
         setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -275,10 +279,11 @@ export default function FixTab() {
 
       {showUpgrade && (
         <UpgradePrompt
-          reason="Upgrade to Pro for unlimited message fixes."
+          reason="You've used your 5 free Fix My Message for today. Upgrade for 20 per day."
           onClose={() => setShowUpgrade(false)}
         />
       )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

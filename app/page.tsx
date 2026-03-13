@@ -147,9 +147,9 @@ export default function LandingPage() {
             <p className="text-sm text-gray-400 mb-8">per month &middot; $60/yr</p>
             <ul className="space-y-3 mb-8">
               {[
-                '50 Quick Replies per day',
-                '50 Work Replies per day',
-                'Unlimited Fix My Message',
+                '25 Quick Replies per day',
+                '20 Work Replies per day',
+                '20 Fix My Message per day',
                 'Live Listen & Practice',
                 'Works on iOS + web',
               ].map((f) => (
