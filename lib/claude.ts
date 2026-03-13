@@ -209,6 +209,7 @@ export async function converseDebrief(
 ): Promise<{ highlight: string; tip: string; fluency: 'Excellent' | 'Good' | 'Keep practicing' }> {
   const res = await post({ mode: 'converse-debrief', persona, history }).catch(wrapTimeout);
   if (res.status === 401) throw new AuthRequiredError();
+  if (res.status === 403) throw new Error('Pro subscription required.');
   if (!res.ok) throw new Error('Failed to get debrief');
   return res.json();
 }
@@ -220,6 +221,7 @@ export async function aiConverse(
 ): Promise<string> {
   const res = await post({ mode: 'ai-converse', persona, history, userMessage }).catch(wrapTimeout);
   if (res.status === 401) throw new AuthRequiredError();
+  if (res.status === 403) throw new Error('Pro subscription required.');
   if (res.status === 429) {
     const err = await res.json().catch(() => ({ limit: 25 })) as { limit?: number };
     throw new LimitReachedError(err.limit ?? 25);
@@ -230,7 +232,7 @@ export async function aiConverse(
 }
 
 export async function fetchPackVariations(prompt: string, personalization?: ReplyPersonalization): Promise<{ tone: string; text: string }[]> {
-  const res = await post({ mode: 'pack-variations', prompt, ...personalization });
+  const res = await post({ mode: 'pack-variations', prompt, ...personalization }).catch(wrapTimeout);
   if (res.status === 401) throw new AuthRequiredError();
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -243,7 +245,7 @@ export async function fetchPackVariations(prompt: string, personalization?: Repl
 const STRATEGY_LABELS = ['A', 'B', 'C'];
 
 export async function fetchWorkReplies(message: string, preset: WorkplacePreset, personalization?: ReplyPersonalization): Promise<WorkReplyResult> {
-  const res = await post({ mode: 'work-reply', message, preset, ...personalization });
+  const res = await post({ mode: 'work-reply', message, preset, ...personalization }).catch(wrapTimeout);
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {

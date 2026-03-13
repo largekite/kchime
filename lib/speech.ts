@@ -1,4 +1,5 @@
 let currentAudio: HTMLAudioElement | null = null;
+let currentFetchAbort: AbortController | null = null;
 
 // In-memory LRU cache: text → ArrayBuffer so repeated plays are instant.
 // Capped to prevent unbounded memory growth during long sessions.
@@ -15,7 +16,15 @@ function cacheSet(key: string, value: ArrayBuffer) {
 }
 
 export function cancelSpeech() {
+  // Abort any in-flight TTS fetch so it doesn't start playing after cancel
+  currentFetchAbort?.abort();
+  currentFetchAbort = null;
+
   if (currentAudio) {
+    // Null out callbacks before pausing — setting src='' triggers onerror,
+    // which would otherwise fire onEnd() and restart the mic unintentionally.
+    currentAudio.onended = null;
+    currentAudio.onerror = null;
     currentAudio.pause();
     currentAudio.src = '';
     currentAudio = null;
@@ -53,9 +62,13 @@ export async function speakText(text: string, onEnd: () => void, token?: string)
     return;
   }
 
+  const abort = new AbortController();
+  currentFetchAbort = abort;
+
   try {
     const res = await fetch('/api/tts', {
       method: 'POST',
+      signal: abort.signal,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -65,9 +78,13 @@ export async function speakText(text: string, onEnd: () => void, token?: string)
     if (!res.ok) throw new Error('TTS failed');
 
     const buffer = await res.arrayBuffer();
+    // Don't play or call onEnd if cancelled while fetching
+    if (abort.signal.aborted) return;
+    currentFetchAbort = null;
     cacheSet(text, buffer);
     playBuffer(buffer, onEnd);
-  } catch {
+  } catch (e) {
+    if (abort.signal.aborted) return;
     onEnd();
   }
 }

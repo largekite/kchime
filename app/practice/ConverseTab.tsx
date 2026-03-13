@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Mic, MicOff, RotateCcw, Lightbulb } from 'lucide-react';
+import { Mic, MicOff, RotateCcw, Lightbulb, Volume2 } from 'lucide-react';
 import type { Context, Reply } from '@/types';
 
 interface Persona {
@@ -28,6 +28,12 @@ const PERSONAS: Persona[] = [
   { id: 'neighbor', name: 'Neighbor', emoji: '🏠', scene: 'Friendly hallway run-in', opener: "Oh hey! I keep meaning to ask — have you tried that new restaurant on the corner?", context: 'Text' },
   { id: 'interviewer', name: 'Job Interviewer', emoji: '👔', scene: 'Job interview', opener: "Great to meet you! Tell me a little bit about yourself.", context: 'Office' },
   { id: 'server', name: 'Restaurant Server', emoji: '🍽️', scene: 'Ordering food', opener: "Welcome in! Can I start you off with something to drink?", context: 'Any' },
+  { id: 'manager', name: 'Team Manager', emoji: '📋', scene: 'Weekly 1-on-1 check-in', opener: "Hey, come on in! So, how are things going this week? Anything blocking you?", context: 'Office' },
+  { id: 'doctor', name: 'Doctor', emoji: '🩺', scene: 'Medical check-up', opener: "Hi there! I'm Dr. Chen. What brings you in today?", context: 'Any' },
+  { id: 'customer-service', name: 'Customer Service', emoji: '📞', scene: 'Product return or complaint', opener: "Thank you for calling. My name is Alex. How can I assist you today?", context: 'Any' },
+  { id: 'rideshare', name: 'Rideshare Driver', emoji: '🚗', scene: 'Small talk during a ride', opener: "Hey, welcome! Heading to downtown, right? Traffic's not too bad today!", context: 'Any' },
+  { id: 'landlord', name: 'Landlord', emoji: '🔑', scene: 'Apartment viewing', opener: "Hi! Thanks for coming by. So, are you looking for a one-bedroom or would you need more space?", context: 'Any' },
+  { id: 'tech-support', name: 'Tech Support', emoji: '💻', scene: 'Troubleshooting an issue', opener: "Hello! Thanks for contacting support. Can you describe what issue you're experiencing?", context: 'Office' },
 ];
 
 interface Turn {
@@ -104,6 +110,7 @@ export default function ConverseTab() {
         setHistory((prev) => [...prev, aiTurn]);
         setAiSpeaking(true);
         speakText(aiReply, () => {
+          if (abortRef.current) return;
           setAiSpeaking(false);
           // Auto-resume listening after AI finishes speaking
           startRef.current();
@@ -141,6 +148,7 @@ export default function ConverseTab() {
   }, [history]);
 
   function handleSelectPersona(persona: Persona) {
+    abortRef.current = false;
     setSelectedPersona(persona);
     setHistory([{ speaker: 'ai', text: persona.opener }]);
     setError('');
@@ -149,6 +157,7 @@ export default function ConverseTab() {
     reset();
     setAiSpeaking(true);
     speakText(persona.opener, () => {
+      if (abortRef.current) return;
       setAiSpeaking(false);
       // Auto-start listening after the AI opener finishes
       if (isSupported) startRef.current();
@@ -157,12 +166,15 @@ export default function ConverseTab() {
 
   function handleReset() {
     abortRef.current = true;
+    isProcessingRef.current = false;
     stop();
     cancelSpeech();
     setSelectedPersona(null);
     setHistory([]);
     setError('');
     setDebrief(null);
+    setIsDebriefing(false);
+    setIsProcessing(false);
     setHints([]);
     reset();
     setAiSpeaking(false);
@@ -178,9 +190,12 @@ export default function ConverseTab() {
   }
 
   async function handleFinishSession() {
+    abortRef.current = true;
     stop();
     cancelSpeech();
     setAiSpeaking(false);
+    isProcessingRef.current = false;
+    setIsProcessing(false);
     setIsDebriefing(true);
     try {
       const result = await converseDebrief(
@@ -239,8 +254,22 @@ export default function ConverseTab() {
     'Keep practicing': 'text-amber-600',
   };
 
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-56 rounded-lg bg-gray-100 animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // Pro gate
-  if (!authLoading && plan === 'free') {
+  if (plan === 'free') {
     return (
       <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
         <div className="text-4xl">🎙️</div>
@@ -384,22 +413,26 @@ export default function ConverseTab() {
               </div>
             )}
 
-            {/* AI typing indicator */}
+            {/* AI indicator — dots while thinking, speaker icon while speaking */}
             {(isProcessing || isAiSpeaking) && (
               <div className="flex gap-2.5 items-start">
                 <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
                   {selectedPersona.emoji}
                 </div>
                 <div className="rounded-2xl rounded-tl-none bg-white border border-gray-100 shadow-sm px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <span
-                        key={i}
-                        className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce"
-                        style={{ animationDelay: `${i * 150}ms` }}
-                      />
-                    ))}
-                  </div>
+                  {isProcessing ? (
+                    <div className="flex items-center gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <span
+                          key={i}
+                          className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce"
+                          style={{ animationDelay: `${i * 150}ms` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Volume2 className="h-4 w-4 text-indigo-400 animate-pulse" />
+                  )}
                 </div>
               </div>
             )}
@@ -424,51 +457,64 @@ export default function ConverseTab() {
 
           {/* Mic button + Hint + Finish session */}
           <div className="sticky bottom-6 flex flex-col items-center gap-3 pt-2">
-            {/* Hint button — shown above mic, centered */}
-            {history.length >= 1 && !isProcessing && !isAiSpeaking && (
-              <button
-                onClick={handleHint}
-                disabled={isLoadingHints}
-                className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
-                title="Need a hint?"
-              >
-                <Lightbulb className={clsx('h-3.5 w-3.5', isLoadingHints && 'animate-pulse')} />
-                {isLoadingHints ? 'Loading hint…' : 'Hint'}
-              </button>
+            {!isDebriefing && (
+              <>
+                {/* Hint button — shown above mic when idle */}
+                {history.length >= 1 && !isProcessing && !isAiSpeaking && (
+                  <button
+                    onClick={handleHint}
+                    disabled={isLoadingHints}
+                    className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
+                    title="Need a hint?"
+                  >
+                    <Lightbulb className={clsx('h-3.5 w-3.5', isLoadingHints && 'animate-pulse')} />
+                    {isLoadingHints ? 'Loading hint…' : 'Hint'}
+                  </button>
+                )}
+
+                <div className="flex items-center">
+                  <button
+                    onClick={handleToggleMic}
+                    disabled={!isSupported || isProcessing || isAiSpeaking}
+                    className={clsx(
+                      'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
+                      isListening
+                        ? 'bg-red-500 shadow-red-300 scale-110'
+                        : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
+                      (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
+                    )}
+                  >
+                    {isListening ? (
+                      <MicOff className="h-7 w-7 text-white" />
+                    ) : (
+                      <Mic className="h-7 w-7 text-white" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {isProcessing
+                    ? 'Thinking…'
+                    : isAiSpeaking
+                      ? `${selectedPersona.name} is speaking…`
+                      : isListening
+                        ? 'Listening…'
+                        : 'Tap to speak'}
+                </p>
+
+                {/* Finish session — shown after at least 2 user turns */}
+                {userTurns >= 2 && !isProcessing && !isAiSpeaking && (
+                  <button
+                    onClick={handleFinishSession}
+                    className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    Finish session
+                  </button>
+                )}
+              </>
             )}
 
-            <div className="flex items-center">
-              <button
-                onClick={handleToggleMic}
-                disabled={!isSupported || isProcessing || isAiSpeaking}
-                className={clsx(
-                  'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
-                  isListening
-                    ? 'bg-red-500 shadow-red-300 scale-110'
-                    : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
-                  (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
-                )}
-              >
-                {isListening ? (
-                  <MicOff className="h-7 w-7 text-white" />
-                ) : (
-                  <Mic className="h-7 w-7 text-white" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-gray-400">
-              {isAiSpeaking ? `${selectedPersona.name} is speaking…` : isListening ? 'Listening…' : 'Tap to speak'}
-            </p>
-
-            {/* Finish session — shown after at least 2 user turns */}
-            {userTurns >= 2 && !isProcessing && !isAiSpeaking && (
-              <button
-                onClick={handleFinishSession}
-                disabled={isDebriefing}
-                className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
-              >
-                {isDebriefing ? 'Getting feedback…' : 'Finish session →'}
-              </button>
+            {isDebriefing && (
+              <p className="text-sm text-gray-400 animate-pulse">Getting feedback…</p>
             )}
           </div>
         </>
