@@ -147,15 +147,16 @@ export function useSpeechRecognition({
     };
 
     recognition.onend = () => {
-      setIsListening(false);
       // Only auto-restart if this is still the active recognition instance
       if (continuous && !stoppedRef.current && recognitionRef.current === recognition) {
         try {
           recognition.start();
-          setIsListening(true);
+          // Don't toggle isListening off+on — that causes the mic button to flash
         } catch {
-          // ignore restart errors
+          setIsListening(false);
         }
+      } else {
+        setIsListening(false);
       }
     };
 
