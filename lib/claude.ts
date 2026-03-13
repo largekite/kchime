@@ -63,8 +63,8 @@ export async function fetchReplies(prompt: string, context: Context, personaliza
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 10 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 10);
+    const err = await res.json().catch(() => ({ limit: 8 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 8);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -90,8 +90,8 @@ export async function* fetchRepliesStream(prompt: string, context: Context, pers
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 10 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 10);
+    const err = await res.json().catch(() => ({ limit: 8 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 8);
   }
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   if (!res.body) throw new Error('No response body');
@@ -192,8 +192,8 @@ export async function fixMessage(
   const res = await post({ mode: 'fix-message', draft, messageType, relationship, ...personalization }).catch(wrapTimeout);
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 3);
+    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 5);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
@@ -221,8 +221,8 @@ export async function aiConverse(
   const res = await post({ mode: 'ai-converse', persona, history, userMessage }).catch(wrapTimeout);
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 20 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 20);
+    const err = await res.json().catch(() => ({ limit: 25 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 25);
   }
   if (!res.ok) throw new Error('Failed to get AI response');
   const data = await res.json() as { aiReply: string };
@@ -247,8 +247,8 @@ export async function fetchWorkReplies(message: string, preset: WorkplacePreset,
 
   if (res.status === 401) throw new AuthRequiredError();
   if (res.status === 429) {
-    const err = await res.json().catch(() => ({ limit: 3 })) as { limit?: number };
-    throw new LimitReachedError(err.limit ?? 3);
+    const err = await res.json().catch(() => ({ limit: 5 })) as { limit?: number };
+    throw new LimitReachedError(err.limit ?? 5);
   }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };

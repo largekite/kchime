@@ -47,9 +47,9 @@ export function UpgradePrompt({ reason, onClose }: Props) {
 
         <div className="mt-5 rounded-xl bg-indigo-50 border border-indigo-100 p-4 space-y-2">
           {[
-            '50 Quick Replies per day',
-            '50 Work Replies per day',
-            'Unlimited Fix My Message',
+            '25 Quick Replies per day',
+            '20 Work Replies per day',
+            '20 Fix My Message per day',
             'Live Listen & AI Conversation Partner',
             'Works on iOS + web',
           ].map((f) => (

@@ -2,11 +2,12 @@
 
 import { ContactSelector } from '@/components/shared/ContactSelector';
 import { WorkReplyCard } from '@/components/work-reply/WorkReplyCard';
-import { fetchWorkReplies, LimitReachedError } from '@/lib/claude';
+import { fetchWorkReplies, LimitReachedError, AuthRequiredError } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { incrementWorkReplyCount } from '@/lib/storage';
 import type { WorkplacePreset, WorkReplyResult } from '@/types';
 import { useCallback, useState } from 'react';
+import { AuthModal } from '@/components/shared/AuthModal';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
 const PRESETS: WorkplacePreset[] = [
@@ -57,6 +58,7 @@ export default function WorkTab() {
   const [result, setResult] = useState<WorkReplyResult | null>(null);
   const [error, setError] = useState('');
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   /** When a contact is selected, auto-update the preset if there's a clear match. */
   const handleContactSelect = useCallback((id: string) => {
@@ -90,7 +92,9 @@ export default function WorkTab() {
       setResult(data);
       incrementWorkReplyCount();
     } catch (err) {
-      if (err instanceof LimitReachedError) {
+      if (err instanceof AuthRequiredError) {
+        setShowAuth(true);
+      } else if (err instanceof LimitReachedError) {
         setShowUpgrade(true);
       } else {
         setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
@@ -201,10 +205,11 @@ export default function WorkTab() {
 
       {showUpgrade && (
         <UpgradePrompt
-          reason="You've used your 5 free Work Replies for today. Upgrade for 50 per day."
+          reason="You've used your 5 free Work Replies for today. Upgrade for 20 per day."
           onClose={() => setShowUpgrade(false)}
         />
       )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }
