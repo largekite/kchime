@@ -32,14 +32,14 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
 
         {/* Step 0: Welcome */}
         {step === 0 && (
           <div className="text-center space-y-6 animate-fade-in">
             <div className="flex justify-center">
-              <div className="rounded-3xl bg-indigo-600 p-5 shadow-xl shadow-indigo-200">
+              <div className="rounded-3xl bg-teal-600 p-5 shadow-xl shadow-teal-200">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-white" aria-hidden>
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -49,7 +49,7 @@ export default function OnboardingPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Welcome to KChime</h1>
               <p className="mt-3 text-gray-500 text-base leading-relaxed">
-                Your daily conversation coach for sounding natural in English — at work, with friends, or anywhere.
+                Your AI reply assistant for texts, emails, and chats — reply faster, sound better, stress less.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center text-sm">
@@ -61,7 +61,7 @@ export default function OnboardingPage() {
             </div>
             <button
               onClick={() => setStep(1)}
-              className="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition"
+              className="w-full rounded-xl bg-teal-600 py-3.5 text-base font-semibold text-white shadow-lg shadow-teal-200 hover:bg-teal-700 transition"
             >
               Get Started →
             </button>
@@ -72,7 +72,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Step 1 of 2</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-teal-500 mb-1">Step 1 of 2</p>
               <h2 className="text-2xl font-bold text-gray-900">What&apos;s your current level?</h2>
               <p className="text-gray-500 text-sm mt-1">We&apos;ll tailor your experience accordingly.</p>
             </div>
@@ -84,8 +84,8 @@ export default function OnboardingPage() {
                   className={clsx(
                     'w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition',
                     level === l.value
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-100 bg-white hover:border-indigo-200'
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-100 bg-white hover:border-teal-200'
                   )}
                 >
                   <div>
@@ -93,7 +93,7 @@ export default function OnboardingPage() {
                     <p className="text-sm text-gray-500">{l.desc}</p>
                   </div>
                   {level === l.value && (
-                    <span className="ml-auto text-indigo-600 text-xl">✓</span>
+                    <span className="ml-auto text-teal-600 text-xl">✓</span>
                   )}
                 </button>
               ))}
@@ -102,7 +102,7 @@ export default function OnboardingPage() {
               <button onClick={() => setStep(0)} className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                 Back
               </button>
-              <button onClick={() => setStep(2)} className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition">
+              <button onClick={() => setStep(2)} className="flex-1 rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition">
                 Next →
               </button>
             </div>
@@ -113,7 +113,7 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-500 mb-1">Step 2 of 2</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-teal-500 mb-1">Step 2 of 2</p>
               <h2 className="text-2xl font-bold text-gray-900">Set your daily goal</h2>
               <p className="text-gray-500 text-sm mt-1">Consistency beats intensity. Pick what&apos;s realistic.</p>
             </div>
@@ -125,15 +125,15 @@ export default function OnboardingPage() {
                   className={clsx(
                     'w-full flex items-center justify-between rounded-xl border-2 p-4 text-left transition',
                     goal === g.value
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-100 bg-white hover:border-indigo-200'
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-100 bg-white hover:border-teal-200'
                   )}
                 >
                   <div>
                     <p className="font-semibold text-gray-900">{g.label}</p>
                     <p className="text-sm text-gray-500">{g.desc}</p>
                   </div>
-                  {goal === g.value && <span className="text-indigo-600 text-xl">✓</span>}
+                  {goal === g.value && <span className="text-teal-600 text-xl">✓</span>}
                 </button>
               ))}
             </div>
@@ -141,7 +141,7 @@ export default function OnboardingPage() {
               <button onClick={() => setStep(1)} className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                 Back
               </button>
-              <button onClick={finish} className="flex-1 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+              <button onClick={finish} className="flex-1 rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition shadow-lg shadow-teal-200">
                 Start Learning
               </button>
             </div>
@@ -151,7 +151,7 @@ export default function OnboardingPage() {
         {/* Step dots */}
         <div className="flex justify-center gap-2 mt-8">
           {[0, 1, 2].map((s) => (
-            <div key={s} className={clsx('h-2 rounded-full transition-all', s === step ? 'w-6 bg-indigo-600' : 'w-2 bg-gray-200')} />
+            <div key={s} className={clsx('h-2 rounded-full transition-all', s === step ? 'w-6 bg-teal-600' : 'w-2 bg-gray-200')} />
           ))}
         </div>
 

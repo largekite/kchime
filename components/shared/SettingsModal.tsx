@@ -120,13 +120,13 @@ export function SettingsModal({ open, onClose }: Props) {
               max={10}
               value={goal}
               onChange={(e) => { setGoal(Number(e.target.value)); setGoalSaved(false); }}
-              className="flex-1 accent-indigo-600"
+              className="flex-1 accent-teal-600"
             />
             <span className="w-8 text-center text-sm font-bold text-gray-800">{goal}</span>
           </div>
           <button
             onClick={handleGoalSave}
-            className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
           >
             {goalSaved ? 'Saved!' : 'Update goal'}
           </button>
@@ -138,7 +138,7 @@ export function SettingsModal({ open, onClose }: Props) {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <label className="text-sm font-semibold text-gray-700">Voice Accent</label>
-            {accentSaved && <span className="text-xs font-medium text-indigo-600">Saved!</span>}
+            {accentSaved && <span className="text-xs font-medium text-teal-600">Saved!</span>}
           </div>
           <p className="text-xs text-gray-400">Sets the accent for text-to-speech playback.</p>
           <div className="grid grid-cols-2 gap-2">
@@ -148,7 +148,7 @@ export function SettingsModal({ open, onClose }: Props) {
                 onClick={() => handleAccentChange(a.code)}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
                   accent === a.code
-                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                    ? 'border-teal-400 bg-teal-50 text-teal-700'
                     : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -174,12 +174,12 @@ export function SettingsModal({ open, onClose }: Props) {
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder={hasExistingKey ? 'Paste new code to update…' : 'Paste access code…'}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:border-teal-500 focus:outline-none"
           />
           <button
             onClick={handleSave}
             disabled={!key.trim()}
-            className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {saved ? 'Saved!' : 'Save'}
           </button>
@@ -202,7 +202,7 @@ export function SettingsModal({ open, onClose }: Props) {
                   onClick={() => handleDigestToggle(!weeklyDigest)}
                   disabled={digestSaving}
                   className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 ${
-                    weeklyDigest ? 'bg-indigo-600' : 'bg-gray-200'
+                    weeklyDigest ? 'bg-teal-600' : 'bg-gray-200'
                   }`}
                 >
                   {digestSaving ? (
@@ -219,7 +219,7 @@ export function SettingsModal({ open, onClose }: Props) {
                 </button>
               </div>
               {digestConfirmed && (
-                <p className="text-xs font-medium text-indigo-600">
+                <p className="text-xs font-medium text-teal-600">
                   {weeklyDigest ? 'Subscribed — first email arrives Monday.' : 'Unsubscribed.'}
                 </p>
               )}

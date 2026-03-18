@@ -81,7 +81,7 @@ export default function DailyTab() {
 
       {/* Main phrase card */}
       <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white">
+        <div className="bg-gradient-to-br from-teal-500 to-purple-600 p-6 text-white">
           <div className="flex items-center gap-2 mb-3">
             <span className={clsx('rounded-full px-2.5 py-0.5 text-xs font-semibold', 'bg-white/20 text-white')}>
               {CATEGORY_BADGE[todayPhrase.category].label}
@@ -97,7 +97,7 @@ export default function DailyTab() {
               <Volume2 className="h-4 w-4" />
             </button>
           </div>
-          <p className="mt-2 text-indigo-100 text-sm">{todayPhrase.meaning}</p>
+          <p className="mt-2 text-teal-100 text-sm">{todayPhrase.meaning}</p>
         </div>
 
         <div className="p-5 space-y-4">
@@ -110,7 +110,7 @@ export default function DailyTab() {
             <p className="text-sm text-gray-700 italic">{todayPhrase.example}</p>
             <button
               onClick={() => handleSpeak(todayPhrase.example.replace(/^"|"$/g, ''))}
-              className="mt-2 text-xs text-indigo-600 hover:underline flex items-center gap-1"
+              className="mt-2 text-xs text-teal-600 hover:underline flex items-center gap-1"
             >
               <Volume2 className="h-3 w-3" />
               Listen
@@ -139,7 +139,7 @@ export default function DailyTab() {
           </button>
 
           {/* Quiz */}
-          <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4">
+          <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4">
             <p className="text-sm font-semibold text-gray-800 mb-3">{todayPhrase.quiz.question}</p>
             <div className="space-y-2">
               {todayPhrase.quiz.options.map((option, i) => (
@@ -155,7 +155,7 @@ export default function DailyTab() {
                       ? 'border-red-300 bg-red-50 text-red-700'
                       : quizAnswered
                       ? 'border-gray-200 bg-white text-gray-400'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:bg-teal-50'
                   )}
                 >
                   {option}

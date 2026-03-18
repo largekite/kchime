@@ -75,9 +75,9 @@ export function NotificationPrompt() {
 
   return (
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300">
-      <div className="rounded-2xl bg-white border border-indigo-100 shadow-xl p-4 flex items-start gap-3">
-        <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-          <Bell className="h-4.5 w-4.5 text-indigo-600" />
+      <div className="rounded-2xl bg-white border border-teal-100 shadow-xl p-4 flex items-start gap-3">
+        <div className="h-9 w-9 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+          <Bell className="h-4.5 w-4.5 text-teal-600" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">Don&apos;t lose your streak</p>
@@ -85,7 +85,7 @@ export function NotificationPrompt() {
           <button
             onClick={handleSubscribe}
             disabled={loading}
-            className="mt-2.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-50"
+            className="mt-2.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 transition disabled:opacity-50"
           >
             {loading ? 'Enabling…' : 'Enable reminders'}
           </button>

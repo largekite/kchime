@@ -45,7 +45,7 @@ export function UpgradePrompt({ reason, onClose }: Props) {
         <p className="text-xl font-bold text-gray-900">Upgrade to Pro</p>
         <p className="text-sm text-gray-500 mt-1">{reason}</p>
 
-        <div className="mt-5 rounded-xl bg-indigo-50 border border-indigo-100 p-4 space-y-2">
+        <div className="mt-5 rounded-xl bg-teal-50 border border-teal-100 p-4 space-y-2">
           {[
             '25 Quick Replies per day',
             '20 Work Replies per day',
@@ -53,8 +53,8 @@ export function UpgradePrompt({ reason, onClose }: Props) {
             'Live Listen & AI Conversation Partner',
             'Works on iOS + web',
           ].map((f) => (
-            <div key={f} className="flex items-center gap-2 text-sm text-indigo-800">
-              <span className="text-indigo-500 font-bold">&#10003;</span>
+            <div key={f} className="flex items-center gap-2 text-sm text-teal-800">
+              <span className="text-teal-500 font-bold">&#10003;</span>
               {f}
             </div>
           ))}
@@ -63,7 +63,7 @@ export function UpgradePrompt({ reason, onClose }: Props) {
         <div className="mt-5 space-y-2">
           <button
             onClick={handleUpgrade}
-            className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition"
           >
             Upgrade — $7 / month
           </button>

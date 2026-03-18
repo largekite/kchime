@@ -74,7 +74,7 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
         )}
         <button
           onClick={() => onNavigate?.('library')}
-          className="inline-block rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          className="inline-block rounded-xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
         >
           Back to Library
         </button>
@@ -96,7 +96,7 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
         </div>
         <div className="h-1.5 w-full rounded-full bg-gray-100">
           <div
-            className="h-1.5 rounded-full bg-indigo-500 transition-all"
+            className="h-1.5 rounded-full bg-teal-500 transition-all"
             style={{ width: `${(index / queue.length) * 100}%` }}
           />
         </div>
@@ -130,7 +130,7 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
                 <button
                   onClick={handleExplain}
                   disabled={explaining}
-                  className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
                 >
                   {explaining ? (
                     <>
@@ -168,7 +168,7 @@ export default function ReviewTab({ onNavigate }: { onNavigate?: (tab: string) =
           ) : (
             <button
               onClick={() => setRevealed(true)}
-              className="w-full rounded-xl border-2 border-dashed border-gray-200 py-6 text-sm font-medium text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
+              className="w-full rounded-xl border-2 border-dashed border-gray-200 py-6 text-sm font-medium text-gray-400 hover:border-teal-300 hover:text-teal-600 transition"
             >
               Tap to reveal your reply
             </button>

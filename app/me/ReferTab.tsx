@@ -90,8 +90,8 @@ export default function ReferTab() {
     <div className="space-y-8 max-w-xl mx-auto">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100">
-          <Gift className="h-7 w-7 text-indigo-600" />
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100">
+          <Gift className="h-7 w-7 text-teal-600" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900">Give a week, get a week</h1>
         <p className="text-sm text-gray-500">
@@ -105,7 +105,7 @@ export default function ReferTab() {
         <div className="space-y-3">
           {HOW_IT_WORKS.map(({ step, text }) => (
             <div key={step} className="flex items-start gap-3">
-              <div className="h-6 w-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+              <div className="h-6 w-6 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
                 {step}
               </div>
               <p className="text-sm text-gray-700">{text}</p>
@@ -135,7 +135,7 @@ export default function ReferTab() {
                         ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                         : copyFailed
                           ? 'bg-red-50 border border-red-200 text-red-600'
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          : 'bg-teal-600 text-white hover:bg-teal-700'
                     )}
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -155,7 +155,7 @@ export default function ReferTab() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4 text-center">
                   <div className="flex items-center justify-center gap-1.5 mb-1">
-                    <Users className="h-4 w-4 text-indigo-500" />
+                    <Users className="h-4 w-4 text-teal-500" />
                     <span className="text-xs font-medium text-gray-500">Invited</span>
                   </div>
                   <p className="text-2xl font-bold text-gray-900">{referral.total_referred}</p>
@@ -181,7 +181,7 @@ export default function ReferTab() {
               <button
                 onClick={fetchCode}
                 disabled={fetching}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition disabled:opacity-50"
               >
                 <RefreshCw className={clsx('h-3.5 w-3.5', fetching && 'animate-spin')} />
                 Try again
@@ -193,7 +193,7 @@ export default function ReferTab() {
             <p className="text-sm text-gray-600 font-medium">Sign in to get your referral link</p>
             <button
               onClick={() => setShowAuth(true)}
-              className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+              className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
             >
               Sign in
             </button>

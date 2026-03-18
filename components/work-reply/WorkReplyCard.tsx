@@ -20,7 +20,7 @@ function Meter({ value, label }: { value: number; label: string }) {
       <span className="w-28 shrink-0 text-xs text-gray-500">{label}</span>
       <div className="flex-1 h-1.5 rounded-full bg-gray-100">
         <div
-          className="h-1.5 rounded-full bg-indigo-500 transition-all"
+          className="h-1.5 rounded-full bg-teal-500 transition-all"
           style={{ width: `${(value / 10) * 100}%` }}
         />
       </div>
@@ -52,9 +52,9 @@ export function WorkReplyCard({ variation, isBest }: Props) {
   }
 
   return (
-    <div className={`relative rounded-2xl border bg-white p-5 shadow-sm transition ${isBest ? 'border-indigo-400 ring-1 ring-indigo-300' : 'border-gray-200'}`}>
+    <div className={`relative rounded-2xl border bg-white p-5 shadow-sm transition ${isBest ? 'border-teal-400 ring-1 ring-teal-300' : 'border-gray-200'}`}>
       {isBest && (
-        <span className="absolute -top-3 left-4 rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
+        <span className="absolute -top-3 left-4 rounded-full bg-teal-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
           Best Choice ✓
         </span>
       )}

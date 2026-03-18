@@ -87,7 +87,7 @@ export function ConfirmDialog({
           <button
             ref={cancelRef}
             onClick={handleCancel}
-            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-teal-200"
           >
             {cancelLabel}
           </button>
@@ -96,7 +96,7 @@ export function ConfirmDialog({
             className={`flex-1 rounded-xl py-2.5 text-sm font-semibold text-white transition focus:outline-none focus:ring-2 ${
               destructive
                 ? 'bg-red-600 hover:bg-red-700 focus:ring-red-200'
-                : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-200'
+                : 'bg-teal-600 hover:bg-teal-700 focus:ring-teal-200'
             }`}
           >
             {confirmLabel}

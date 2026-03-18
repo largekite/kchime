@@ -250,7 +250,7 @@ export default function ConverseTab() {
 
   const fluencyColor: Record<string, string> = {
     'Excellent': 'text-emerald-600',
-    'Good': 'text-indigo-600',
+    'Good': 'text-teal-600',
     'Keep practicing': 'text-amber-600',
   };
 
@@ -279,7 +279,7 @@ export default function ConverseTab() {
         </p>
         <button
           onClick={() => setShowUpgrade(true)}
-          className="mx-auto block rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          className="mx-auto block rounded-xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
         >
           Upgrade to Pro — $7/mo
         </button>
@@ -323,10 +323,10 @@ export default function ConverseTab() {
             <button
               key={persona.id}
               onClick={() => handleSelectPersona(persona)}
-              className="flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white p-5 hover:border-indigo-300 hover:bg-indigo-50 transition group"
+              className="flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white p-5 hover:border-teal-300 hover:bg-teal-50 transition group"
             >
               <span className="text-3xl">{persona.emoji}</span>
-              <span className="font-semibold text-gray-800 text-sm group-hover:text-indigo-700">{persona.name}</span>
+              <span className="font-semibold text-gray-800 text-sm group-hover:text-teal-700">{persona.name}</span>
               <span className="text-xs text-gray-400 text-center leading-tight">{persona.scene}</span>
             </button>
           ))}
@@ -360,7 +360,7 @@ export default function ConverseTab() {
 
           <button
             onClick={handleReset}
-            className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
           >
             Start new conversation
           </button>
@@ -387,7 +387,7 @@ export default function ConverseTab() {
                 className={clsx('flex gap-2.5', turn.speaker === 'user' ? 'justify-end' : 'justify-start')}
               >
                 {turn.speaker === 'ai' && (
-                  <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
+                  <div className="h-8 w-8 rounded-full bg-teal-600 flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
                     {selectedPersona.emoji}
                   </div>
                 )}
@@ -396,7 +396,7 @@ export default function ConverseTab() {
                     'max-w-xs rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                     turn.speaker === 'ai'
                       ? 'rounded-tl-none bg-white border border-gray-100 shadow-sm text-gray-900'
-                      : 'rounded-tr-none bg-indigo-600 text-white'
+                      : 'rounded-tr-none bg-teal-600 text-white'
                   )}
                 >
                   {turn.text}
@@ -407,7 +407,7 @@ export default function ConverseTab() {
             {/* Live transcript */}
             {isListening && transcript && (
               <div className="flex justify-end gap-2.5">
-                <div className="max-w-xs rounded-2xl rounded-tr-none bg-indigo-100 border border-indigo-200 px-4 py-2.5 text-sm text-indigo-700 italic">
+                <div className="max-w-xs rounded-2xl rounded-tr-none bg-teal-100 border border-teal-200 px-4 py-2.5 text-sm text-teal-700 italic">
                   {transcript}…
                 </div>
               </div>
@@ -416,7 +416,7 @@ export default function ConverseTab() {
             {/* AI indicator — dots while thinking, speaker icon while speaking */}
             {(isProcessing || isAiSpeaking) && (
               <div className="flex gap-2.5 items-start">
-                <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-teal-600 flex items-center justify-center text-lg flex-shrink-0">
                   {selectedPersona.emoji}
                 </div>
                 <div className="rounded-2xl rounded-tl-none bg-white border border-gray-100 shadow-sm px-4 py-3">
@@ -425,13 +425,13 @@ export default function ConverseTab() {
                       {[0, 1, 2].map((i) => (
                         <span
                           key={i}
-                          className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce"
+                          className="h-2 w-2 rounded-full bg-teal-400 animate-bounce"
                           style={{ animationDelay: `${i * 150}ms` }}
                         />
                       ))}
                     </div>
                   ) : (
-                    <Volume2 className="h-4 w-4 text-indigo-400 animate-pulse" />
+                    <Volume2 className="h-4 w-4 text-teal-400 animate-pulse" />
                   )}
                 </div>
               </div>
@@ -480,7 +480,7 @@ export default function ConverseTab() {
                       'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
                       isListening
                         ? 'bg-red-500 shadow-red-300 scale-110'
-                        : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
+                        : 'bg-teal-600 shadow-teal-300 hover:scale-105',
                       (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
                     )}
                   >

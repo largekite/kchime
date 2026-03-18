@@ -140,7 +140,7 @@ export default function QuickReplyTab() {
                 className={clsx(
                   'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
                   context === c
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-teal-600 text-white'
                     : locked
                       ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -181,7 +181,7 @@ export default function QuickReplyTab() {
             placeholder='What did someone say? e.g. "TGIF, am I right?"'
             rows={2}
             autoComplete="off"
-            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
           {/* Inline action: clear button or mic inside textarea */}
           {isListening ? (
@@ -209,7 +209,7 @@ export default function QuickReplyTab() {
             <button
               type="button"
               onClick={handleMic}
-              className="absolute right-2.5 top-2.5 rounded-full p-1 text-gray-300 hover:text-indigo-500 transition"
+              className="absolute right-2.5 top-2.5 rounded-full p-1 text-gray-300 hover:text-teal-500 transition"
               title="Speak"
             >
               <Mic className="h-4 w-4" />
@@ -220,7 +220,7 @@ export default function QuickReplyTab() {
         <button
           onClick={() => handleSubmit()}
           disabled={loading || (!input.trim() && !transcript.trim())}
-          className="mt-3 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-40"
+          className="mt-3 w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-40"
         >
           {loading ? 'Generating replies…' : 'Get Replies'}
         </button>
@@ -249,7 +249,7 @@ export default function QuickReplyTab() {
                   setInput(p);
                   handleSubmit(p);
                 }}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-indigo-300 hover:text-indigo-700 transition"
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-teal-300 hover:text-teal-700 transition"
               >
                 {p.length > 40 ? p.slice(0, 40) + '…' : p}
               </button>
@@ -276,7 +276,7 @@ export default function QuickReplyTab() {
             </p>
             <button
               onClick={() => handleSubmit(currentPrompt)}
-              className="text-xs text-indigo-600 hover:underline"
+              className="text-xs text-teal-600 hover:underline"
             >
               Regenerate
             </button>

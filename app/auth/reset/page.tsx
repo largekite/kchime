@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
           <p className="text-sm text-gray-500">You can now sign in with your new password.</p>
           <button
             onClick={() => router.push('/reply')}
-            className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
           >
             Go to KChime
           </button>
@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
               required
               minLength={6}
               autoFocus
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-10 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-10 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
             <button
               type="button"
@@ -79,13 +79,13 @@ export default function ResetPasswordPage() {
             placeholder="Confirm new password"
             required
             minLength={6}
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+            className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 transition"
           >
             {loading ? 'Updating…' : 'Update password'}
           </button>

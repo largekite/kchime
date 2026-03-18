@@ -48,13 +48,13 @@ export function ContactSelector({ contacts, relationships, selectedContactId, on
             ? clsx(
                 'rounded-full px-3 py-1 text-sm font-medium',
                 selected
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-teal-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               )
             : clsx(
                 'rounded-lg border px-3 py-2 text-sm',
                 selected
-                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700'
+                  ? 'border-teal-300 bg-teal-50 text-teal-700'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
               )
         )}
@@ -72,7 +72,7 @@ export function ContactSelector({ contacts, relationships, selectedContactId, on
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onSelect(''); }}
-          className="ml-1 inline-flex items-center rounded-full p-0.5 text-indigo-300 hover:text-white transition"
+          className="ml-1 inline-flex items-center rounded-full p-0.5 text-teal-300 hover:text-white transition"
           title="Clear contact"
         >
           <X className="h-3 w-3" />
@@ -86,7 +86,7 @@ export function ContactSelector({ contacts, relationships, selectedContactId, on
             onClick={() => { onSelect(''); setOpen(false); }}
             className={clsx(
               'flex w-full items-center gap-2 px-3 py-2 text-sm transition hover:bg-gray-50',
-              !selectedContactId ? 'text-indigo-600 font-medium' : 'text-gray-600'
+              !selectedContactId ? 'text-teal-600 font-medium' : 'text-gray-600'
             )}
           >
             <UserCircle className="h-4 w-4 text-gray-400" />
@@ -103,7 +103,7 @@ export function ContactSelector({ contacts, relationships, selectedContactId, on
                 onClick={() => { onSelect(c.id); setOpen(false); }}
                 className={clsx(
                   'flex w-full items-center gap-2 px-3 py-2 text-sm transition hover:bg-gray-50',
-                  selectedContactId === c.id ? 'text-indigo-600 font-medium' : 'text-gray-600'
+                  selectedContactId === c.id ? 'text-teal-600 font-medium' : 'text-gray-600'
                 )}
               >
                 <UserCircle className="h-4 w-4 text-gray-400" />

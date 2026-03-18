@@ -156,7 +156,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
             {dueCount > 0 && (
               <button
                 onClick={() => onNavigate?.('review')}
-                className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+                className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition"
               >
                 Review
                 <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-xs font-bold">{dueCount}</span>
@@ -197,7 +197,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
               ))}
               <button
                 onClick={() => setShowNewCol((v) => !v)}
-                className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs font-medium text-gray-400 hover:border-indigo-400 hover:text-indigo-600 transition"
+                className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs font-medium text-gray-400 hover:border-teal-400 hover:text-teal-600 transition"
               >
                 + New
               </button>
@@ -212,9 +212,9 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
                   onChange={(e) => setNewColName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCollection(); if (e.key === 'Escape') { setShowNewCol(false); setNewColName(''); } }}
                   placeholder="Collection name…"
-                  className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none"
+                  className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-teal-400 focus:outline-none"
                 />
-                <button onClick={handleCreateCollection} disabled={!newColName.trim()} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition">
+                <button onClick={handleCreateCollection} disabled={!newColName.trim()} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-40 transition">
                   Create
                 </button>
               </div>
@@ -230,7 +230,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search phrases…"
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
             <div className="flex gap-2 flex-wrap">
               {tones.map((t) => (
@@ -239,7 +239,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
                   onClick={() => setFilterTone(t)}
                   className={clsx(
                     'rounded-full px-3 py-1 text-sm font-medium transition',
-                    filterTone === t ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    filterTone === t ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   )}
                 >
                   {t}
@@ -305,7 +305,7 @@ export default function LibraryTab({ onNavigate }: { onNavigate?: (tab: string) 
                                 onClick={() => handleTogglePhrase(col.id, phrase.id)}
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 transition"
                               >
-                                <span className={clsx('h-3 w-3 rounded-sm border', inCol ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300')} />
+                                <span className={clsx('h-3 w-3 rounded-sm border', inCol ? 'bg-teal-600 border-teal-600' : 'border-gray-300')} />
                                 {col.name}
                               </button>
                             );
