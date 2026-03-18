@@ -9,16 +9,15 @@ import {
   Eye,
   SlidersHorizontal,
   Copy,
-  Mic,
   Send,
   CheckCircle2,
-  ArrowRight,
   Star,
   Briefcase,
   GraduationCap,
   Clock,
   Heart,
 } from 'lucide-react';
+import PhoneMockup from '@/components/marketing/PhoneMockup';
 
 export const metadata = {
   title: 'KChime — AI Reply Assistant for Texts, Emails & Chats',
@@ -211,64 +210,18 @@ export default function LandingPage() {
 
           {/* Right — iPhone mockup */}
           <div className="flex justify-center">
-            <div className="relative w-[280px] sm:w-[300px]">
-              {/* Phone frame */}
-              <div className="rounded-[2.5rem] border-[6px] border-gray-900 bg-gray-900 p-2 shadow-2xl">
-                {/* Notch */}
-                <div className="mx-auto mb-2 h-6 w-28 rounded-full bg-gray-900" />
-                {/* Screen */}
-                <div className="rounded-[2rem] bg-white overflow-hidden">
-                  {/* Status bar */}
-                  <div className="flex items-center justify-between px-5 pt-3 pb-2 text-[10px] font-semibold text-gray-500">
-                    <span>9:41</span>
-                    <div className="flex gap-1 items-center">
-                      <div className="h-2 w-2 rounded-full bg-gray-400" />
-                      <div className="h-2 w-4 rounded-sm bg-gray-400" />
-                    </div>
-                  </div>
-
-                  {/* Chat header */}
-                  <div className="border-b border-gray-100 px-5 pb-3">
-                    <p className="text-xs text-gray-400">Messages</p>
-                    <p className="text-sm font-semibold text-gray-900">Sarah — Manager</p>
-                  </div>
-
-                  {/* Incoming message */}
-                  <div className="px-4 pt-4 pb-2">
-                    <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-gray-100 px-4 py-3 text-sm text-gray-800">
-                      Can you send the report tonight?
-                    </div>
-                    <p className="mt-1 text-[10px] text-gray-400 ml-1">4:32 PM</p>
-                  </div>
-
-                  {/* KChime reply suggestions */}
-                  <div className="px-4 pt-2 pb-5">
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <Sparkles className="h-3.5 w-3.5 text-teal-500" />
-                      <p className="text-[11px] font-semibold text-teal-600 uppercase tracking-wide">KChime Replies</p>
-                    </div>
-                    <div className="space-y-2">
-                      {[
-                        'Sure — I\'ll send it tonight.',
-                        'Working on it now.',
-                        'I\'ll send it shortly.',
-                      ].map((reply, i) => (
-                        <button
-                          key={i}
-                          className={`w-full rounded-xl border px-4 py-2.5 text-left text-sm transition ${
-                            i === 0
-                              ? 'border-teal-200 bg-teal-50 text-teal-800 font-medium'
-                              : 'border-gray-100 bg-white text-gray-700 hover:border-teal-100'
-                          }`}
-                        >
-                          {reply}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PhoneMockup
+              contactName="Sarah Chen"
+              contactLabel="Manager · Acme Corp"
+              incomingMessage="Can you send the report tonight?"
+              timestamp="4:32 PM"
+              replies={[
+                { text: "Sure — I'll send it tonight.", confidence: 96 },
+                { text: 'Working on it now.' },
+                { text: "I'll send it shortly." },
+              ]}
+              highlightIndex={0}
+            />
           </div>
         </div>
       </section>
