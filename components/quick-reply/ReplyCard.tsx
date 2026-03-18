@@ -105,7 +105,7 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
             onClick={handleSpeak}
             className={clsx(
               'flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition shadow-sm',
-              speaking ? 'bg-indigo-600 text-white' : 'bg-white/70 text-gray-600 hover:bg-white'
+              speaking ? 'bg-teal-600 text-white' : 'bg-white/70 text-gray-600 hover:bg-white'
             )}
             title="Speak"
           >

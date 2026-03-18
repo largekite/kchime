@@ -285,14 +285,14 @@ export default function ScenarioChatPage({
               <div key={reply} className="flex items-center gap-2">
                 <button
                   onClick={() => handleReply(reply)}
-                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
+                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-teal-300 hover:bg-teal-50 transition"
                 >
                   {reply}
                 </button>
                 <button
                   onClick={() => handlePronounce(reply)}
                   title="Practice pronunciation"
-                  className="flex-shrink-0 h-10 w-10 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  className="flex-shrink-0 h-10 w-10 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-600 transition"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm6 9a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
@@ -302,7 +302,7 @@ export default function ScenarioChatPage({
             ))}
             <button
               onClick={() => setStep('custom')}
-              className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
+              className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-teal-300 hover:text-teal-600 transition"
             >
               Write my own…
             </button>
@@ -318,14 +318,14 @@ export default function ScenarioChatPage({
               onChange={(e) => setCustomReply(e.target.value)}
               placeholder="Type your reply here…"
               rows={3}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
               autoFocus
             />
             <div className="flex gap-2">
               <button
                 onClick={() => handleReply(customReply)}
                 disabled={!customReply.trim()}
-                className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition"
+                className="flex-1 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40 transition"
               >
                 Get Feedback
               </button>
@@ -342,7 +342,7 @@ export default function ScenarioChatPage({
         {/* Evaluating / continuing spinners */}
         {(step === 'evaluating' || step === 'continuing') && (
           <div className="flex items-center gap-3 py-4">
-            <svg className="h-5 w-5 animate-spin text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 animate-spin text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
@@ -376,14 +376,14 @@ export default function ScenarioChatPage({
                 <button
                   key={reply}
                   onClick={() => handleFollowUpReply(reply)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-indigo-300 hover:bg-indigo-50 transition"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm text-gray-800 hover:border-teal-300 hover:bg-teal-50 transition"
                 >
                   {reply}
                 </button>
               ))}
               <button
                 onClick={() => setStep('custom')}
-                className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 transition"
+                className="w-full rounded-xl border-2 border-dashed border-gray-200 px-4 py-3 text-left text-sm text-gray-400 hover:border-teal-300 hover:text-teal-600 transition"
               >
                 Write my own…
               </button>
@@ -396,11 +396,11 @@ export default function ScenarioChatPage({
           <div className="space-y-3">
             {/* Your reply */}
             <div className="flex items-start gap-3 justify-end">
-              <div className="rounded-2xl rounded-tr-none bg-indigo-600 px-4 py-3 max-w-xs">
+              <div className="rounded-2xl rounded-tr-none bg-teal-600 px-4 py-3 max-w-xs">
                 <p className="text-sm text-white">{selectedReply}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+              <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-teal-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
               </div>
             </div>
 
@@ -434,7 +434,7 @@ export default function ScenarioChatPage({
             {/* Practice pronunciation of the reply */}
             <button
               onClick={() => handlePronounce(selectedReply)}
-              className="w-full rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition flex items-center justify-center gap-2"
+              className="w-full rounded-xl border border-teal-200 bg-teal-50 py-2.5 text-sm font-medium text-teal-700 hover:bg-teal-100 transition flex items-center justify-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm6 9a1 1 0 0 1 1 1 7 7 0 0 1-6 6.92V21h2a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2h2v-2.08A7 7 0 0 1 5 12a1 1 0 0 1 2 0 5 5 0 0 0 10 0 1 1 0 0 1 1-1z" />
@@ -453,14 +453,14 @@ export default function ScenarioChatPage({
               {turnCount < 3 && (
                 <button
                   onClick={handleContinueConversation}
-                  className="flex-1 rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                  className="flex-1 rounded-xl border border-teal-200 bg-teal-50 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition"
                 >
                   Continue conversation →
                 </button>
               )}
               <Link
                 href="/practice"
-                className="flex-1 rounded-xl bg-indigo-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-indigo-700 transition"
+                className="flex-1 rounded-xl bg-teal-600 py-2.5 text-center text-sm font-semibold text-white hover:bg-teal-700 transition"
               >
                 Next scenario →
               </Link>
@@ -481,7 +481,7 @@ export default function ScenarioChatPage({
             {/* Target phrase — plain before score, word-highlighted after */}
             <div className={clsx(
               'rounded-xl px-4 py-3 border',
-              pronunciationScore ? 'bg-gray-50 border-gray-200' : 'bg-indigo-50 border-indigo-200'
+              pronunciationScore ? 'bg-gray-50 border-gray-200' : 'bg-teal-50 border-teal-200'
             )}>
               {pronunciationScore ? (
                 <div className="flex flex-wrap gap-x-1 gap-y-0.5">
@@ -535,7 +535,7 @@ export default function ScenarioChatPage({
                   'h-14 w-14 rounded-full shadow-lg transition-all duration-200',
                   isListening
                     ? 'bg-red-500 shadow-red-200 scale-110'
-                    : 'bg-indigo-600 shadow-indigo-200 hover:scale-105',
+                    : 'bg-teal-600 shadow-teal-200 hover:scale-105',
                   !speechSupported && 'opacity-40 cursor-not-allowed'
                 )}
                 aria-label={isListening ? 'Stop recording' : 'Start recording'}

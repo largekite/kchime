@@ -33,7 +33,7 @@ const STYLES: Record<ToastType, string> = {
   success: 'bg-emerald-600',
   error: 'bg-red-600',
   warning: 'bg-amber-600',
-  info: 'bg-indigo-600',
+  info: 'bg-teal-600',
 };
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {

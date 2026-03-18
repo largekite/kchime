@@ -138,7 +138,7 @@ export default function WorkTab() {
                 disabled={locked}
                 className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
                   preset === label
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    ? 'border-teal-500 bg-teal-50 text-teal-700'
                     : locked
                       ? 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
                       : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -159,7 +159,7 @@ export default function WorkTab() {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Paste the Slack message, email, feedback, or message you received..."
           rows={5}
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-500 focus:outline-none resize-none"
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:outline-none resize-none"
         />
       </div>
 
@@ -170,7 +170,7 @@ export default function WorkTab() {
       <button
         onClick={handleAnalyze}
         disabled={loading}
-        className="w-full rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white shadow transition hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow transition hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Analyzing…' : 'Analyze & Generate Replies'}
       </button>
@@ -189,7 +189,7 @@ export default function WorkTab() {
               <div className="flex items-center gap-2 text-xs text-gray-400 uppercase tracking-wide font-medium">
                 <span>3 Strategic Variations</span>
                 <span className="flex-1 border-t border-gray-100" />
-                <span className="text-indigo-500">{preset}</span>
+                <span className="text-teal-500">{preset}</span>
               </div>
               {result.variations.map((v, i) => (
                 <WorkReplyCard

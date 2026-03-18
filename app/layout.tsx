@@ -6,8 +6,8 @@ import { Providers } from '@/components/layout/Providers';
 import { NotificationPrompt } from '@/components/layout/NotificationPrompt';
 
 export const metadata: Metadata = {
-  title: 'KChime — Daily Conversation Coach',
-  description: 'Your daily conversation coach for sounding natural in English — smart replies, live listening, and real-world scenarios.',
+  title: 'KChime — AI Reply Assistant',
+  description: 'Never wonder how to reply again. KChime suggests the perfect response for texts, emails, and chats — instantly.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#4f46e5',
+  themeColor: '#0d9488',
   width: 'device-width',
   initialScale: 1,
 };

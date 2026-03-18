@@ -14,8 +14,8 @@ export default function ProSuccessPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-100">
-          <svg className="h-10 w-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-teal-100">
+          <svg className="h-10 w-10 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -27,13 +27,13 @@ export default function ProSuccessPage() {
 
         <Link
           href="/reply"
-          className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-8 py-4 text-sm font-semibold text-white hover:bg-indigo-700 transition mb-4"
+          className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-8 py-4 text-sm font-semibold text-white hover:bg-teal-700 transition mb-4"
         >
           Start using KChime Pro
         </Link>
 
         <div className="mt-10 border-t border-gray-100 pt-6">
-          <Link href="/" className="text-sm text-indigo-600 hover:underline">
+          <Link href="/" className="text-sm text-teal-600 hover:underline">
             Back to KChime
           </Link>
         </div>

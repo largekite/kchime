@@ -58,15 +58,15 @@ export default function ScenariosTab() {
   return (
     <div className="space-y-6">
       {/* Header stats */}
-      <div className="rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 p-5 text-white shadow-lg">
+      <div className="rounded-2xl bg-gradient-to-r from-teal-500 to-purple-600 p-5 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-indigo-100">Daily Practice</p>
+            <p className="text-sm font-medium text-teal-100">Daily Practice</p>
             <p className="mt-1 text-2xl font-bold">{todayCount}/{DAILY_GOAL} today</p>
           </div>
           <div className="text-right">
             <p className="text-3xl font-bold">{streak}</p>
-            <p className="text-sm text-indigo-100">day streak</p>
+            <p className="text-sm text-teal-100">day streak</p>
             {multiplier > 1 && (
               <p className="text-xs font-bold text-yellow-300 mt-0.5">{multiplierLabel} XP</p>
             )}
@@ -87,7 +87,7 @@ export default function ScenariosTab() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search scenarios…"
-          className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-10 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full rounded-xl border border-gray-200 px-4 py-2.5 pr-10 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
         />
         {search && (
           <button
@@ -116,7 +116,7 @@ export default function ScenariosTab() {
                     href={`/practice/${scenario.id}`}
                     className={clsx(
                       'relative rounded-xl border p-4 transition hover:shadow-md',
-                      done ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-indigo-200'
+                      done ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-teal-200'
                     )}
                   >
                     {done && <span className="absolute right-3 top-3 text-emerald-500 text-lg">✓</span>}
@@ -143,7 +143,7 @@ export default function ScenariosTab() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <h2 className="text-lg font-bold text-gray-900">For You</h2>
-                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700">
                   {forYouScenarios.cat}
                 </span>
               </div>
@@ -155,7 +155,7 @@ export default function ScenariosTab() {
                     <Link
                       key={scenario.id}
                       href={`/practice/${scenario.id}`}
-                      className="relative rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 transition hover:shadow-md hover:border-indigo-300"
+                      className="relative rounded-xl border border-teal-100 bg-teal-50/60 p-4 transition hover:shadow-md hover:border-teal-300"
                     >
                       <p className="mt-2 font-semibold text-gray-900 text-sm leading-snug">{scenario.title}</p>
                       <span className={clsx('mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium', meta.color)}>
@@ -182,7 +182,7 @@ export default function ScenariosTab() {
                     href={`/practice/${scenario.id}`}
                     className={clsx(
                       'relative rounded-xl border p-4 transition hover:shadow-md',
-                      done ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-indigo-200'
+                      done ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-teal-200'
                     )}
                   >
                     {done && (
@@ -211,14 +211,14 @@ export default function ScenariosTab() {
                   <Link
                     key={cat}
                     href={`/practice?category=${encodeURIComponent(cat)}`}
-                    className="flex items-center gap-4 rounded-xl bg-white border border-gray-100 p-4 hover:border-indigo-200 hover:shadow-md transition"
+                    className="flex items-center gap-4 rounded-xl bg-white border border-gray-100 p-4 hover:border-teal-200 hover:shadow-md transition"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-900 text-sm">{cat}</p>
                       <p className="text-xs text-gray-400 mb-1.5">{done}/{total} completed</p>
                       <div className="h-1.5 w-full rounded-full bg-gray-100">
                         <div
-                          className="h-1.5 rounded-full bg-indigo-500 transition-all"
+                          className="h-1.5 rounded-full bg-teal-500 transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>

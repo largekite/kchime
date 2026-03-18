@@ -70,7 +70,7 @@ export function AuthModal({ onClose, onSent }: Props) {
             <p className="text-sm text-gray-500">
               We sent a confirmation link to <strong>{email}</strong>. Click it to verify your account.
             </p>
-            <button onClick={onClose} className="mt-6 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition">
+            <button onClick={onClose} className="mt-6 w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition">
               Got it
             </button>
           </div>
@@ -80,7 +80,7 @@ export function AuthModal({ onClose, onSent }: Props) {
             <p className="text-sm text-gray-500">
               We sent a password reset link to <strong>{email}</strong>.
             </p>
-            <button onClick={onClose} className="mt-6 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition">
+            <button onClick={onClose} className="mt-6 w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition">
               Got it
             </button>
           </div>
@@ -96,19 +96,19 @@ export function AuthModal({ onClose, onSent }: Props) {
                 placeholder="your@email.com"
                 required
                 autoFocus
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
               />
               {error && <p className="text-xs text-red-600">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+                className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 transition"
               >
                 {loading ? 'Sending…' : 'Send reset link'}
               </button>
             </form>
             <p className="mt-4 text-center text-xs text-gray-400">
-              <button onClick={() => switchMode('sign-in')} className="text-indigo-600 font-medium hover:underline">
+              <button onClick={() => switchMode('sign-in')} className="text-teal-600 font-medium hover:underline">
                 Back to sign in
               </button>
             </p>
@@ -131,7 +131,7 @@ export function AuthModal({ onClose, onSent }: Props) {
                 placeholder="your@email.com"
                 required
                 autoFocus
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
               />
               <div className="relative">
                 <input
@@ -141,7 +141,7 @@ export function AuthModal({ onClose, onSent }: Props) {
                   placeholder="Password"
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-10 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-10 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
                 />
                 <button
                   type="button"
@@ -158,7 +158,7 @@ export function AuthModal({ onClose, onSent }: Props) {
                   <button
                     type="button"
                     onClick={() => switchMode('forgot')}
-                    className="text-xs text-indigo-600 hover:underline"
+                    className="text-xs text-teal-600 hover:underline"
                   >
                     Forgot password?
                   </button>
@@ -167,7 +167,7 @@ export function AuthModal({ onClose, onSent }: Props) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+                className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50 transition"
               >
                 {loading
                   ? (mode === 'sign-in' ? 'Signing in…' : 'Creating account…')
@@ -210,14 +210,14 @@ export function AuthModal({ onClose, onSent }: Props) {
               {mode === 'sign-in' ? (
                 <>
                   Don&apos;t have an account?{' '}
-                  <button onClick={() => switchMode('sign-up')} className="text-indigo-600 font-medium hover:underline">
+                  <button onClick={() => switchMode('sign-up')} className="text-teal-600 font-medium hover:underline">
                     Sign up
                   </button>
                 </>
               ) : (
                 <>
                   Already have an account?{' '}
-                  <button onClick={() => switchMode('sign-in')} className="text-indigo-600 font-medium hover:underline">
+                  <button onClick={() => switchMode('sign-in')} className="text-teal-600 font-medium hover:underline">
                     Sign in
                   </button>
                 </>

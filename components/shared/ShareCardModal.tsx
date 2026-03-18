@@ -109,7 +109,7 @@ export function ShareCardModal({ reply, prompt, open, onClose }: Props) {
         <div className="flex gap-2 p-4">
           <button
             onClick={handleCopyImage}
-            className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            className="flex-1 rounded-lg bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition"
           >
             {copied ? 'Copied!' : 'Copy Image'}
           </button>
