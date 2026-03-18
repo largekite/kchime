@@ -10,13 +10,13 @@ import { useCallback, useState } from 'react';
 import { AuthModal } from '@/components/shared/AuthModal';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
-const PRESETS: WorkplacePreset[] = [
-  'Reply to Manager',
-  'Reply to Direct Report',
-  'Reply to Client',
-  'Push Back Politely',
-  'Deliver Constructive Feedback',
-  'Escalate Issue Professionally',
+const PRESETS: { label: WorkplacePreset; hint: string }[] = [
+  { label: 'Reply to Manager', hint: 'Respond to your boss or lead' },
+  { label: 'Reply to Direct Report', hint: 'Respond to someone you manage' },
+  { label: 'Reply to Client', hint: 'Respond to a customer or partner' },
+  { label: 'Push Back Politely', hint: 'Say no without burning bridges' },
+  { label: 'Deliver Constructive Feedback', hint: 'Give honest feedback kindly' },
+  { label: 'Escalate Issue Professionally', hint: 'Raise a concern to leadership' },
 ];
 
 /** Map contact relationship names to the closest preset. */
@@ -107,9 +107,9 @@ export default function WorkTab() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Work Reply Optimizer</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Work Reply</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Paste any workplace message. Get 3 strategic replies with risk and tone analysis.
+          Paste a workplace message and pick a situation. You&apos;ll get 3 reply options from safe to bold.
         </p>
       </div>
 
@@ -127,24 +127,32 @@ export default function WorkTab() {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {PRESETS.map((label) => {
-            // Lock other relationship presets when a contact is selected;
-            // action presets (Push Back, Feedback, Escalate) stay available.
+          {PRESETS.map(({ label, hint }) => {
             const locked = !!selectedContactId && RELATIONSHIP_PRESETS.has(label) && preset !== label;
             return (
               <button
                 key={label}
                 onClick={() => { if (!locked) setPreset(label); }}
                 disabled={locked}
-                className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
+                title={locked ? 'Automatically set by your selected contact' : hint}
+                className={`rounded-xl border px-3 py-2.5 text-left transition ${
                   preset === label
-                    ? 'border-teal-500 bg-teal-50 text-teal-700'
+                    ? 'border-teal-500 bg-teal-50'
                     : locked
-                      ? 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                      : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                {label}
+                <span className={`block text-sm font-medium ${
+                  preset === label ? 'text-teal-700' : locked ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  {label}
+                </span>
+                <span className={`block text-xs mt-0.5 ${
+                  preset === label ? 'text-teal-500' : locked ? 'text-gray-300' : 'text-gray-400'
+                }`}>
+                  {hint}
+                </span>
               </button>
             );
           })}
@@ -153,7 +161,12 @@ export default function WorkTab() {
 
       {/* Message input */}
       <div className="mb-4">
-        <p className="mb-2 text-sm font-medium text-gray-700">Message to reply to</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-sm font-medium text-gray-700">Message to reply to</p>
+          {preset && (
+            <span className="text-xs text-teal-600 font-medium">{preset}</span>
+          )}
+        </div>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -187,10 +200,11 @@ export default function WorkTab() {
           ) : result ? (
             <>
               <div className="flex items-center gap-2 text-xs text-gray-400 uppercase tracking-wide font-medium">
-                <span>3 Strategic Variations</span>
+                <span>3 Reply Options</span>
                 <span className="flex-1 border-t border-gray-100" />
                 <span className="text-teal-500">{preset}</span>
               </div>
+              <p className="text-xs text-gray-400 -mt-3">Pick the tone that fits your situation. &ldquo;Recommended&rdquo; is usually safest.</p>
               {result.variations.map((v, i) => (
                 <WorkReplyCard
                   key={v.id}
