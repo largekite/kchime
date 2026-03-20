@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
   }
 
   const token = data.session.access_token;
+  const refreshToken = data.session.refresh_token;
+  const expiresAt = data.session.expires_at;
 
   // Look up Pro status
   const service = createServiceClient();
@@ -34,5 +36,5 @@ export async function POST(req: NextRequest) {
 
   const isPro = sub?.plan === 'pro';
 
-  return NextResponse.json({ token, email, isPro });
+  return NextResponse.json({ token, refreshToken, expiresAt, email, isPro });
 }

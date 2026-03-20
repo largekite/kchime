@@ -29,7 +29,7 @@ export function AuthModal({ onClose, onSent }: Props) {
     setError('');
 
     if (mode === 'forgot') {
-      if (!email.trim()) return;
+      if (!email.trim()) { setLoading(false); return; }
       const { error } = await sendPasswordReset(email.trim());
       setLoading(false);
       if (error) setError(error);
@@ -37,7 +37,7 @@ export function AuthModal({ onClose, onSent }: Props) {
       return;
     }
 
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim() || !password.trim()) { setLoading(false); return; }
 
     if (mode === 'sign-up') {
       const { error } = await signUpWithEmail(email.trim(), password.trim());

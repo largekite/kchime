@@ -108,6 +108,9 @@ export function useSpeechRecognition({
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SR) return;
 
+    // Stop any existing instance before creating a new one
+    recognitionRef.current?.stop();
+
     stoppedRef.current = false;
     const recognition = new SR();
     recognition.lang = 'en-US';
