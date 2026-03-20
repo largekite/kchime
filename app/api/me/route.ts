@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   const isPro = subResult.data?.plan === 'pro';
-  const limit = isPro ? 50 : 10;
+  const limit = isPro ? 25 : 5;
   const count = usageResult.data?.quick_reply_count ?? 0;
 
   return NextResponse.json({
