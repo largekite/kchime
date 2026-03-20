@@ -64,28 +64,22 @@ async function checkAndIncrement(userId: string, today: string, limit: number): 
   return true;
 }
 
-// IP-based rate limiting for anonymous users using daily_usage table
-async function checkAnonLimit(ip: string): Promise<boolean> {
-  const supabase = createServiceClient();
+// In-memory IP-based rate limiting for anonymous users.
+// Avoids writing to daily_usage (user_id may be UUID-typed with FK constraint).
+// Resets naturally on serverless cold starts; good enough to prevent abuse.
+const anonCounts = new Map<string, { count: number; date: string }>();
+
+function checkAnonLimit(ip: string): boolean {
   const today = new Date().toISOString().split('T')[0];
-  const anonId = `anon_${ip}`;
+  const entry = anonCounts.get(ip);
 
-  const { data } = await supabase
-    .from('daily_usage')
-    .upsert({ user_id: anonId, date: today }, { onConflict: 'user_id,date' })
-    .select('tts_count')
-    .single();
+  if (!entry || entry.date !== today) {
+    anonCounts.set(ip, { count: 1, date: today });
+    return true;
+  }
 
-  const count = (data as { tts_count: number } | null)?.tts_count ?? 0;
-  if (count >= ANON_TTS_LIMIT) return false;
-
-  await supabase
-    .from('daily_usage')
-    .update({ tts_count: count + 1 })
-    .eq('user_id', anonId)
-    .eq('date', today)
-    .eq('tts_count', count);
-
+  if (entry.count >= ANON_TTS_LIMIT) return false;
+  entry.count++;
   return true;
 }
 
@@ -123,9 +117,9 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Anonymous user — IP-based rate limiting
+  // Anonymous user — in-memory IP-based rate limiting
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
-  const anonAllowed = await checkAnonLimit(ip);
+  const anonAllowed = checkAnonLimit(ip);
   if (!anonAllowed) {
     return new Response(JSON.stringify({ error: 'limit_reached' }), {
       status: 429,
