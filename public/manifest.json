@@ -1,11 +1,11 @@
 {
-  "name": "KChime — Daily Conversation Coach",
+  "name": "KChime — AI Reply Assistant",
   "short_name": "KChime",
-  "description": "AI-powered daily coach for natural American English conversations.",
+  "description": "Never wonder how to reply again. AI-powered reply assistant for texts, emails, and chats.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "theme_color": "#0d9488",
   "orientation": "portrait",
   "icons": [
     {
@@ -15,6 +15,6 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["education", "productivity"],
+  "categories": ["productivity", "utilities"],
   "screenshots": []
 }

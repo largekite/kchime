@@ -1,11 +1,12 @@
 'use client';
 
 import { ContactSelector } from '@/components/shared/ContactSelector';
-import { fixMessage, LimitReachedError, type MessageFix } from '@/lib/claude';
+import { fixMessage, LimitReachedError, AuthRequiredError, type MessageFix } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { getToneProfile } from '@/lib/storage';
 import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
+import { AuthModal } from '@/components/shared/AuthModal';
 import clsx from 'clsx';
 import { useCallback, useState } from 'react';
 import { Check, Copy, Wand2 } from 'lucide-react';
@@ -25,7 +26,7 @@ const REL_NAME_TO_DROPDOWN: Record<string, string> = {
 
 const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = {
   // Work email
-  Polished:      { bg: 'bg-indigo-50 border-indigo-100',  badge: 'bg-indigo-100 text-indigo-700',    dot: 'bg-indigo-500' },
+  Polished:      { bg: 'bg-teal-50 border-teal-100',  badge: 'bg-teal-100 text-teal-700',    dot: 'bg-teal-500' },
   Approachable:  { bg: 'bg-pink-50 border-pink-100',      badge: 'bg-pink-100 text-pink-700',        dot: 'bg-pink-500' },
   Confident:     { bg: 'bg-emerald-50 border-emerald-100', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
   // Casual text
@@ -43,7 +44,7 @@ const TONE_STYLES: Record<string, { bg: string; badge: string; dot: string }> = 
   Witty:         { bg: 'bg-amber-50 border-amber-100',     badge: 'bg-amber-100 text-amber-700',      dot: 'bg-amber-500' },
 };
 
-const FREE_LIMIT = 5;
+const FREE_LIMIT = 1;
 
 export default function FixTab() {
   const { plan } = useAuth();
@@ -69,6 +70,7 @@ export default function FixTab() {
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState('');
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [usageCount, setUsageCount] = useState(() => {
     if (typeof window === 'undefined') return 0;
     try {
@@ -113,7 +115,9 @@ export default function FixTab() {
       setFixes(result);
       if (plan === 'free') bumpUsage();
     } catch (e) {
-      if (e instanceof LimitReachedError) {
+      if (e instanceof AuthRequiredError) {
+        setShowAuth(true);
+      } else if (e instanceof LimitReachedError) {
         setShowUpgrade(true);
       } else {
         setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -173,7 +177,7 @@ export default function FixTab() {
             <select
               value={messageType}
               onChange={(e) => setMessageType(e.target.value)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
             >
               {MESSAGE_TYPES.map((t) => <option key={t}>{t}</option>)}
             </select>
@@ -185,7 +189,7 @@ export default function FixTab() {
               onChange={(e) => setRelationship(e.target.value)}
               disabled={!!selectedContactId}
               className={clsx(
-                'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400',
+                'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400',
                 selectedContactId && 'opacity-60 cursor-not-allowed',
               )}
             >
@@ -201,7 +205,7 @@ export default function FixTab() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Paste or type your draft message here…&#10;&#10;e.g. &quot;hey can u send the report when u get a chance thx&quot;"
             rows={5}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
           />
           <span className="absolute bottom-3 right-3 text-xs text-gray-300">{draft.length}</span>
         </div>
@@ -223,8 +227,8 @@ export default function FixTab() {
             className={clsx(
               'ml-auto flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition',
               loading || !draft.trim()
-                ? 'bg-indigo-300 cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95'
+                ? 'bg-teal-300 cursor-not-allowed'
+                : 'bg-teal-600 hover:bg-teal-700 active:scale-95'
             )}
           >
             <Wand2 className="h-4 w-4" />
@@ -275,10 +279,11 @@ export default function FixTab() {
 
       {showUpgrade && (
         <UpgradePrompt
-          reason="Upgrade to Pro for unlimited message fixes."
+          reason="You've used your 1 free Fix My Message for today. Upgrade for 8 per day."
           onClose={() => setShowUpgrade(false)}
         />
       )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

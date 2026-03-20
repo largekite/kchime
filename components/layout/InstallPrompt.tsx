@@ -45,7 +45,7 @@ export function InstallPrompt() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 p-4 sm:bottom-6 sm:left-auto sm:right-6 sm:max-w-sm">
       <div className="rounded-2xl bg-gray-900 p-4 shadow-2xl text-white flex items-start gap-3">
-        <div className="rounded-xl bg-indigo-600 p-2 flex-shrink-0">
+        <div className="rounded-xl bg-teal-600 p-2 flex-shrink-0">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-white" aria-hidden>
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -57,7 +57,7 @@ export function InstallPrompt() {
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleInstall}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold hover:bg-indigo-500 transition"
+              className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold hover:bg-teal-500 transition"
             >
               Install
             </button>

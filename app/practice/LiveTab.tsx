@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 
 const TONE_COLORS: Record<string, string> = {
-  Casual: 'text-indigo-700',
+  Casual: 'text-teal-700',
   Funny: 'text-amber-700',
   Warm: 'text-pink-700',
   Safe: 'text-emerald-700',
@@ -150,7 +150,7 @@ export default function LiveTab() {
         <p className="text-sm text-gray-400">Upgrade to get real-time reply suggestions while you listen.</p>
         <button
           onClick={() => setShowUpgrade(true)}
-          className="mx-auto block rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          className="mx-auto block rounded-xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
         >
           Upgrade to Pro — $7/mo
         </button>
@@ -190,7 +190,7 @@ export default function LiveTab() {
           onClick={() => setAutoMode(true)}
           className={clsx(
             'rounded-full px-3 py-1 text-sm font-medium transition',
-            autoMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            autoMode ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           )}
         >
           Auto
@@ -199,7 +199,7 @@ export default function LiveTab() {
           onClick={() => setAutoMode(false)}
           className={clsx(
             'rounded-full px-3 py-1 text-sm font-medium transition',
-            !autoMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            !autoMode ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           )}
         >
           Manual
@@ -244,7 +244,7 @@ export default function LiveTab() {
             {/* Replies */}
             <div className="grid gap-2 sm:grid-cols-2 pl-9">
               {round.replies.slice(0, 2).map((reply: Reply) => (
-                <div key={reply.id} className="rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+                <div key={reply.id} className="rounded-xl bg-teal-50 border border-teal-100 p-3">
                   <p className={clsx('text-xs font-semibold mb-1', TONE_COLORS[reply.tone] ?? 'text-gray-600')}>
                     {reply.tone}
                   </p>
@@ -265,7 +265,7 @@ export default function LiveTab() {
             {round.replies.length > 2 && (
               <div className="grid gap-2 sm:grid-cols-2 pl-9">
                 {round.replies.slice(2).map((reply: Reply) => (
-                  <div key={reply.id} className="rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+                  <div key={reply.id} className="rounded-xl bg-teal-50 border border-teal-100 p-3">
                     <p className={clsx('text-xs font-semibold mb-1', TONE_COLORS[reply.tone] ?? 'text-gray-600')}>
                       {reply.tone}
                     </p>
@@ -301,7 +301,7 @@ export default function LiveTab() {
                 <button
                   onClick={() => { setShowExplain(true); handleExplainPhrases(); }}
                   disabled={explaining}
-                  className="text-xs text-indigo-600 hover:underline disabled:opacity-50"
+                  className="text-xs text-teal-600 hover:underline disabled:opacity-50"
                 >
                   {explaining ? 'Explaining…' : 'Explain phrases'}
                 </button>
@@ -353,7 +353,7 @@ export default function LiveTab() {
           <button
             onClick={handleManualSend}
             disabled={isProcessing}
-            className="rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-indigo-700 disabled:opacity-50 transition"
+            className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-teal-700 disabled:opacity-50 transition"
           >
             Send →
           </button>
@@ -365,7 +365,7 @@ export default function LiveTab() {
             'h-16 w-16 rounded-full shadow-xl transition-all duration-200',
             isListening
               ? 'bg-red-500 shadow-red-300 scale-110'
-              : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
+              : 'bg-teal-600 shadow-teal-300 hover:scale-105',
             !isSupported && 'opacity-40'
           )}
           aria-label={isListening ? 'Stop' : 'Start listening'}

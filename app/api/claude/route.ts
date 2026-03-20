@@ -8,16 +8,23 @@ const MODEL_QUALITY = 'claude-sonnet-4-6';
 
 // Daily limits per tier
 const FREE_LIMITS = {
-  'replies': 10,
-  'work-reply': 5,
-  'fix-message': 5,
+  'replies': 5,
+  'work-reply': 1,
+  'fix-message': 1,
+  'ai-converse': 0,
 } as const;
 
 const PRO_LIMITS = {
-  'replies': 50,
-  'work-reply': 50,
-  'fix-message': 50,
+  'replies': 25,
+  'work-reply': 8,
+  'fix-message': 8,
+  'ai-converse': 25,
 } as const;
+
+// Anonymous users get 3 free reply calls before sign-up is required.
+// Tracked in-memory by IP; resets on server restart (acceptable for a soft gate).
+const ANON_REPLY_LIMIT = 3;
+const anonUsage = new Map<string, number>();
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +46,7 @@ function getAnthropic() {
   return _anthropic;
 }
 
-/** Returns { plan, userId } from the Bearer token if present. */
+/** Returns { plan, userId } from the Bearer token. Requires authentication. */
 async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'; userId: string | null }> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
   if (!token) return { plan: 'free', userId: null };
@@ -74,13 +81,13 @@ function getToday(): string {
  */
 async function isRateLimited(
   userId: string,
-  mode: 'replies' | 'work-reply' | 'fix-message',
+  mode: 'replies' | 'work-reply' | 'fix-message' | 'ai-converse',
   limit: number,
 ): Promise<boolean> {
   const today = getToday();
   const supabase = createServiceClient();
 
-  const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : 'fix_message_count';
+  const column = mode === 'replies' ? 'quick_reply_count' : mode === 'work-reply' ? 'work_reply_count' : mode === 'fix-message' ? 'fix_message_count' : 'ai_converse_count';
 
   // Ensure a row exists for today and read the current count in one round-trip
   const { data } = await supabase
@@ -120,7 +127,7 @@ async function isRateLimited(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as {
-      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'daily-phrase' | 'pack-variations';
+      mode: 'replies' | 'replies-stream' | 'evaluate' | 'explain' | 'work-reply' | 'continue-conversation' | 'generate-scenario' | 'fix-message' | 'ai-converse' | 'converse-debrief' | 'pack-variations';
       prompt?: string;
       context?: string;
       openingLine?: string;
@@ -143,27 +150,39 @@ export async function POST(req: NextRequest) {
 
     const { mode } = body;
 
-    // Rate-limited modes
-    if (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message') {
-      const { plan, userId } = await getSubscription(req);
+    const { plan, userId } = await getSubscription(req);
 
-      const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
-      if (userId) {
-        const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
-        const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
-        if (blocked) {
-          return NextResponse.json(
-            { error: 'limit_reached', limit: limits[rateLimitMode] },
-            { status: 429 },
-          );
-        }
+    // Anonymous users: allow 3 free reply calls, then require sign-up.
+    // Only replies/replies-stream are available without auth.
+    if (!userId) {
+      if (mode !== 'replies' && mode !== 'replies-stream') {
+        return NextResponse.json({ error: 'auth_required' }, { status: 401 });
       }
-      // Anonymous users: client-side tracking is sufficient (no server state)
+      const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-real-ip') ?? 'unknown';
+      const anonKey = `anon:${ip}`;
+      const count = anonUsage.get(anonKey) ?? 0;
+      if (count >= ANON_REPLY_LIMIT) {
+        return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+      }
+      anonUsage.set(anonKey, count + 1);
+      // Fall through to handle the request without further rate limiting
+    }
+
+    // Rate-limited modes (authenticated users only)
+    if (userId && (mode === 'replies' || mode === 'replies-stream' || mode === 'work-reply' || mode === 'fix-message')) {
+      const limits = plan === 'pro' ? PRO_LIMITS : FREE_LIMITS;
+      const rateLimitMode = mode === 'replies-stream' ? 'replies' : mode as 'replies' | 'work-reply' | 'fix-message';
+      const blocked = await isRateLimited(userId, rateLimitMode, limits[rateLimitMode]);
+      if (blocked) {
+        return NextResponse.json(
+          { error: 'limit_reached', limit: limits[rateLimitMode] },
+          { status: 429 },
+        );
+      }
     }
 
     // Live Listen is Pro-only — block at API level
     if (mode === 'explain') {
-      const { plan } = await getSubscription(req);
       if (plan === 'free') {
         return NextResponse.json({ error: 'pro_required' }, { status: 403 });
       }
@@ -227,8 +246,8 @@ export async function POST(req: NextRequest) {
       const toneList = toneLabels.join(', ');
 
       const message = await getAnthropic().messages.create({
-        model: MODEL_QUALITY,
-        max_tokens: 512,
+        model: MODEL_FAST,
+        max_tokens: 384,
         system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`,
         messages: [
           {
@@ -454,19 +473,52 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'ai-converse') {
+      if (plan === 'free' || !userId) return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+
+      const blocked = await isRateLimited(userId, 'ai-converse', PRO_LIMITS['ai-converse']);
+      if (blocked) {
+        return NextResponse.json(
+          { error: 'limit_reached', limit: PRO_LIMITS['ai-converse'] },
+          { status: 429 },
+        );
+      }
+
       const { persona, history, userMessage } = body;
       if (!persona || !history || !userMessage) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
-      const historyText = history.map((h) => `${h.speaker === 'ai' ? persona : 'Learner'}: "${h.text}"`).join('\n');
+      // Build proper multi-turn messages so Claude tracks the conversation naturally.
+      // The history alternates ai/user turns starting with an AI opener.
+      // We map ai turns → assistant role, user turns → user role.
+      // Claude requires messages to start with a user role, so we prepend a
+      // short framing message before the AI's opening line.
+      const messages: { role: 'user' | 'assistant'; content: string }[] = [];
+      for (const turn of history) {
+        const role = turn.speaker === 'ai' ? 'assistant' as const : 'user' as const;
+        // Claude requires alternating roles — merge consecutive same-role messages
+        if (messages.length > 0 && messages[messages.length - 1].role === role) {
+          messages[messages.length - 1].content += '\n' + turn.text;
+        } else {
+          messages.push({ role, content: turn.text });
+        }
+      }
+
+      // Claude requires the first message to be from the user role.
+      // If the conversation starts with the AI opener, prepend a user framing message.
+      if (messages.length > 0 && messages[0].role === 'assistant') {
+        messages.unshift({ role: 'user', content: `[Start of conversation with ${persona}]` });
+      }
+
+      // Ensure the last message is from the user (it should be, since we just added the user turn)
+      // If not, append the userMessage as a user turn
+      if (messages.length === 0 || messages[messages.length - 1].role !== 'user') {
+        messages.push({ role: 'user', content: userMessage });
+      }
 
       const message = await getAnthropic().messages.create({
         model: MODEL_FAST,
         max_tokens: 128,
-        system: `You are roleplaying as a ${persona} in a realistic American English conversation. Respond naturally and briefly (under 25 words). Keep the conversation moving forward naturally. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
-        messages: [{
-          role: 'user',
-          content: `Conversation so far:\n${historyText}\n\nWhat does the ${persona} say next?`,
-        }],
+        system: `You are roleplaying as a ${persona} in a realistic American English conversation with a language learner. Respond naturally and briefly (under 25 words). Keep the conversation moving forward — ask a new question or change the topic if the current one is winding down. Never repeat something you already said. Return ONLY valid JSON: {"aiReply":"..."}. No markdown.`,
+        messages,
       });
 
       const raw = extractText(message);
@@ -475,6 +527,8 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
     }
 
     if (mode === 'converse-debrief') {
+      if (plan === 'free' || !userId) return NextResponse.json({ error: 'pro_required' }, { status: 403 });
+
       const { persona, history } = body;
       if (!persona || !history) return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
 
@@ -511,8 +565,8 @@ Rewrite the draft in 3 distinct styles: "${t1}" (most polished/safe), "${t2}" (b
         async start(controller) {
           try {
             const stream = getAnthropic().messages.stream({
-              model: MODEL_QUALITY,
-              max_tokens: 512,
+              model: MODEL_FAST,
+              max_tokens: 384,
               system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies. Output each reply as a separate JSON object on its own line (NDJSON), in this exact order, with no other text before or after:
 ${ndjsonExample}
 Each reply must be under 20 words, use contractions, and sound like a real American would say it.${streamPersonalization}`,

@@ -93,8 +93,8 @@ export default function ToneTab() {
               className={clsx(
                 'rounded-full border px-4 py-1.5 text-sm font-medium transition',
                 profile.label === preset.label
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-indigo-300'
+                  ? 'border-teal-600 bg-teal-50 text-teal-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-teal-300'
               )}
             >
               {preset.label}
@@ -108,7 +108,7 @@ export default function ToneTab() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-gray-700">Formality</label>
-            <span className="text-xs font-semibold text-indigo-600">{formalityLabel(profile.formality)}</span>
+            <span className="text-xs font-semibold text-teal-600">{formalityLabel(profile.formality)}</span>
           </div>
           <input
             type="range"
@@ -117,7 +117,7 @@ export default function ToneTab() {
             step={0.05}
             value={profile.formality}
             onChange={(e) => setProfile({ ...profile, formality: parseFloat(e.target.value) })}
-            className="w-full accent-indigo-600"
+            className="w-full accent-teal-600"
           />
           <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>Casual</span>
@@ -136,8 +136,8 @@ export default function ToneTab() {
                 className={clsx(
                   'rounded-xl border p-3 text-center transition',
                   profile.lengthPreference === opt.value
-                    ? 'border-indigo-600 bg-indigo-50'
-                    : 'border-gray-200 bg-white hover:border-indigo-300'
+                    ? 'border-teal-600 bg-teal-50'
+                    : 'border-gray-200 bg-white hover:border-teal-300'
                 )}
               >
                 <p className="text-sm font-semibold text-gray-800">{opt.label}</p>
@@ -157,7 +157,7 @@ export default function ToneTab() {
             onClick={() => setProfile({ ...profile, emojiEnabled: !profile.emojiEnabled })}
             className={clsx(
               'relative h-6 w-11 rounded-full transition-colors',
-              profile.emojiEnabled ? 'bg-indigo-600' : 'bg-gray-200'
+              profile.emojiEnabled ? 'bg-teal-600' : 'bg-gray-200'
             )}
           >
             <span
@@ -179,7 +179,7 @@ export default function ToneTab() {
             placeholder="e.g., I prefer shorter replies, I avoid sarcasm, I like to be encouraging..."
             rows={3}
             maxLength={300}
-            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
           <p className="text-xs text-gray-400 mt-1 text-right">
             {(profile.customInstructions?.length ?? 0)}/300
@@ -189,7 +189,7 @@ export default function ToneTab() {
         {/* Save button */}
         <button
           onClick={handleSave}
-          className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+          className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition flex items-center justify-center gap-2"
         >
           {saved ? (
             <>
@@ -220,7 +220,7 @@ export default function ToneTab() {
 
         {/* New relationship form */}
         {showNewRel && (
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 mb-3 space-y-3">
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 mb-3 space-y-3">
             <div className="flex items-center gap-2">
               <input
                 value={newRel.emoji}
@@ -238,7 +238,7 @@ export default function ToneTab() {
               <button
                 onClick={handleAddRelationship}
                 disabled={!newRel.name.trim()}
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition"
+                className="rounded-lg bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40 transition"
               >
                 Add
               </button>
@@ -287,7 +287,7 @@ export default function ToneTab() {
                       value={rel[key]}
                       disabled={!rel.isCustom}
                       onChange={(e) => handleUpdateRelationship(rel.id, key, parseInt(e.target.value))}
-                      className="w-full accent-indigo-600 disabled:opacity-50"
+                      className="w-full accent-teal-600 disabled:opacity-50"
                     />
                     <div className="flex justify-between text-[10px] text-gray-400 -mt-0.5">
                       <span>{lo}</span>
@@ -303,7 +303,7 @@ export default function ToneTab() {
                     onClick={() => handleUpdateRelationship(rel.id, 'emojiAllowed', !rel.emojiAllowed)}
                     className={clsx(
                       'relative h-5 w-9 rounded-full transition-colors',
-                      rel.emojiAllowed ? 'bg-indigo-600' : 'bg-gray-200'
+                      rel.emojiAllowed ? 'bg-teal-600' : 'bg-gray-200'
                     )}
                   >
                     <span

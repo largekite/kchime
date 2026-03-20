@@ -14,20 +14,11 @@ const riskColors = {
   High: 'text-red-600 bg-red-50 border-red-200',
 };
 
-function Meter({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="w-28 shrink-0 text-xs text-gray-500">{label}</span>
-      <div className="flex-1 h-1.5 rounded-full bg-gray-100">
-        <div
-          className="h-1.5 rounded-full bg-indigo-500 transition-all"
-          style={{ width: `${(value / 10) * 100}%` }}
-        />
-      </div>
-      <span className="w-8 text-right text-xs font-medium text-gray-600">{value}/10</span>
-    </div>
-  );
-}
+const riskHint: Record<string, string> = {
+  Low: 'Safe and neutral — unlikely to cause friction.',
+  Medium: 'Balanced — clear but with some assertiveness.',
+  High: 'Bold and direct — may shift the dynamic.',
+};
 
 export function WorkReplyCard({ variation, isBest }: Props) {
   const [copied, setCopied] = useState(false);
@@ -37,7 +28,6 @@ export function WorkReplyCard({ variation, isBest }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {
-      // Fallback for browsers that block clipboard API
       const ta = document.createElement('textarea');
       ta.value = variation.text;
       ta.style.position = 'fixed';
@@ -52,30 +42,23 @@ export function WorkReplyCard({ variation, isBest }: Props) {
   }
 
   return (
-    <div className={`relative rounded-2xl border bg-white p-5 shadow-sm transition ${isBest ? 'border-indigo-400 ring-1 ring-indigo-300' : 'border-gray-200'}`}>
+    <div className={`relative rounded-2xl border bg-white p-5 shadow-sm transition ${isBest ? 'border-teal-400 ring-1 ring-teal-300' : 'border-gray-200'}`}>
       {isBest && (
-        <span className="absolute -top-3 left-4 rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
-          Best Choice ✓
+        <span className="absolute -top-3 left-4 rounded-full bg-teal-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
+          Recommended
         </span>
       )}
 
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-gray-800">{variation.label}</h3>
-        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${riskColors[variation.risk]}`}>
-          Risk: {variation.risk}
+        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${riskColors[variation.risk]}`}>
+          {variation.risk} risk
         </span>
       </div>
 
-      <p className="mb-4 text-sm leading-relaxed text-gray-700">{variation.text}</p>
+      <p className="mb-3 text-sm leading-relaxed text-gray-700">{variation.text}</p>
 
-      <div className="mb-4 space-y-2 rounded-xl bg-gray-50 px-4 py-3">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Power Position</span>
-          <span className="text-xs font-semibold text-gray-700">{variation.powerPosition}</span>
-        </div>
-        <Meter label="Assertiveness" value={variation.assertiveness} />
-        <Meter label="Warmth" value={variation.warmth} />
-      </div>
+      <p className="mb-4 text-xs text-gray-400">{riskHint[variation.risk]}</p>
 
       <button
         onClick={handleCopy}

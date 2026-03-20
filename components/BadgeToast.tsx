@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { BadgeId } from '@/types';
 import { BADGE_MAP } from '@/lib/gamification';
 
@@ -10,21 +10,35 @@ interface Props {
 }
 
 export function BadgeToast({ newBadges, onDismiss }: Props) {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [visible, setVisible] = useState(false);
 
+  const showNext = useCallback(() => {
+    setVisible(false);
+    setTimeout(() => {
+      if (currentIndex + 1 < newBadges.length) {
+        setCurrentIndex((i) => i + 1);
+      } else {
+        onDismiss();
+      }
+    }, 300);
+  }, [currentIndex, newBadges.length, onDismiss]);
+
   useEffect(() => {
-    if (newBadges.length > 0) {
+    if (newBadges.length > 0 && currentIndex < newBadges.length) {
       setVisible(true);
-      const t = setTimeout(() => {
-        setVisible(false);
-        setTimeout(onDismiss, 300);
-      }, 4000);
+      const t = setTimeout(showNext, 4000);
       return () => clearTimeout(t);
     }
-  }, [newBadges, onDismiss]);
+  }, [newBadges, currentIndex, showNext]);
 
-  if (newBadges.length === 0) return null;
-  const badge = BADGE_MAP[newBadges[0]];
+  // Reset index when new badges come in
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [newBadges]);
+
+  if (newBadges.length === 0 || currentIndex >= newBadges.length) return null;
+  const badge = BADGE_MAP[newBadges[currentIndex]];
 
   return (
     <div
@@ -35,11 +49,18 @@ export function BadgeToast({ newBadges, onDismiss }: Props) {
       <div className="flex items-center gap-3 rounded-2xl bg-gray-900 px-5 py-3.5 shadow-2xl text-white min-w-[260px]">
         <span className="text-3xl">{badge.emoji}</span>
         <div>
-          <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Badge Unlocked!</p>
+          <p className="text-xs font-semibold text-teal-300 uppercase tracking-wider">Badge Unlocked!</p>
           <p className="font-bold text-sm">{badge.name}</p>
           <p className="text-xs text-gray-400">{badge.description}</p>
         </div>
-        <span className="ml-auto text-indigo-400 font-bold text-sm">+{badge.xpReward} XP</span>
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <span className="text-teal-400 font-bold text-sm">+{badge.xpReward} XP</span>
+          {newBadges.length > 1 && (
+            <span className="text-[10px] text-gray-500">
+              {currentIndex + 1} / {newBadges.length}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

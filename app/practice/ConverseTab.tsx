@@ -1,6 +1,6 @@
 'use client';
 
-import { aiConverse, converseDebrief, fetchRepliesStream, type ReplyPersonalization } from '@/lib/claude';
+import { aiConverse, converseDebrief, fetchRepliesStream, LimitReachedError, type ReplyPersonalization } from '@/lib/claude';
 import { speakText, cancelSpeech } from '@/lib/speech';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { getToneProfile } from '@/lib/storage';
@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { UpgradePrompt } from '@/components/shared/UpgradePrompt';
 import clsx from 'clsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Mic, MicOff, RotateCcw, Lightbulb } from 'lucide-react';
+import { Mic, MicOff, RotateCcw, Lightbulb, Volume2 } from 'lucide-react';
 import type { Context, Reply } from '@/types';
 
 interface Persona {
@@ -28,6 +28,12 @@ const PERSONAS: Persona[] = [
   { id: 'neighbor', name: 'Neighbor', emoji: '🏠', scene: 'Friendly hallway run-in', opener: "Oh hey! I keep meaning to ask — have you tried that new restaurant on the corner?", context: 'Text' },
   { id: 'interviewer', name: 'Job Interviewer', emoji: '👔', scene: 'Job interview', opener: "Great to meet you! Tell me a little bit about yourself.", context: 'Office' },
   { id: 'server', name: 'Restaurant Server', emoji: '🍽️', scene: 'Ordering food', opener: "Welcome in! Can I start you off with something to drink?", context: 'Any' },
+  { id: 'manager', name: 'Team Manager', emoji: '📋', scene: 'Weekly 1-on-1 check-in', opener: "Hey, come on in! So, how are things going this week? Anything blocking you?", context: 'Office' },
+  { id: 'doctor', name: 'Doctor', emoji: '🩺', scene: 'Medical check-up', opener: "Hi there! I'm Dr. Chen. What brings you in today?", context: 'Any' },
+  { id: 'customer-service', name: 'Customer Service', emoji: '📞', scene: 'Product return or complaint', opener: "Thank you for calling. My name is Alex. How can I assist you today?", context: 'Any' },
+  { id: 'rideshare', name: 'Rideshare Driver', emoji: '🚗', scene: 'Small talk during a ride', opener: "Hey, welcome! Heading to downtown, right? Traffic's not too bad today!", context: 'Any' },
+  { id: 'landlord', name: 'Landlord', emoji: '🔑', scene: 'Apartment viewing', opener: "Hi! Thanks for coming by. So, are you looking for a one-bedroom or would you need more space?", context: 'Any' },
+  { id: 'tech-support', name: 'Tech Support', emoji: '💻', scene: 'Troubleshooting an issue', opener: "Hello! Thanks for contacting support. Can you describe what issue you're experiencing?", context: 'Office' },
 ];
 
 interface Turn {
@@ -44,9 +50,15 @@ interface Debrief {
 export default function ConverseTab() {
   const { plan, session, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
+  const [selectedPersona, _setSelectedPersona] = useState<Persona | null>(null);
+  const selectedPersonaRef = useRef<Persona | null>(null);
+  const setSelectedPersona = useCallback((p: Persona | null) => {
+    selectedPersonaRef.current = p;
+    _setSelectedPersona(p);
+  }, []);
   const [history, setHistory] = useState<Turn[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const isAiSpeakingRef = useRef(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const isProcessingRef = useRef(false);
   const [error, setError] = useState('');
@@ -57,16 +69,29 @@ export default function ConverseTab() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const abortRef = useRef(false);
+  const startRef = useRef<() => void>(() => {});
+  const stopRef = useRef<() => void>(() => {});
+
+  // Helper to set both state (for UI) and ref (for stale-closure-safe guards)
+  const setAiSpeaking = useCallback((value: boolean) => {
+    isAiSpeakingRef.current = value;
+    setIsAiSpeaking(value);
+  }, []);
 
   const handleUserSpeech = useCallback(
     async (transcript: string) => {
-      if (!selectedPersona || isProcessingRef.current || isAiSpeaking) return;
+      // Use refs for guards — the onSilence callback captures a stale closure,
+      // so reading state directly would use an outdated value.
+      const persona = selectedPersonaRef.current;
+      if (!persona || isProcessingRef.current || isAiSpeakingRef.current) return;
       if (!transcript.trim()) return;
 
       isProcessingRef.current = true;
       abortRef.current = false;
       setIsProcessing(true);
       setHints([]);
+      // Stop mic while processing + speaking so it doesn't silently drop speech
+      stopRef.current();
       const userTurn: Turn = { speaker: 'user', text: transcript };
       let newHistory: Turn[] = [];
       setHistory((prev) => {
@@ -76,25 +101,36 @@ export default function ConverseTab() {
 
       try {
         const aiReply = await aiConverse(
-          selectedPersona.name,
+          persona.name,
           newHistory.map((t) => ({ speaker: t.speaker, text: t.text })),
           transcript,
         );
         if (abortRef.current) return;
         const aiTurn: Turn = { speaker: 'ai', text: aiReply };
         setHistory((prev) => [...prev, aiTurn]);
-        setIsAiSpeaking(true);
-        speakText(aiReply, () => setIsAiSpeaking(false), session?.access_token);
+        setAiSpeaking(true);
+        speakText(aiReply, () => {
+          if (abortRef.current) return;
+          setAiSpeaking(false);
+          // Auto-resume listening after AI finishes speaking
+          startRef.current();
+        }, session?.access_token);
       } catch (e) {
         if (!abortRef.current) {
-          setError(e instanceof Error ? e.message : 'Something went wrong.');
+          if (e instanceof LimitReachedError) {
+            setError(`Daily conversation limit reached (${e.limit}/day). Resets tomorrow!`);
+          } else {
+            setError(e instanceof Error ? e.message : 'Something went wrong.');
+          }
+          // Restart mic on error since speakText won't run to do it
+          startRef.current();
         }
       } finally {
         isProcessingRef.current = false;
         setIsProcessing(false);
       }
     },
-    [selectedPersona, isAiSpeaking, session],
+    [setAiSpeaking, session],
   );
 
   const { isListening, isSupported, start, stop, transcript, reset } = useSpeechRecognition({
@@ -103,32 +139,45 @@ export default function ConverseTab() {
     continuous: true,
   });
 
+  // Keep refs in sync so callbacks can use them without circular deps
+  startRef.current = start;
+  stopRef.current = stop;
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history]);
 
   function handleSelectPersona(persona: Persona) {
+    abortRef.current = false;
     setSelectedPersona(persona);
     setHistory([{ speaker: 'ai', text: persona.opener }]);
     setError('');
     setDebrief(null);
     setHints([]);
     reset();
-    setIsAiSpeaking(true);
-    speakText(persona.opener, () => setIsAiSpeaking(false), session?.access_token);
+    setAiSpeaking(true);
+    speakText(persona.opener, () => {
+      if (abortRef.current) return;
+      setAiSpeaking(false);
+      // Auto-start listening after the AI opener finishes
+      if (isSupported) startRef.current();
+    }, session?.access_token);
   }
 
   function handleReset() {
     abortRef.current = true;
+    isProcessingRef.current = false;
     stop();
     cancelSpeech();
     setSelectedPersona(null);
     setHistory([]);
     setError('');
     setDebrief(null);
+    setIsDebriefing(false);
+    setIsProcessing(false);
     setHints([]);
     reset();
-    setIsAiSpeaking(false);
+    setAiSpeaking(false);
   }
 
   function handleToggleMic() {
@@ -141,9 +190,12 @@ export default function ConverseTab() {
   }
 
   async function handleFinishSession() {
+    abortRef.current = true;
     stop();
     cancelSpeech();
-    setIsAiSpeaking(false);
+    setAiSpeaking(false);
+    isProcessingRef.current = false;
+    setIsProcessing(false);
     setIsDebriefing(true);
     try {
       const result = await converseDebrief(
@@ -198,12 +250,26 @@ export default function ConverseTab() {
 
   const fluencyColor: Record<string, string> = {
     'Excellent': 'text-emerald-600',
-    'Good': 'text-indigo-600',
+    'Good': 'text-teal-600',
     'Keep practicing': 'text-amber-600',
   };
 
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-56 rounded-lg bg-gray-100 animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-100 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // Pro gate
-  if (!authLoading && plan === 'free') {
+  if (plan === 'free') {
     return (
       <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center space-y-4">
         <div className="text-4xl">🎙️</div>
@@ -213,7 +279,7 @@ export default function ConverseTab() {
         </p>
         <button
           onClick={() => setShowUpgrade(true)}
-          className="mx-auto block rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+          className="mx-auto block rounded-xl bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
         >
           Upgrade to Pro — $7/mo
         </button>
@@ -257,10 +323,10 @@ export default function ConverseTab() {
             <button
               key={persona.id}
               onClick={() => handleSelectPersona(persona)}
-              className="flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white p-5 hover:border-indigo-300 hover:bg-indigo-50 transition group"
+              className="flex flex-col items-center gap-2 rounded-2xl border-2 border-gray-100 bg-white p-5 hover:border-teal-300 hover:bg-teal-50 transition group"
             >
               <span className="text-3xl">{persona.emoji}</span>
-              <span className="font-semibold text-gray-800 text-sm group-hover:text-indigo-700">{persona.name}</span>
+              <span className="font-semibold text-gray-800 text-sm group-hover:text-teal-700">{persona.name}</span>
               <span className="text-xs text-gray-400 text-center leading-tight">{persona.scene}</span>
             </button>
           ))}
@@ -294,7 +360,7 @@ export default function ConverseTab() {
 
           <button
             onClick={handleReset}
-            className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
           >
             Start new conversation
           </button>
@@ -321,7 +387,7 @@ export default function ConverseTab() {
                 className={clsx('flex gap-2.5', turn.speaker === 'user' ? 'justify-end' : 'justify-start')}
               >
                 {turn.speaker === 'ai' && (
-                  <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
+                  <div className="h-8 w-8 rounded-full bg-teal-600 flex items-center justify-center text-lg flex-shrink-0 mt-0.5">
                     {selectedPersona.emoji}
                   </div>
                 )}
@@ -330,7 +396,7 @@ export default function ConverseTab() {
                     'max-w-xs rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                     turn.speaker === 'ai'
                       ? 'rounded-tl-none bg-white border border-gray-100 shadow-sm text-gray-900'
-                      : 'rounded-tr-none bg-indigo-600 text-white'
+                      : 'rounded-tr-none bg-teal-600 text-white'
                   )}
                 >
                   {turn.text}
@@ -341,28 +407,32 @@ export default function ConverseTab() {
             {/* Live transcript */}
             {isListening && transcript && (
               <div className="flex justify-end gap-2.5">
-                <div className="max-w-xs rounded-2xl rounded-tr-none bg-indigo-100 border border-indigo-200 px-4 py-2.5 text-sm text-indigo-700 italic">
+                <div className="max-w-xs rounded-2xl rounded-tr-none bg-teal-100 border border-teal-200 px-4 py-2.5 text-sm text-teal-700 italic">
                   {transcript}…
                 </div>
               </div>
             )}
 
-            {/* AI typing indicator */}
+            {/* AI indicator — dots while thinking, speaker icon while speaking */}
             {(isProcessing || isAiSpeaking) && (
               <div className="flex gap-2.5 items-start">
-                <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-teal-600 flex items-center justify-center text-lg flex-shrink-0">
                   {selectedPersona.emoji}
                 </div>
                 <div className="rounded-2xl rounded-tl-none bg-white border border-gray-100 shadow-sm px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    {[0, 1, 2].map((i) => (
-                      <span
-                        key={i}
-                        className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce"
-                        style={{ animationDelay: `${i * 150}ms` }}
-                      />
-                    ))}
-                  </div>
+                  {isProcessing ? (
+                    <div className="flex items-center gap-1">
+                      {[0, 1, 2].map((i) => (
+                        <span
+                          key={i}
+                          className="h-2 w-2 rounded-full bg-teal-400 animate-bounce"
+                          style={{ animationDelay: `${i * 150}ms` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <Volume2 className="h-4 w-4 text-teal-400 animate-pulse" />
+                  )}
                 </div>
               </div>
             )}
@@ -387,51 +457,64 @@ export default function ConverseTab() {
 
           {/* Mic button + Hint + Finish session */}
           <div className="sticky bottom-6 flex flex-col items-center gap-3 pt-2">
-            {/* Hint button — shown above mic, centered */}
-            {history.length >= 1 && !isProcessing && !isAiSpeaking && (
-              <button
-                onClick={handleHint}
-                disabled={isLoadingHints}
-                className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
-                title="Need a hint?"
-              >
-                <Lightbulb className={clsx('h-3.5 w-3.5', isLoadingHints && 'animate-pulse')} />
-                {isLoadingHints ? 'Loading hint…' : 'Hint'}
-              </button>
+            {!isDebriefing && (
+              <>
+                {/* Hint button — shown above mic when idle */}
+                {history.length >= 1 && !isProcessing && !isAiSpeaking && (
+                  <button
+                    onClick={handleHint}
+                    disabled={isLoadingHints}
+                    className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition disabled:opacity-40"
+                    title="Need a hint?"
+                  >
+                    <Lightbulb className={clsx('h-3.5 w-3.5', isLoadingHints && 'animate-pulse')} />
+                    {isLoadingHints ? 'Loading hint…' : 'Hint'}
+                  </button>
+                )}
+
+                <div className="flex items-center">
+                  <button
+                    onClick={handleToggleMic}
+                    disabled={!isSupported || isProcessing || isAiSpeaking}
+                    className={clsx(
+                      'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
+                      isListening
+                        ? 'bg-red-500 shadow-red-300 scale-110'
+                        : 'bg-teal-600 shadow-teal-300 hover:scale-105',
+                      (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
+                    )}
+                  >
+                    {isListening ? (
+                      <MicOff className="h-7 w-7 text-white" />
+                    ) : (
+                      <Mic className="h-7 w-7 text-white" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {isProcessing
+                    ? 'Thinking…'
+                    : isAiSpeaking
+                      ? `${selectedPersona.name} is speaking…`
+                      : isListening
+                        ? 'Listening…'
+                        : 'Tap to speak'}
+                </p>
+
+                {/* Finish session — shown after at least 2 user turns */}
+                {userTurns >= 2 && !isProcessing && !isAiSpeaking && (
+                  <button
+                    onClick={handleFinishSession}
+                    className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    Finish session
+                  </button>
+                )}
+              </>
             )}
 
-            <div className="flex items-center">
-              <button
-                onClick={handleToggleMic}
-                disabled={!isSupported || isProcessing || isAiSpeaking}
-                className={clsx(
-                  'h-16 w-16 rounded-full shadow-xl transition-all duration-200 flex items-center justify-center',
-                  isListening
-                    ? 'bg-red-500 shadow-red-300 scale-110'
-                    : 'bg-indigo-600 shadow-indigo-300 hover:scale-105',
-                  (!isSupported || isProcessing || isAiSpeaking) && 'opacity-40 cursor-not-allowed'
-                )}
-              >
-                {isListening ? (
-                  <MicOff className="h-7 w-7 text-white" />
-                ) : (
-                  <Mic className="h-7 w-7 text-white" />
-                )}
-              </button>
-            </div>
-            <p className="text-xs text-gray-400">
-              {isAiSpeaking ? `${selectedPersona.name} is speaking…` : isListening ? 'Listening…' : 'Tap to speak'}
-            </p>
-
-            {/* Finish session — shown after at least 2 user turns */}
-            {userTurns >= 2 && !isProcessing && !isAiSpeaking && (
-              <button
-                onClick={handleFinishSession}
-                disabled={isDebriefing}
-                className="rounded-xl border border-gray-200 bg-white px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition disabled:opacity-40"
-              >
-                {isDebriefing ? 'Getting feedback…' : 'Finish session →'}
-              </button>
+            {isDebriefing && (
+              <p className="text-sm text-gray-400 animate-pulse">Getting feedback…</p>
             )}
           </div>
         </>

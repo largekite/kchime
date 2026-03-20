@@ -25,9 +25,9 @@ function ActivityHeatmap({ daily }: { daily: DailyProgress[] }) {
 
   function cellColor(count: number) {
     if (count === 0) return 'bg-gray-100';
-    if (count <= 1) return 'bg-indigo-200';
-    if (count <= 3) return 'bg-indigo-400';
-    return 'bg-indigo-600';
+    if (count <= 1) return 'bg-teal-200';
+    if (count <= 3) return 'bg-teal-400';
+    return 'bg-teal-600';
   }
 
   function shortDate(iso: string) {
@@ -42,9 +42,9 @@ function ActivityHeatmap({ daily }: { daily: DailyProgress[] }) {
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
           <span>Less</span>
           <span className="h-3 w-3 rounded-sm bg-gray-100" />
-          <span className="h-3 w-3 rounded-sm bg-indigo-200" />
-          <span className="h-3 w-3 rounded-sm bg-indigo-400" />
-          <span className="h-3 w-3 rounded-sm bg-indigo-600" />
+          <span className="h-3 w-3 rounded-sm bg-teal-200" />
+          <span className="h-3 w-3 rounded-sm bg-teal-400" />
+          <span className="h-3 w-3 rounded-sm bg-teal-600" />
           <span>More</span>
         </div>
       </div>
@@ -151,15 +151,15 @@ export default function DashboardTab() {
       </div>
 
       {/* Level + XP bar */}
-      <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-5 text-white shadow-lg">
+      <div className="rounded-2xl bg-gradient-to-br from-teal-500 to-purple-600 p-5 text-white shadow-lg">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Level {levelInfo.level}</p>
+            <p className="text-xs font-semibold text-teal-200 uppercase tracking-wider">Level {levelInfo.level}</p>
             <p className="text-xl font-bold">{levelInfo.name}</p>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold">{xp.toLocaleString()}</p>
-            <p className="text-xs text-indigo-200">Total XP</p>
+            <p className="text-xs text-teal-200">Total XP</p>
             {multiplier > 1 && (
               <p className="text-xs font-bold text-yellow-300 mt-0.5">{multiplierLabel} XP Bonus Active</p>
             )}
@@ -172,7 +172,7 @@ export default function DashboardTab() {
           />
         </div>
         {levelInfo.next && (
-          <p className="text-xs text-indigo-200 mt-1.5">
+          <p className="text-xs text-teal-200 mt-1.5">
             {levelInfo.next - xp} XP to Level {levelInfo.level + 1} · {LEVEL_NAMES[levelInfo.level]}
           </p>
         )}
@@ -211,13 +211,13 @@ export default function DashboardTab() {
                 title={earned ? `${badge.name}: ${badge.description}` : `Locked — ${badge.description}`}
                 className={clsx(
                   'flex flex-col items-center gap-1 rounded-xl p-2 text-center transition cursor-default',
-                  earned ? 'bg-indigo-50 ring-1 ring-indigo-100' : 'opacity-35 grayscale'
+                  earned ? 'bg-teal-50 ring-1 ring-teal-100' : 'opacity-35 grayscale'
                 )}
               >
                 <span className="text-2xl leading-none" role="img" aria-label={badge.name}>{badge.emoji}</span>
                 <p className="text-[10px] font-medium text-gray-700 leading-tight">{badge.name}</p>
                 {earned && (
-                  <span className="text-[9px] text-indigo-500 font-semibold">+{badge.xpReward} XP</span>
+                  <span className="text-[9px] text-teal-500 font-semibold">+{badge.xpReward} XP</span>
                 )}
               </div>
             );
@@ -256,7 +256,7 @@ export default function DashboardTab() {
         </div>
         <div className="h-2.5 w-full rounded-full bg-gray-100 mb-5">
           <div
-            className="h-2.5 rounded-full bg-indigo-500 transition-all"
+            className="h-2.5 rounded-full bg-teal-500 transition-all"
             style={{ width: `${Math.round((totalCompleted / totalScenarios) * 100)}%` }}
           />
         </div>
@@ -273,7 +273,7 @@ export default function DashboardTab() {
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-gray-100">
                     <div
-                      className={clsx('h-1.5 rounded-full transition-all', meta.color.includes('indigo') ? 'bg-indigo-400' : meta.color.includes('purple') ? 'bg-purple-400' : meta.color.includes('blue') ? 'bg-blue-400' : meta.color.includes('green') ? 'bg-green-400' : meta.color.includes('amber') ? 'bg-amber-400' : meta.color.includes('orange') ? 'bg-orange-400' : meta.color.includes('pink') ? 'bg-pink-400' : meta.color.includes('red') ? 'bg-red-400' : 'bg-yellow-400')}
+                      className={clsx('h-1.5 rounded-full transition-all', meta.color.includes('teal') ? 'bg-teal-400' : meta.color.includes('purple') ? 'bg-purple-400' : meta.color.includes('blue') ? 'bg-blue-400' : meta.color.includes('green') ? 'bg-green-400' : meta.color.includes('amber') ? 'bg-amber-400' : meta.color.includes('orange') ? 'bg-orange-400' : meta.color.includes('pink') ? 'bg-pink-400' : meta.color.includes('red') ? 'bg-red-400' : 'bg-yellow-400')}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -325,7 +325,7 @@ export default function DashboardTab() {
       <button
         onClick={handleShare}
         disabled={sharing}
-        className="w-full rounded-xl border-2 border-dashed border-indigo-200 py-3 text-sm font-semibold text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 transition flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full rounded-xl border-2 border-dashed border-teal-200 py-3 text-sm font-semibold text-teal-600 hover:border-teal-400 hover:bg-teal-50 transition flex items-center justify-center gap-2 disabled:opacity-50"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />

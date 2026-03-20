@@ -1,8 +1,9 @@
 'use client';
 
 import { ReplyCard } from '@/components/quick-reply/ReplyCard';
+import { AuthModal } from '@/components/shared/AuthModal';
 import { ContactSelector } from '@/components/shared/ContactSelector';
-import { fetchRepliesStream } from '@/lib/claude';
+import { fetchRepliesStream, AuthRequiredError } from '@/lib/claude';
 import type { ReplyPersonalization } from '@/lib/claude';
 import { useContacts } from '@/hooks/useContacts';
 import { useProgress } from '@/hooks/useProgress';
@@ -40,6 +41,7 @@ export default function QuickReplyTab() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showAuth, setShowAuth] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const { recentPrompts, addPrompt } = useProgress();
   const { save: savePhrase } = useSavedPhrases();
@@ -97,7 +99,11 @@ export default function QuickReplyTab() {
       }
       addPrompt(text);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
+      if (e instanceof AuthRequiredError) {
+        setError('sign_up');
+      } else {
+        setError(e instanceof Error ? e.message : 'Something went wrong.');
+      }
     } finally {
       setLoading(false);
     }
@@ -134,7 +140,7 @@ export default function QuickReplyTab() {
                 className={clsx(
                   'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
                   context === c
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-teal-600 text-white'
                     : locked
                       ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -175,7 +181,7 @@ export default function QuickReplyTab() {
             placeholder='What did someone say? e.g. "TGIF, am I right?"'
             rows={2}
             autoComplete="off"
-            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
           {/* Inline action: clear button or mic inside textarea */}
           {isListening ? (
@@ -203,7 +209,7 @@ export default function QuickReplyTab() {
             <button
               type="button"
               onClick={handleMic}
-              className="absolute right-2.5 top-2.5 rounded-full p-1 text-gray-300 hover:text-indigo-500 transition"
+              className="absolute right-2.5 top-2.5 rounded-full p-1 text-gray-300 hover:text-teal-500 transition"
               title="Speak"
             >
               <Mic className="h-4 w-4" />
@@ -214,14 +220,21 @@ export default function QuickReplyTab() {
         <button
           onClick={() => handleSubmit()}
           disabled={loading || (!input.trim() && !transcript.trim())}
-          className="mt-3 w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-40"
+          className="mt-3 w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-40"
         >
           {loading ? 'Generating replies…' : 'Get Replies'}
         </button>
 
-        {error && (
+        {error === 'sign_up' ? (
+          <div className="mt-2 text-sm bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center justify-between">
+            <span className="text-blue-800">Sign up free to keep practicing!</span>
+            <button onClick={() => setShowAuth(true)} className="ml-3 px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+              Sign Up
+            </button>
+          </div>
+        ) : error ? (
           <p className="mt-2 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-        )}
+        ) : null}
       </div>
 
       {/* Recent prompts */}
@@ -236,7 +249,7 @@ export default function QuickReplyTab() {
                   setInput(p);
                   handleSubmit(p);
                 }}
-                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-indigo-300 hover:text-indigo-700 transition"
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-sm text-gray-600 hover:border-teal-300 hover:text-teal-700 transition"
               >
                 {p.length > 40 ? p.slice(0, 40) + '…' : p}
               </button>
@@ -263,7 +276,7 @@ export default function QuickReplyTab() {
             </p>
             <button
               onClick={() => handleSubmit(currentPrompt)}
-              className="text-xs text-indigo-600 hover:underline"
+              className="text-xs text-teal-600 hover:underline"
             >
               Regenerate
             </button>
@@ -289,6 +302,7 @@ export default function QuickReplyTab() {
           <p className="text-sm text-gray-400 mt-1">Type or speak a phrase and get 4 natural ways to reply.</p>
         </div>
       )}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }

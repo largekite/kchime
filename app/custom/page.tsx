@@ -82,13 +82,13 @@ export default function CustomPage() {
           onChange={(e) => setInput(e.target.value)}
           placeholder={'e.g.\nCoworker: "You killed it in that meeting today!"\nMe: "Oh, thanks, I was so nervous"'}
           rows={4}
-          className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           onClick={handleGenerate}
           disabled={loading || !input.trim()}
-          className="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40 transition"
+          className="w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40 transition"
         >
           {loading ? 'Generating…' : 'Generate scenario'}
         </button>
@@ -96,9 +96,9 @@ export default function CustomPage() {
 
       {/* Preview */}
       {preview && (
-        <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-5 space-y-3">
+        <div className="rounded-2xl bg-teal-50 border border-teal-200 p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-indigo-800">Preview</p>
+            <p className="text-sm font-bold text-teal-800">Preview</p>
             <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', categoryMeta[preview.category]?.color ?? 'bg-gray-100 text-gray-600')}>
               {preview.category}
             </span>
@@ -115,7 +115,7 @@ export default function CustomPage() {
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              className="flex-1 rounded-xl bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+              className="flex-1 rounded-xl bg-teal-600 py-2 text-sm font-semibold text-white hover:bg-teal-700 transition"
             >
               Save & practice
             </button>
@@ -151,7 +151,7 @@ export default function CustomPage() {
                 <p className="text-xs text-gray-500 line-clamp-2 mb-3">&ldquo;{s.openingLine}&rdquo;</p>
                 <Link
                   href={`/practice/${s.id}`}
-                  className="block w-full rounded-lg bg-indigo-600 py-1.5 text-center text-xs font-semibold text-white hover:bg-indigo-700 transition"
+                  className="block w-full rounded-lg bg-teal-600 py-1.5 text-center text-xs font-semibold text-white hover:bg-teal-700 transition"
                 >
                   Practice
                 </Link>

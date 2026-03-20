@@ -29,9 +29,9 @@ export function LevelUpToast({ level, levelName, onDone }: Props) {
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
-      <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3.5 shadow-2xl text-white min-w-[260px]">
+      <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-teal-600 to-purple-600 px-5 py-3.5 shadow-2xl text-white min-w-[260px]">
         <div>
-          <p className="text-xs font-semibold text-indigo-200 uppercase tracking-wider">Level Up!</p>
+          <p className="text-xs font-semibold text-teal-200 uppercase tracking-wider">Level Up!</p>
           <p className="font-bold">Level {level} — {levelName}</p>
         </div>
       </div>

@@ -4,10 +4,17 @@ import { createServiceClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
-const FREE_TTS_LIMIT = 20;
-const PRO_TTS_LIMIT = 100;
+const FREE_TTS_LIMIT = 10;
+const PRO_TTS_LIMIT = 40;
 const ANON_TTS_LIMIT = 5;
 const MAX_TEXT_LENGTH = 500;
+
+// Cache the OpenAI client as a singleton to avoid connection setup overhead per request
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
 
 async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'; userId: string | null }> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '');
@@ -26,7 +33,7 @@ async function getSubscription(req: NextRequest): Promise<{ plan: 'free' | 'pro'
 }
 
 // Returns true if within limit and increments, false if limit reached.
-// Uses optimistic locking to prevent race conditions.
+// Uses optimistic locking to prevent concurrent requests from bypassing limits.
 async function checkAndIncrement(userId: string, today: string, limit: number): Promise<boolean> {
   const supabase = createServiceClient();
 
@@ -40,7 +47,7 @@ async function checkAndIncrement(userId: string, today: string, limit: number): 
   const count = (data as { tts_count: number } | null)?.tts_count ?? 0;
   if (count >= limit) return false;
 
-  // Increment with optimistic lock: only update if count hasn't changed
+  // Optimistic lock: only update if count hasn't changed since we read it
   const { data: updated } = await supabase
     .from('daily_usage')
     .update({ tts_count: count + 1 })
@@ -84,59 +91,55 @@ function checkAnonLimit(ip: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  const { text } = await req.json() as { text: string };
-  if (!text) return new Response('Missing text', { status: 400 });
+  try {
+    const { text } = await req.json() as { text: string };
+    if (!text) return new Response('Missing text', { status: 400 });
 
-  if (text.length > MAX_TEXT_LENGTH) {
-    return new Response(JSON.stringify({ error: `Text too long. Maximum ${MAX_TEXT_LENGTH} characters.` }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const { plan, userId } = await getSubscription(req);
-  const limit = plan === 'pro' ? PRO_TTS_LIMIT : FREE_TTS_LIMIT;
-
-  if (userId) {
-    const today = new Date().toISOString().split('T')[0];
-
-    // Check rate limit FIRST, then call OpenAI only if within limit
-    const withinLimit = await checkAndIncrement(userId, today, limit);
-    if (!withinLimit) {
-      return new Response(JSON.stringify({ error: 'limit_reached' }), {
-        status: 429,
+    if (text.length > MAX_TEXT_LENGTH) {
+      return new Response(JSON.stringify({ error: `Text too long. Maximum ${MAX_TEXT_LENGTH} characters.` }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const ttsResponse = await openai.audio.speech.create({ model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3' });
+    const { plan, userId } = await getSubscription(req);
+
+    // Rate-limit authenticated users
+    if (userId) {
+      const limit = plan === 'pro' ? PRO_TTS_LIMIT : FREE_TTS_LIMIT;
+      const today = new Date().toISOString().split('T')[0];
+
+      // Check and increment limit BEFORE calling OpenAI to avoid wasting API calls
+      const withinLimit = await checkAndIncrement(userId, today, limit);
+      if (!withinLimit) {
+        return new Response(JSON.stringify({ error: 'limit_reached' }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Anonymous user — in-memory IP-based rate limiting
+      const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+      if (!checkAnonLimit(ip)) {
+        return new Response(JSON.stringify({ error: 'limit_reached' }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    const ttsResponse = await getOpenAI().audio.speech.create({
+      model: 'tts-1', voice: 'nova', input: text, response_format: 'mp3',
+    });
     const buffer = await ttsResponse.arrayBuffer();
     return new Response(buffer, {
       headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
     });
-  }
-
-  // Anonymous user — in-memory IP-based rate limiting
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
-  const anonAllowed = checkAnonLimit(ip);
-  if (!anonAllowed) {
-    return new Response(JSON.stringify({ error: 'limit_reached' }), {
-      status: 429,
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'TTS failed';
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
-
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  const response = await openai.audio.speech.create({
-    model: 'tts-1',
-    voice: 'nova',
-    input: text,
-    response_format: 'mp3',
-  });
-
-  const buffer = await response.arrayBuffer();
-  return new Response(buffer, {
-    headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
-  });
 }

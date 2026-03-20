@@ -53,7 +53,7 @@ export function Navbar() {
       <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur" role="banner">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-indigo-600" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-teal-600" aria-hidden="true">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -69,9 +69,9 @@ export function Navbar() {
                   aria-label="Account menu"
                   aria-expanded={showMenu}
                   aria-haspopup="true"
-                  className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-teal-200"
                 >
-                  <span className="h-6 w-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+                  <span className="h-6 w-6 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold">
                     {user.email?.[0]?.toUpperCase() ?? '?'}
                   </span>
                   {plan === 'pro' && (
@@ -81,7 +81,7 @@ export function Navbar() {
               ) : (
                 <button
                   onClick={() => setShowAuth(true)}
-                  className="rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+                  className="rounded-xl bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700 transition"
                 >
                   Sign in
                 </button>
@@ -94,7 +94,7 @@ export function Navbar() {
                   {plan === 'free' && (
                     <button
                       onClick={() => { setShowMenu(false); setShowUpgrade(true); }}
-                      className="w-full text-left px-4 py-2 text-sm text-indigo-600 font-medium hover:bg-indigo-50 transition"
+                      className="w-full text-left px-4 py-2 text-sm text-teal-600 font-medium hover:bg-teal-50 transition"
                     >
                       Upgrade to Pro
                     </button>
@@ -124,9 +124,9 @@ export function Navbar() {
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={clsx(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-200',
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-teal-200',
                   active
-                    ? 'bg-indigo-50 text-indigo-700'
+                    ? 'bg-teal-50 text-teal-700'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 )}
               >
@@ -149,8 +149,8 @@ export function Navbar() {
                 href={href}
                 aria-current={active ? 'page' : undefined}
                 className={clsx(
-                  'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1 rounded-lg',
-                  active ? 'text-indigo-600' : 'text-gray-400'
+                  'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1 rounded-lg',
+                  active ? 'text-teal-600' : 'text-gray-400'
                 )}
               >
                 <Icon className="h-5 w-5" />
