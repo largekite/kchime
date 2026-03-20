@@ -1,11 +1,68 @@
 const API_BASE = 'https://kchime.com';
 
+// Buffer (in ms) before actual expiry to trigger a refresh
+const REFRESH_BUFFER_MS = 5 * 60 * 1000; // 5 minutes
+
+// Attempt to refresh the access token using the stored refresh token.
+// Returns the new access token or null if refresh failed.
+async function tryRefreshToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['refreshToken'], async ({ refreshToken }) => {
+      if (!refreshToken) { resolve(null); return; }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) { resolve(null); return; }
+
+        const data = await res.json();
+        if (data.token) {
+          chrome.storage.local.set({
+            token: data.token,
+            refreshToken: data.refreshToken,
+            expiresAt: data.expiresAt,
+          });
+          resolve(data.token);
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+}
+
+// Get a valid token, refreshing if expired or about to expire
+async function getValidToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['token', 'expiresAt'], async ({ token, expiresAt }) => {
+      if (!token) { resolve(null); return; }
+
+      // Check if token is expired or about to expire
+      if (expiresAt) {
+        const expiresAtMs = expiresAt * 1000; // expiresAt is in seconds
+        if (Date.now() > expiresAtMs - REFRESH_BUFFER_MS) {
+          const newToken = await tryRefreshToken();
+          resolve(newToken);
+          return;
+        }
+      }
+
+      resolve(token);
+    });
+  });
+}
+
 // Fetch reply suggestions from KChime API
 async function fetchReplies(prompt, platform, tone, token) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
 
-  const body = { mode: 'replies', prompt, context: 'Any' };
+  const body = { mode: 'replies', prompt, context: platform || 'Any' };
   if (tone) body.toneProfile = { customInstructions: `Prefer a ${tone} tone.`, formality: 0.5, lengthPreference: 'medium', emojiEnabled: false };
 
   let res;
@@ -44,33 +101,39 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'FETCH_REPLIES') {
-    chrome.storage.local.get(['token'], async ({ token }) => {
+    (async () => {
       try {
-        const data = await fetchReplies(msg.prompt, msg.platform ?? 'General', msg.tone ?? null, token ?? null);
+        const token = await getValidToken();
+        const data = await fetchReplies(msg.prompt, msg.platform ?? 'General', msg.tone ?? null, token);
         sendResponse({ ok: true, replies: data.replies });
       } catch (err) {
         sendResponse({ ok: false, error: err.message });
       }
-    });
+    })();
     return true; // keep channel open for async response
   }
 
   if (msg.type === 'GET_TOKEN') {
-    chrome.storage.local.get(['token'], ({ token }) => {
-      sendResponse({ token: token ?? null });
-    });
+    (async () => {
+      const token = await getValidToken();
+      sendResponse({ token });
+    })();
     return true;
   }
 
   if (msg.type === 'SET_TOKEN') {
-    chrome.storage.local.set({ token: msg.token }, () => {
+    chrome.storage.local.set({
+      token: msg.token,
+      refreshToken: msg.refreshToken,
+      expiresAt: msg.expiresAt,
+    }, () => {
       sendResponse({ ok: true });
     });
     return true;
   }
 
   if (msg.type === 'CLEAR_TOKEN') {
-    chrome.storage.local.remove('token', () => {
+    chrome.storage.local.remove(['token', 'refreshToken', 'expiresAt'], () => {
       sendResponse({ ok: true });
     });
     return true;

@@ -14,23 +14,59 @@ chrome.runtime.sendMessage({ type: 'GET_TOKEN' }, async (response) => {
   if (!token) { showSignedOut(); return; }
 
   try {
-    const [meRes, usageRes] = await Promise.all([
-      fetch(`${API_BASE}/api/me`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE}/api/usage`, { headers: { Authorization: `Bearer ${token}` } }),
-    ]);
+    const meRes = await fetch(`${API_BASE}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
 
-    // Only clear the token on explicit auth rejection (401), not server errors
-    if (meRes.status === 401) { await clearToken(); showSignedOut(); return; }
+    // On 401, attempt token refresh before giving up
+    if (meRes.status === 401) {
+      const refreshed = await tryRefreshAndRetry();
+      if (refreshed) return; // refreshed successfully, UI already updated
+      await clearToken();
+      showSignedOut();
+      return;
+    }
     if (!meRes.ok) { showSignedIn(null, false, null); return; }
 
     const me = await meRes.json();
-    const usage = usageRes.ok ? await usageRes.json() : null;
-    showSignedIn(me.email, me.isPro, usage);
+    showSignedIn(me.email, me.isPro, me.usage ?? null);
   } catch {
     // Network error — still show signed-in with no usage data
     showSignedIn(null, false, null);
   }
 });
+
+// Attempt to refresh the token and re-fetch user data
+async function tryRefreshAndRetry() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['refreshToken'], async ({ refreshToken }) => {
+      if (!refreshToken) { resolve(false); return; }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (!res.ok) { resolve(false); return; }
+
+        const data = await res.json();
+        if (!data.token) { resolve(false); return; }
+
+        // Store new tokens
+        await setToken(data.token, data.refreshToken, data.expiresAt);
+
+        // Re-fetch user data with new token
+        const meRes = await fetch(`${API_BASE}/api/me`, { headers: { Authorization: `Bearer ${data.token}` } });
+        if (!meRes.ok) { resolve(false); return; }
+
+        const me = await meRes.json();
+        showSignedIn(me.email, me.isPro, me.usage ?? null);
+        resolve(true);
+      } catch {
+        resolve(false);
+      }
+    });
+  });
+}
 
 // ── Sign-in form ──────────────────────────────────────────────────────────
 
@@ -63,12 +99,15 @@ async function handleSignIn() {
       return;
     }
 
-    await setToken(data.token);
+    await setToken(data.token, data.refreshToken, data.expiresAt);
     // Fetch live usage now that we have a token
     let usage = null;
     try {
-      const ur = await fetch(`${API_BASE}/api/usage`, { headers: { Authorization: `Bearer ${data.token}` } });
-      if (ur.ok) usage = await ur.json();
+      const meRes = await fetch(`${API_BASE}/api/me`, { headers: { Authorization: `Bearer ${data.token}` } });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        usage = me.usage ?? null;
+      }
     } catch { /* ignore, usage card stays hidden */ }
     showSignedIn(email, data.isPro ?? false, usage);
   } catch {
@@ -137,8 +176,8 @@ function showError(msg) {
 
 // ── Token helpers ─────────────────────────────────────────────────────────
 
-function setToken(token) {
-  return new Promise(resolve => chrome.runtime.sendMessage({ type: 'SET_TOKEN', token }, resolve));
+function setToken(token, refreshToken, expiresAt) {
+  return new Promise(resolve => chrome.runtime.sendMessage({ type: 'SET_TOKEN', token, refreshToken, expiresAt }, resolve));
 }
 
 function clearToken() {

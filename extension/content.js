@@ -6,11 +6,34 @@
   window.__kchimeLoaded = true;
 
   let activeField = null;
+  let widgetHost = null; // Shadow DOM host for the widget
+  let widgetShadow = null;
   let widget = null;
+  let panelHost = null; // Shadow DOM host for the panel
+  let panelShadow = null;
   let panel = null;
   let isOpen = false;
   let selectedTone = null; // null = auto
   let fetchGen = 0; // incremented each fetch; stale callbacks check against it
+  let injectedStyles = null; // cached CSS text for shadow roots
+
+  // ── Load CSS for shadow DOM ───────────────────────────────────────────────
+
+  // Fetch the CSS file and cache it for injection into shadow roots
+  function getStyles() {
+    if (injectedStyles) return Promise.resolve(injectedStyles);
+    return fetch(chrome.runtime.getURL('content.css'))
+      .then(r => r.text())
+      .then(css => { injectedStyles = css; return css; });
+  }
+
+  function injectStyles(shadowRoot) {
+    getStyles().then(css => {
+      const style = document.createElement('style');
+      style.textContent = css;
+      shadowRoot.appendChild(style);
+    });
+  }
 
   // ── Platform detection ─────────────────────────────────────────────────────
 
@@ -59,13 +82,27 @@
     if (!el) return;
     el.focus();
     if (el.isContentEditable) {
+      // Use InputEvent-based insertion (modern replacement for execCommand)
       const sel = window.getSelection();
       const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
       sel.removeAllRanges();
       sel.addRange(range);
-      document.execCommand('insertText', false, text);
+      // Try InputEvent approach first, fall back to execCommand
+      const inputEvent = new InputEvent('beforeinput', {
+        inputType: 'insertText',
+        data: text,
+        bubbles: true,
+        cancelable: true,
+      });
+      const accepted = el.dispatchEvent(inputEvent);
+      if (accepted) {
+        // The app didn't prevent default, so we need to actually insert the text
+        // execCommand is deprecated but still the most reliable cross-browser method
+        // for triggering the app's input handling (React, Angular, etc.)
+        document.execCommand('insertText', false, text);
+      }
     } else {
       const end = el.value.length;
       el.setRangeText(text, end, end, 'end');
@@ -116,7 +153,7 @@
   // ── Widget positioning ─────────────────────────────────────────────────────
 
   function positionWidget() {
-    if (!activeField || !widget) return;
+    if (!activeField || !widgetHost) return;
     const rect = activeField.getBoundingClientRect();
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
@@ -127,22 +164,22 @@
     if (left + 130 > scrollX + vw - 8) left = scrollX + vw - 138;
     if (left < scrollX + 8) left = scrollX + 8;
 
-    widget.style.top = `${rect.bottom + scrollY + 5}px`;
-    widget.style.left = `${left}px`;
+    widgetHost.style.top = `${rect.bottom + scrollY + 5}px`;
+    widgetHost.style.left = `${left}px`;
   }
 
   function positionPanel() {
-    if (!panel || !activeField || !widget) return;
+    if (!panelHost || !activeField || !widgetHost) return;
     const rect = activeField.getBoundingClientRect();
-    const panelH = panel.offsetHeight || 300;
-    const panelW = panel.offsetWidth || 300;
+    const panelH = panelHost.offsetHeight || 300;
+    const panelW = panelHost.offsetWidth || 300;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
 
     // Horizontal: same left as widget, clamped (guard NaN if widget not yet positioned)
-    let left = parseFloat(widget.style.left);
+    let left = parseFloat(widgetHost.style.left);
     if (isNaN(left)) left = scrollX + vw - panelW - 8;
     if (left + panelW > scrollX + vw - 8) left = scrollX + vw - panelW - 8;
     if (left < scrollX + 8) left = scrollX + 8;
@@ -156,10 +193,8 @@
       top = rect.top + scrollY - panelH - 10; // above field
     }
 
-    panel.style.position = 'absolute';
-    panel.style.top = `${top}px`;
-    panel.style.left = `${left}px`;
-    panel.style.zIndex = '2147483647';
+    panelHost.style.top = `${top}px`;
+    panelHost.style.left = `${left}px`;
   }
 
   // ── Panel HTML builders ────────────────────────────────────────────────────
@@ -227,6 +262,17 @@
     panel.innerHTML = `
       ${buildHeader(platform)}
       <div id="kchime-error">${msg}</div>`;
+    panel.querySelector('#kchime-close').addEventListener('click', closePanel);
+    setTimeout(positionPanel, 0);
+  }
+
+  function showEmptyPrompt(platform) {
+    if (!panel) return;
+    panel.innerHTML = `
+      ${buildHeader(platform)}
+      <div id="kchime-error" style="color:#6b7280;background:#f9fafb">
+        Type a message first, then click <strong>KChime</strong> to get reply suggestions.
+      </div>`;
     panel.querySelector('#kchime-close').addEventListener('click', closePanel);
     setTimeout(positionPanel, 0);
   }
@@ -303,7 +349,13 @@
 
   function fetchAndShowReplies(platform) {
     const gen = ++fetchGen; // capture generation; any older callback will be discarded
-    const prompt = getFieldText(activeField) || 'Hello';
+    const prompt = getFieldText(activeField);
+
+    // Show helpful message instead of sending empty/placeholder prompt
+    if (!prompt) {
+      showEmptyPrompt(platform);
+      return;
+    }
 
     showLoading(platform);
 
@@ -344,14 +396,21 @@
   // ── Open / close ──────────────────────────────────────────────────────────
 
   function openPanel() {
-    if (!activeField || !widget) return;
+    if (!activeField || !widgetHost) return;
     if (isOpen) { closePanel(); return; }
     isOpen = true;
 
-    // Panel lives in body (not inside widget) for better positioning
+    // Panel lives in its own Shadow DOM host for style isolation
+    panelHost = document.createElement('div');
+    panelHost.id = 'kchime-panel-host';
+    panelHost.style.cssText = 'position:absolute;z-index:2147483647;';
+    panelShadow = panelHost.attachShadow({ mode: 'closed' });
+    injectStyles(panelShadow);
+
     panel = document.createElement('div');
     panel.id = 'kchime-panel';
-    document.body.appendChild(panel);
+    panelShadow.appendChild(panel);
+    document.body.appendChild(panelHost);
 
     const platform = detectPlatform();
     fetchAndShowReplies(platform);
@@ -359,15 +418,24 @@
 
   function closePanel() {
     fetchGen++; // invalidate any in-flight request
-    if (panel) { panel.remove(); panel = null; }
+    if (panelHost) { panelHost.remove(); panelHost = null; panelShadow = null; }
+    panel = null;
     isOpen = false;
   }
 
   // ── Trigger button ────────────────────────────────────────────────────────
 
   function createWidget() {
+    // Widget lives in its own Shadow DOM host for style isolation
+    const host = document.createElement('div');
+    host.id = 'kchime-widget-host';
+    host.style.cssText = 'position:absolute;z-index:2147483646;pointer-events:none;';
+    const shadow = host.attachShadow({ mode: 'closed' });
+    injectStyles(shadow);
+
     const div = document.createElement('div');
     div.id = 'kchime-widget';
+    shadow.appendChild(div);
 
     const btn = document.createElement('button');
     btn.id = 'kchime-btn';
@@ -381,22 +449,33 @@
     btn.addEventListener('click', e => { e.stopPropagation(); openPanel(); });
 
     div.appendChild(btn);
-    return div;
+    widgetShadow = shadow;
+    return host;
   }
 
   function showWidget() {
-    if (!widget) {
-      widget = createWidget();
-      document.body.appendChild(widget);
+    if (!widgetHost) {
+      widgetHost = createWidget();
+      document.body.appendChild(widgetHost);
     }
     positionWidget();
-    widget.style.display = 'block';
+    widgetHost.style.display = 'block';
   }
 
   function hideWidget() {
     closePanel();
-    if (widget) { widget.style.display = 'none'; }
+    if (widgetHost) { widgetHost.style.display = 'none'; }
     activeField = null;
+  }
+
+  // ── Helpers for Shadow DOM element checks ─────────────────────────────────
+
+  function isOwnUI(el) {
+    if (!el) return false;
+    // Check if the element is inside our shadow DOM hosts
+    if (widgetHost && (el === widgetHost || widgetHost.contains(el))) return true;
+    if (panelHost && (el === panelHost || panelHost.contains(el))) return true;
+    return false;
   }
 
   // ── Event listeners ───────────────────────────────────────────────────────
@@ -404,7 +483,7 @@
   document.addEventListener('focusin', e => {
     const el = e.target;
     // Ignore focus events from our own UI or the clipboard helper textarea
-    if (el.closest?.('#kchime-widget') || el.closest?.('#kchime-panel') || el.dataset?.kchimeClipboard) return;
+    if (isOwnUI(el) || el.dataset?.kchimeClipboard) return;
     if (!isTextInput(el)) { hideWidget(); return; }
     activeField = el;
     showWidget();
@@ -414,7 +493,7 @@
     setTimeout(() => {
       const focused = document.activeElement;
       if (!focused) { hideWidget(); return; }
-      if (focused.closest?.('#kchime-widget') || focused.closest?.('#kchime-panel')) return;
+      if (isOwnUI(focused)) return;
       if (!isTextInput(focused)) hideWidget();
     }, 180);
   }, true);
@@ -425,7 +504,7 @@
   // Close panel on outside click
   document.addEventListener('click', e => {
     if (!isOpen) return;
-    if (!e.target.closest('#kchime-panel') && !e.target.closest('#kchime-widget')) closePanel();
+    if (!isOwnUI(e.target)) closePanel();
   }, true);
 
   // Keyboard shortcut: Alt+K (in-page handler as fallback)
