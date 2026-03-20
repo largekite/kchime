@@ -70,6 +70,81 @@
     { id: 'bold',        label: 'Bold',         color: '#dc2626' },
   ];
 
+  // ── Thread context extraction ─────────────────────────────────────────────
+
+  // For Gmail, Outlook, etc. — find the message being replied to
+  function getThreadContext(el, platform) {
+    if (!el) return '';
+    try {
+      if (platform === 'Gmail') return getGmailContext(el);
+      if (platform === 'Outlook') return getOutlookContext(el);
+      if (platform === 'LinkedIn') return getLinkedInContext(el);
+    } catch { /* DOM access can throw; ignore */ }
+    return '';
+  }
+
+  function getGmailContext(el) {
+    // Gmail reply compose boxes are inside the thread container.
+    // Walk up to find the thread, then grab the last email body before the compose box.
+    let container = el.closest('[role="list"]') || el.closest('.nH');
+    if (!container) return '';
+
+    // Email bodies in Gmail use .a3s.aiL or .ii.gt classes
+    const bodies = container.querySelectorAll('.a3s.aiL, .ii.gt');
+    if (!bodies.length) return '';
+
+    // Get the last (most recent) email body that's not inside the compose area
+    let lastBody = '';
+    for (const body of bodies) {
+      // Skip if this element is inside the compose box
+      if (el.contains(body) || body.contains(el)) continue;
+      const text = (body.innerText || '').trim();
+      if (text) lastBody = text;
+    }
+
+    // Also try to get the sender name from the email header
+    let sender = '';
+    const senderEls = container.querySelectorAll('[email], .gD, .go');
+    if (senderEls.length) {
+      const lastSender = senderEls[senderEls.length - 1];
+      sender = (lastSender.getAttribute('name') || lastSender.textContent || '').trim();
+    }
+
+    // Truncate long emails to keep the prompt reasonable
+    if (lastBody.length > 1500) lastBody = lastBody.slice(0, 1500) + '…';
+
+    if (sender && lastBody) return `[From ${sender}]: ${lastBody}`;
+    return lastBody;
+  }
+
+  function getOutlookContext(el) {
+    // Outlook Web reply — the quoted message is typically in a div with role="presentation"
+    // or inside .QuotedText / [id*="divRplyFwdMsg"]
+    const thread = el.closest('[role="main"]') || el.closest('.ReadMsgContainer');
+    if (!thread) return '';
+    const quoted = thread.querySelector('[id*="divRplyFwdMsg"], .QuotedText, [class*="quotedText"]');
+    if (!quoted) return '';
+    let text = (quoted.innerText || '').trim();
+    if (text.length > 1500) text = text.slice(0, 1500) + '…';
+    return text;
+  }
+
+  function getLinkedInContext(el) {
+    // LinkedIn messaging — the last message from the other person
+    const feed = el.closest('.msg-convo-wrapper, [class*="messaging"]');
+    if (!feed) return '';
+    const messages = feed.querySelectorAll('.msg-s-event-listitem__body, [class*="message-body"]');
+    if (!messages.length) return '';
+    // Get the last message that's not from the current user
+    let lastMsg = '';
+    for (const msg of messages) {
+      const text = (msg.innerText || '').trim();
+      if (text) lastMsg = text;
+    }
+    if (lastMsg.length > 1500) lastMsg = lastMsg.slice(0, 1500) + '…';
+    return lastMsg;
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   function getFieldText(el) {
@@ -349,7 +424,20 @@
 
   function fetchAndShowReplies(platform) {
     const gen = ++fetchGen; // capture generation; any older callback will be discarded
-    const prompt = getFieldText(activeField);
+    const draft = getFieldText(activeField);
+    const threadContext = getThreadContext(activeField, platform);
+
+    // Build the prompt: if we have thread context, use it as the message to reply to
+    let prompt;
+    if (threadContext && !draft) {
+      // User hasn't typed anything yet — suggest replies to the thread message
+      prompt = threadContext;
+    } else if (threadContext && draft) {
+      // User has a partial draft — include both for context
+      prompt = `${threadContext}\n\n[My draft so far: ${draft}]`;
+    } else {
+      prompt = draft;
+    }
 
     // Show helpful message instead of sending empty/placeholder prompt
     if (!prompt) {
