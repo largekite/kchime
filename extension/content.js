@@ -13,7 +13,7 @@
   let panelShadow = null;
   let panel = null;
   let isOpen = false;
-  let selectedTone = null; // null = auto
+  // Tone is always auto — no user-facing tone selector
   let fetchGen = 0; // incremented each fetch; stale callbacks check against it
   let injectedStyles = null; // cached CSS text for shadow roots
 
@@ -61,11 +61,26 @@
     return title.length > 30 ? title.slice(0, 28) + '…' : title || 'General';
   }
 
-  const TONES = [
-    { id: null,          label: 'Auto',         color: '#6b7280' },
-    { id: 'professional', label: 'Professional', color: '#1d4ed8' },
-    { id: 'friendly',    label: 'Friendly',     color: '#059669' },
-  ];
+  // Single auto tone — no user-selectable tones
+
+  // Map detected platform to API context category
+  // API supports: Any, Office, Text, Party, Family
+  function platformToContext(platform) {
+    switch (platform) {
+      case 'Gmail':
+      case 'Outlook':
+      case 'LinkedIn':
+      case 'Slack':
+      case 'Microsoft Teams':
+        return 'Office';
+      case 'WhatsApp':
+      case 'Facebook Messenger':
+      case 'Discord':
+        return 'Text';
+      default:
+        return 'Any';
+    }
+  }
 
   // ── Thread context extraction ─────────────────────────────────────────────
 
@@ -526,33 +541,7 @@
       </div>`;
   }
 
-  function buildToneChips() {
-    return `
-      <div id="kchime-tones">
-        ${TONES.map(t => `
-          <button class="kchime-tone-chip${selectedTone === t.id ? ' active' : ''}"
-            data-tone="${t.id ?? ''}"
-            style="--tone-color:${t.color}"
-          >${escHtml(t.label)}</button>
-        `).join('')}
-      </div>`;
-  }
-
-  // onToneChange: optional callback when user picks a different tone
-  function bindToneChips(el, onToneChange) {
-    el.querySelectorAll('.kchime-tone-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const raw = btn.dataset.tone;
-        const next = raw === '' ? null : raw;
-        const changed = next !== selectedTone;
-        selectedTone = next;
-        el.querySelectorAll('.kchime-tone-chip').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Defer re-render so the current event completes before DOM is replaced
-        if (changed && onToneChange) setTimeout(onToneChange, 0);
-      });
-    });
-  }
+  // Tone chips removed — single auto mode
 
   // ── Panel states ──────────────────────────────────────────────────────────
 
@@ -560,13 +549,10 @@
     if (!panel) return;
     panel.innerHTML = `
       ${buildHeader(platform)}
-      ${buildToneChips()}
       <div id="kchime-loading">
         <span class="kchime-spinner"></span> Getting suggestions…
       </div>`;
     panel.querySelector('#kchime-close').addEventListener('click', closePanel);
-    // Tone changes during loading restart the fetch
-    bindToneChips(panel, () => fetchAndShowReplies(platform));
     setTimeout(positionPanel, 0);
   }
 
@@ -686,7 +672,6 @@
 
     panel.innerHTML = `
       ${buildHeader(platform)}
-      ${buildToneChips()}
       <div id="kchime-replies">${items}</div>
       <div id="kchime-panel-footer">
         <button id="kchime-regen">
@@ -700,8 +685,6 @@
       </div>`;
 
     panel.querySelector('#kchime-close').addEventListener('click', closePanel);
-    // Tone changes while replies are shown auto-regenerate
-    bindToneChips(panel, () => fetchAndShowReplies(platform));
 
     panel.querySelectorAll('.kchime-reply-use').forEach(btn => {
       btn.addEventListener('click', e => {
@@ -809,7 +792,7 @@
     showLoading(platform);
 
     chrome.runtime.sendMessage(
-      { type: 'FETCH_REPLIES', prompt: prompt || '', platform, tone: selectedTone, threadContext, draft },
+      { type: 'FETCH_REPLIES', prompt: prompt || '', platform: platformToContext(platform), tone: null, threadContext, draft },
       (response) => {
         // Discard if panel closed or a newer fetch started
         if (gen !== fetchGen || !panel) return;
