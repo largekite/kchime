@@ -65,9 +65,6 @@
     { id: null,          label: 'Auto',         color: '#6b7280' },
     { id: 'professional', label: 'Professional', color: '#1d4ed8' },
     { id: 'friendly',    label: 'Friendly',     color: '#059669' },
-    { id: 'concise',     label: 'Concise',      color: '#7c3aed' },
-    { id: 'playful',     label: 'Playful',      color: '#d97706' },
-    { id: 'bold',        label: 'Bold',         color: '#dc2626' },
   ];
 
   // ── Thread context extraction ─────────────────────────────────────────────
@@ -551,7 +548,8 @@
         selectedTone = next;
         el.querySelectorAll('.kchime-tone-chip').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        if (changed && onToneChange) onToneChange();
+        // Defer re-render so the current event completes before DOM is replaced
+        if (changed && onToneChange) setTimeout(onToneChange, 0);
       });
     });
   }
@@ -816,8 +814,9 @@
         // Discard if panel closed or a newer fetch started
         if (gen !== fetchGen || !panel) return;
 
-        if (chrome.runtime.lastError) {
-          showError('Could not connect to KChime extension. Try reloading the page.');
+        if (chrome.runtime.lastError || !chrome.runtime?.id) {
+          showError('Lost connection to KChime. <button id="kchime-reload" style="color:#4f46e5;background:none;border:none;cursor:pointer;font-size:11px;font-weight:600;padding:0">Reload page →</button>');
+          panel?.querySelector('#kchime-reload')?.addEventListener('click', () => location.reload());
           return;
         }
         if (!response?.ok) {
