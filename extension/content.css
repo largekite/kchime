@@ -261,6 +261,14 @@
 
 .kchime-reply-use:hover { background: #4338ca; border-color: #4338ca; }
 
+.kchime-reply-edit {
+  background: #fff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}
+
+.kchime-reply-edit:hover { background: #eef2ff; }
+
 .kchime-reply-copy {
   background: #fff;
   color: #374151;

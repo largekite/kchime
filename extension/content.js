@@ -94,6 +94,97 @@
     return text.slice(0, keepStart) + '\n[…truncated…]\n' + text.slice(-keepEnd);
   }
 
+  // ── Email context normalization ────────────────────────────────────────────
+
+  // Remove email signatures, quoted content markers, and footers
+  function removeSignaturesAndFooters(text) {
+    if (!text) return text;
+    let cleaned = text;
+
+    // Remove "On Mon, Jan 1, 2024 at 10:00 AM Name <email> wrote:" patterns
+    cleaned = cleaned.replace(/On\s+\w{3},\s+\w{3}\s+\d{1,2},\s+\d{4}\s+at\s+[\d:]+\s*[AP]M\s+.*?\s+wrote:\s*/gi, '');
+    // Also handle "On Jan 1, 2024, at 10:00 AM, Name wrote:" (Apple Mail style)
+    cleaned = cleaned.replace(/On\s+\w{3}\s+\d{1,2},\s+\d{4},?\s+at\s+[\d:]+\s*[AP]M,?\s+.*?\s+wrote:\s*/gi, '');
+    // Generic "X wrote:" with date patterns
+    cleaned = cleaned.replace(/On\s+\d{1,2}\/\d{1,2}\/\d{2,4}.*?wrote:\s*/gi, '');
+
+    // Remove common email signatures
+    const sigPatterns = [
+      /^--\s*$/m,                              // Standard sig separator
+      /^_{3,}\s*$/m,                           // Underscore separator
+      /^Sent from my (?:iPhone|iPad|Android|Galaxy|Pixel|phone).*/mi,
+      /^Get Outlook for (?:iOS|Android).*/mi,
+      /^Sent from Mail for Windows.*/mi,
+      /^Sent via .*/mi,
+      /^This email and any attachments.*/mi,    // Confidentiality footer
+      /^CONFIDENTIALITY NOTICE.*/mi,
+      /^DISCLAIMER:.*/mi,
+    ];
+
+    for (const pattern of sigPatterns) {
+      const match = cleaned.match(pattern);
+      if (match && match.index !== undefined) {
+        // Remove everything from the signature marker onwards
+        cleaned = cleaned.slice(0, match.index).trim();
+      }
+    }
+
+    // Remove repeated ">" quoted lines (only if more than 2 consecutive)
+    cleaned = cleaned.replace(/(?:^>.*\n?){3,}/gm, '[quoted content removed]\n');
+
+    return cleaned.trim();
+  }
+
+  // Deduplicate messages that have substantially the same content
+  function deduplicateMessages(messages) {
+    if (messages.length <= 1) return messages;
+    const seen = new Set();
+    return messages.filter(m => {
+      // Normalize: lowercase, collapse whitespace, take first 200 chars
+      const key = m.text.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 200);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  // Normalize extracted email context: clean, deduplicate, limit
+  function normalizeEmailContext(ctx) {
+    if (!ctx || !ctx.messages || ctx.messages.length === 0) return ctx;
+
+    // Clean each message
+    const cleaned = ctx.messages.map(m => ({
+      ...m,
+      text: removeSignaturesAndFooters(m.text),
+    })).filter(m => m.text.length > 0);
+
+    // Deduplicate
+    const deduped = deduplicateMessages(cleaned);
+
+    // Keep last 3 messages max (subject provides additional context)
+    const limited = deduped.slice(-3);
+
+    return { ...ctx, messages: limited };
+  }
+
+  // ── Context cache ──────────────────────────────────────────────────────────
+
+  let _contextCache = { key: '', result: null, timestamp: 0 };
+  const CACHE_TTL_MS = 5000; // 5 seconds
+
+  function getCachedContext(el, platform) {
+    const now = Date.now();
+    // Use the element reference + platform as cache key
+    const key = (el?.dataset?.messageId || '') + '|' + platform + '|' + (el?.closest?.('[data-message-id]')?.dataset?.messageId || '');
+    if (_contextCache.key === key && (now - _contextCache.timestamp) < CACHE_TTL_MS && _contextCache.result) {
+      return _contextCache.result;
+    }
+    const result = getThreadContext(el, platform);
+    const normalized = normalizeEmailContext(result);
+    _contextCache = { key, result: normalized, timestamp: now };
+    return normalized;
+  }
+
   function getGmailContext(el) {
     // Walk up to the thread container
     const container = el.closest('[role="list"]') || el.closest('.nH');
@@ -110,8 +201,8 @@
       if (titleMatch) subject = titleMatch[1].trim();
     }
 
-    // Collect all email messages in the thread
-    const emailEls = container.querySelectorAll('[data-message-id], .kv, .gs');
+    // Collect all email messages in the thread (including expanded and collapsed)
+    const emailEls = container.querySelectorAll('[data-message-id], .kv, .gs, .h7');
     const messages = [];
 
     if (emailEls.length > 0) {
@@ -119,14 +210,18 @@
         // Skip if this is inside the compose area
         if (el.contains(emailEl) || emailEl.contains(el)) continue;
 
-        // Sender
+        // Sender — extract name and email address
         const senderEl = emailEl.querySelector('[email], .gD, .go, [data-hovercard-id]');
-        const from = senderEl
-          ? (senderEl.getAttribute('name') || senderEl.textContent || '').trim()
-          : '';
+        let from = '';
+        if (senderEl) {
+          const name = (senderEl.getAttribute('name') || '').trim();
+          const email = (senderEl.getAttribute('email') || '').trim();
+          from = name || senderEl.textContent?.trim() || '';
+          if (email && name) from = `${name} <${email}>`;
+        }
 
-        // Body — try multiple selectors
-        const bodyEl = emailEl.querySelector('.a3s.aiL, .ii.gt, [data-message-id] .a3s');
+        // Body — try multiple selectors including newer Gmail layouts
+        const bodyEl = emailEl.querySelector('.a3s.aiL, .ii.gt, [data-message-id] .a3s, .gmail_quote');
         if (!bodyEl) continue;
         const text = (bodyEl.innerText || '').trim();
         if (!text) continue;
@@ -147,7 +242,10 @@
         const parent = body.closest('.gs, .kv, [data-message-id]');
         if (parent) {
           const s = parent.querySelector('[email], .gD, .go');
-          from = s ? (s.getAttribute('name') || s.textContent || '').trim() : '';
+          const name = s ? (s.getAttribute('name') || '').trim() : '';
+          const email = s ? (s.getAttribute('email') || '').trim() : '';
+          from = name || s?.textContent?.trim() || '';
+          if (email && name) from = `${name} <${email}>`;
         }
         messages.push({ from, text });
       }
@@ -155,31 +253,31 @@
 
     if (messages.length === 0) return null;
 
-    // Keep only last 2 messages for cost/speed — subject provides enough context
-    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 1000) }));
+    // Keep last 3 messages, truncate each for cost/speed
+    const selected = messages.slice(-3).map(m => ({ ...m, text: smartTruncate(m.text, 1000) }));
 
     return { subject, messages: selected };
   }
 
   function getOutlookContext(el) {
-    const thread = el.closest('[role="main"]') || el.closest('.ReadMsgContainer');
+    const thread = el.closest('[role="main"]') || el.closest('.ReadMsgContainer') || el.closest('[class*="ReadingPane"]');
     if (!thread) return null;
 
-    // Subject
+    // Subject — try multiple selectors for different Outlook layouts
     let subject = '';
-    const subjectEl = thread.querySelector('[role="heading"], .allowTextSelection');
+    const subjectEl = thread.querySelector('[role="heading"], .allowTextSelection, [class*="SubjectLine"], [class*="subject"]');
     if (subjectEl) subject = (subjectEl.textContent || '').trim();
 
     // Try to get individual messages first
-    const msgEls = thread.querySelectorAll('[data-convid], .ItemContent, [class*="ConversationItem"]');
+    const msgEls = thread.querySelectorAll('[data-convid], .ItemContent, [class*="ConversationItem"], [class*="ItemPart"]');
     const messages = [];
 
     if (msgEls.length > 0) {
       for (const msgEl of msgEls) {
         if (el.contains(msgEl) || msgEl.contains(el)) continue;
-        const senderEl = msgEl.querySelector('[class*="sender"], [class*="From"]');
+        const senderEl = msgEl.querySelector('[class*="sender"], [class*="From"], [class*="PersonaControl"], .lpc_name_line');
         const from = senderEl ? (senderEl.textContent || '').trim() : '';
-        const bodyEl = msgEl.querySelector('[class*="BodyFragment"], [role="document"]');
+        const bodyEl = msgEl.querySelector('[class*="BodyFragment"], [role="document"], [class*="UniqueMessageBody"]');
         const text = bodyEl ? (bodyEl.innerText || '').trim() : '';
         if (text) messages.push({ from, text: smartTruncate(text, 1200) });
       }
@@ -187,7 +285,7 @@
 
     // Fallback: grab quoted text
     if (messages.length === 0) {
-      const quoted = thread.querySelector('[id*="divRplyFwdMsg"], .QuotedText, [class*="quotedText"]');
+      const quoted = thread.querySelector('[id*="divRplyFwdMsg"], .QuotedText, [class*="quotedText"], [class*="BodyFragment"]');
       if (!quoted) return null;
       const text = (quoted.innerText || '').trim();
       if (!text) return null;
@@ -495,6 +593,25 @@
     setTimeout(positionPanel, 0);
   }
 
+  function showFallbackPrompt(platform) {
+    if (!panel) return;
+    panel.innerHTML = `
+      ${buildHeader(platform)}
+      <div style="padding:12px;font-size:12px;color:#6b7280;background:#f9fafb">
+        <p style="margin:0 0 8px">Couldn't fully detect context — paste the email below for better replies.</p>
+        <textarea id="kchime-manual-input" placeholder="Paste email text here…" style="width:100%;min-height:80px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        <button id="kchime-manual-submit" style="margin-top:8px;padding:6px 14px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Generate Replies</button>
+      </div>`;
+    panel.querySelector('#kchime-close').addEventListener('click', closePanel);
+    panel.querySelector('#kchime-manual-submit').addEventListener('click', () => {
+      const text = panel.querySelector('#kchime-manual-input')?.value?.trim();
+      if (!text) return;
+      const manualContext = { subject: '', messages: [{ from: '', text }] };
+      fetchAndShowReplies(platform, manualContext);
+    });
+    setTimeout(positionPanel, 0);
+  }
+
   function showReplies(replies, platform) {
     if (!panel) return;
     if (!replies.length) {
@@ -514,7 +631,8 @@
           <span class="kchime-reply-tone">${escHtml(r.tone)}</span>
         </div>
         <div class="kchime-reply-actions">
-          <button class="kchime-reply-btn kchime-reply-use" data-index="${i}">Use</button>
+          <button class="kchime-reply-btn kchime-reply-use" data-index="${i}">Insert</button>
+          <button class="kchime-reply-btn kchime-reply-edit" data-index="${i}">Edit</button>
           <button class="kchime-reply-btn kchime-reply-copy" data-index="${i}">Copy</button>
         </div>
       </div>`).join('');
@@ -541,9 +659,55 @@
     panel.querySelectorAll('.kchime-reply-use').forEach(btn => {
       btn.addEventListener('click', e => {
         const idx = parseInt(e.currentTarget.dataset.index, 10);
+        const existingText = getFieldText(activeField);
+        if (existingText && existingText.length > 5) {
+          // Field has existing text — confirm before overwriting
+          const confirmed = window.confirm('Replace existing text with this reply?');
+          if (!confirmed) return;
+          // Clear existing content before inserting
+          if (activeField.isContentEditable) {
+            activeField.innerHTML = '';
+          } else {
+            activeField.value = '';
+          }
+        }
         insertText(activeField, replies[idx].text);
-        btn.textContent = '✓ Used';
+        btn.textContent = '✓ Inserted';
         setTimeout(closePanel, 500);
+      });
+    });
+
+    panel.querySelectorAll('.kchime-reply-edit').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const idx = parseInt(e.currentTarget.dataset.index, 10);
+        const replyItem = btn.closest('.kchime-reply-item');
+        const textSpan = replyItem.querySelector('.kchime-reply-text');
+        const actionsDiv = replyItem.querySelector('.kchime-reply-actions');
+
+        // Replace text with editable textarea
+        const textarea = document.createElement('textarea');
+        textarea.className = 'kchime-edit-area';
+        textarea.value = replies[idx].text;
+        textarea.style.cssText = 'width:100%;min-height:60px;padding:6px 8px;border:1px solid #4f46e5;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:4px';
+        textSpan.replaceWith(textarea);
+        textarea.focus();
+
+        // Replace actions with Save/Cancel
+        actionsDiv.innerHTML = `
+          <button class="kchime-reply-btn kchime-reply-use" style="background:#059669;border-color:#059669">Save & Insert</button>
+          <button class="kchime-reply-btn kchime-reply-copy">Cancel</button>`;
+
+        actionsDiv.querySelector('.kchime-reply-use').addEventListener('click', () => {
+          const edited = textarea.value.trim();
+          if (!edited) return;
+          replies[idx].text = edited;
+          insertText(activeField, edited);
+          closePanel();
+        });
+        actionsDiv.querySelector('.kchime-reply-copy').addEventListener('click', () => {
+          // Restore original view
+          showReplies(replies, platform);
+        });
       });
     });
 
@@ -565,10 +729,12 @@
 
   // ── Fetch replies ─────────────────────────────────────────────────────────
 
-  function fetchAndShowReplies(platform) {
+  function fetchAndShowReplies(platform, manualContext) {
     const gen = ++fetchGen; // capture generation; any older callback will be discarded
     const draft = getFieldText(activeField);
-    const threadContext = getThreadContext(activeField, platform);
+
+    // Use manual context (from fallback paste) or cached extraction
+    const threadContext = manualContext || getCachedContext(activeField, platform);
 
     // Build the prompt from draft and/or thread context
     let prompt;
@@ -582,7 +748,7 @@
 
     // Show helpful message instead of sending empty/placeholder prompt
     if (!prompt && !threadContext) {
-      showEmptyPrompt(platform);
+      showFallbackPrompt(platform);
       return;
     }
 

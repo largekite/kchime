@@ -252,8 +252,8 @@ export async function POST(req: NextRequest) {
       let maxTokens: number;
 
       if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
-        // Thread-aware mode: use only subject + last 1-2 messages for speed and cost
-        const recentMessages = threadContext.messages.slice(-2);
+        // Thread-aware mode: use subject + last messages for context
+        const recentMessages = threadContext.messages.slice(-3);
         const threadLines: string[] = [];
         if (threadContext.subject) {
           threadLines.push(`Subject: ${threadContext.subject}`);
@@ -268,15 +268,26 @@ export async function POST(req: NextRequest) {
         const threadText = threadLines.join('\n');
         const draftNote = draft ? `\n\nThe user has started drafting a reply: "${draft}"` : '';
 
-        systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. You are given recent messages from a conversation. Generate exactly 4 reply suggestions that:
-- Directly address the most recent message
+        // Lightweight context summarization: extract intent/tone inline
+        // to reduce token cost and improve reply quality without a separate API call
+        const summaryInstruction = `First, internally analyze this conversation:
+- What is the sender's intent? (request, question, update, scheduling, approval, complaint, or other)
+- What tone are they using? (formal, casual, urgent, neutral, friendly)
+- What specific action or response do they expect?
+Then use that analysis to generate precise, context-aware replies.`;
+
+        systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. ${summaryInstruction}
+
+Generate exactly 4 reply suggestions that:
+- Directly address the most recent message's intent and expected action
 - Sound like a real American would write them
 - Use contractions and natural phrasing
 - Match the appropriate formality level for the platform and conversation
+- Avoid generic filler phrases like "I hope this email finds you well"
 Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
 
         userContent = `${threadText}${draftNote}\n\n${contextNote}\n\nGenerate 4 reply suggestions (${toneList}) to the most recent message.`;
-        maxTokens = 384; // trimmed context needs fewer tokens
+        maxTokens = 384;
       } else {
         // Simple mode: no thread context, just a prompt
         systemPrompt = `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
