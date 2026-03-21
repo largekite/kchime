@@ -72,77 +72,220 @@
 
   // ── Thread context extraction ─────────────────────────────────────────────
 
-  // For Gmail, Outlook, etc. — find the message being replied to
+  // Returns structured context: { subject, messages: [{from, text}] }
+  // or null if no context is available
   function getThreadContext(el, platform) {
-    if (!el) return '';
+    if (!el) return null;
     try {
       if (platform === 'Gmail') return getGmailContext(el);
       if (platform === 'Outlook') return getOutlookContext(el);
       if (platform === 'LinkedIn') return getLinkedInContext(el);
+      if (platform === 'Slack') return getSlackContext(el);
+      if (platform === 'Discord') return getDiscordContext(el);
     } catch { /* DOM access can throw; ignore */ }
-    return '';
+    return null;
+  }
+
+  // Truncate a message body, preserving the start and end for context
+  function smartTruncate(text, maxLen) {
+    if (!text || text.length <= maxLen) return text;
+    const keepStart = Math.floor(maxLen * 0.7);
+    const keepEnd = Math.floor(maxLen * 0.25);
+    return text.slice(0, keepStart) + '\n[…truncated…]\n' + text.slice(-keepEnd);
   }
 
   function getGmailContext(el) {
-    // Gmail reply compose boxes are inside the thread container.
-    // Walk up to find the thread, then grab the last email body before the compose box.
-    let container = el.closest('[role="list"]') || el.closest('.nH');
-    if (!container) return '';
+    // Walk up to the thread container
+    const container = el.closest('[role="list"]') || el.closest('.nH');
+    if (!container) return null;
 
-    // Email bodies in Gmail use .a3s.aiL or .ii.gt classes
-    const bodies = container.querySelectorAll('.a3s.aiL, .ii.gt');
-    if (!bodies.length) return '';
-
-    // Get the last (most recent) email body that's not inside the compose area
-    let lastBody = '';
-    for (const body of bodies) {
-      // Skip if this element is inside the compose box
-      if (el.contains(body) || body.contains(el)) continue;
-      const text = (body.innerText || '').trim();
-      if (text) lastBody = text;
+    // Subject line — Gmail shows it in h2.hP or the page title
+    let subject = '';
+    const subjectEl = container.querySelector('h2.hP') || document.querySelector('h2.hP');
+    if (subjectEl) {
+      subject = (subjectEl.textContent || '').trim();
+    } else {
+      // Fallback: extract from page title ("Subject - user@email.com - Gmail")
+      const titleMatch = document.title.match(/^(.+?)\s*-\s*[^-]+@/);
+      if (titleMatch) subject = titleMatch[1].trim();
     }
 
-    // Also try to get the sender name from the email header
-    let sender = '';
-    const senderEls = container.querySelectorAll('[email], .gD, .go');
-    if (senderEls.length) {
-      const lastSender = senderEls[senderEls.length - 1];
-      sender = (lastSender.getAttribute('name') || lastSender.textContent || '').trim();
+    // Collect all email messages in the thread
+    const emailEls = container.querySelectorAll('[data-message-id], .kv, .gs');
+    const messages = [];
+
+    if (emailEls.length > 0) {
+      for (const emailEl of emailEls) {
+        // Skip if this is inside the compose area
+        if (el.contains(emailEl) || emailEl.contains(el)) continue;
+
+        // Sender
+        const senderEl = emailEl.querySelector('[email], .gD, .go, [data-hovercard-id]');
+        const from = senderEl
+          ? (senderEl.getAttribute('name') || senderEl.textContent || '').trim()
+          : '';
+
+        // Body — try multiple selectors
+        const bodyEl = emailEl.querySelector('.a3s.aiL, .ii.gt, [data-message-id] .a3s');
+        if (!bodyEl) continue;
+        const text = (bodyEl.innerText || '').trim();
+        if (!text) continue;
+
+        messages.push({ from, text });
+      }
     }
 
-    // Truncate long emails to keep the prompt reasonable
-    if (lastBody.length > 1500) lastBody = lastBody.slice(0, 1500) + '…';
+    // Fallback: use the simpler body selector if no messages found via message IDs
+    if (messages.length === 0) {
+      const bodies = container.querySelectorAll('.a3s.aiL, .ii.gt');
+      for (const body of bodies) {
+        if (el.contains(body) || body.contains(el)) continue;
+        const text = (body.innerText || '').trim();
+        if (!text) continue;
+        // Try to find the sender above this body
+        let from = '';
+        const parent = body.closest('.gs, .kv, [data-message-id]');
+        if (parent) {
+          const s = parent.querySelector('[email], .gD, .go');
+          from = s ? (s.getAttribute('name') || s.textContent || '').trim() : '';
+        }
+        messages.push({ from, text });
+      }
+    }
 
-    if (sender && lastBody) return `[From ${sender}]: ${lastBody}`;
-    return lastBody;
+    if (messages.length === 0) return null;
+
+    // Keep only last 2 messages for cost/speed — subject provides enough context
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 1000) }));
+
+    return { subject, messages: selected };
   }
 
   function getOutlookContext(el) {
-    // Outlook Web reply — the quoted message is typically in a div with role="presentation"
-    // or inside .QuotedText / [id*="divRplyFwdMsg"]
     const thread = el.closest('[role="main"]') || el.closest('.ReadMsgContainer');
-    if (!thread) return '';
-    const quoted = thread.querySelector('[id*="divRplyFwdMsg"], .QuotedText, [class*="quotedText"]');
-    if (!quoted) return '';
-    let text = (quoted.innerText || '').trim();
-    if (text.length > 1500) text = text.slice(0, 1500) + '…';
-    return text;
+    if (!thread) return null;
+
+    // Subject
+    let subject = '';
+    const subjectEl = thread.querySelector('[role="heading"], .allowTextSelection');
+    if (subjectEl) subject = (subjectEl.textContent || '').trim();
+
+    // Try to get individual messages first
+    const msgEls = thread.querySelectorAll('[data-convid], .ItemContent, [class*="ConversationItem"]');
+    const messages = [];
+
+    if (msgEls.length > 0) {
+      for (const msgEl of msgEls) {
+        if (el.contains(msgEl) || msgEl.contains(el)) continue;
+        const senderEl = msgEl.querySelector('[class*="sender"], [class*="From"]');
+        const from = senderEl ? (senderEl.textContent || '').trim() : '';
+        const bodyEl = msgEl.querySelector('[class*="BodyFragment"], [role="document"]');
+        const text = bodyEl ? (bodyEl.innerText || '').trim() : '';
+        if (text) messages.push({ from, text: smartTruncate(text, 1200) });
+      }
+    }
+
+    // Fallback: grab quoted text
+    if (messages.length === 0) {
+      const quoted = thread.querySelector('[id*="divRplyFwdMsg"], .QuotedText, [class*="quotedText"]');
+      if (!quoted) return null;
+      const text = (quoted.innerText || '').trim();
+      if (!text) return null;
+      messages.push({ from: '', text: smartTruncate(text, 2000) });
+    }
+
+    if (messages.length === 0) return null;
+    return { subject, messages };
   }
 
   function getLinkedInContext(el) {
-    // LinkedIn messaging — the last message from the other person
-    const feed = el.closest('.msg-convo-wrapper, [class*="messaging"]');
-    if (!feed) return '';
-    const messages = feed.querySelectorAll('.msg-s-event-listitem__body, [class*="message-body"]');
-    if (!messages.length) return '';
-    // Get the last message that's not from the current user
-    let lastMsg = '';
-    for (const msg of messages) {
-      const text = (msg.innerText || '').trim();
-      if (text) lastMsg = text;
+    const feed = el.closest('.msg-convo-wrapper, [class*="messaging"], [class*="msg-thread"]');
+    if (!feed) return null;
+
+    const msgEls = feed.querySelectorAll('.msg-s-event-listitem, [class*="msg-s-message"]');
+    const messages = [];
+
+    for (const msgEl of msgEls) {
+      const senderEl = msgEl.querySelector('.msg-s-message-group__name, [class*="sender"]');
+      const from = senderEl ? (senderEl.textContent || '').trim() : '';
+      const bodyEl = msgEl.querySelector('.msg-s-event-listitem__body, [class*="message-body"]');
+      const text = bodyEl ? (bodyEl.innerText || '').trim() : '';
+      if (text) messages.push({ from, text });
     }
-    if (lastMsg.length > 1500) lastMsg = lastMsg.slice(0, 1500) + '…';
-    return lastMsg;
+
+    // Fallback: simpler selectors
+    if (messages.length === 0) {
+      const bodyEls = feed.querySelectorAll('.msg-s-event-listitem__body, [class*="message-body"]');
+      for (const bodyEl of bodyEls) {
+        const text = (bodyEl.innerText || '').trim();
+        if (text) messages.push({ from: '', text });
+      }
+    }
+
+    if (messages.length === 0) return null;
+
+    // Keep last 2 messages for cost/speed
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
+    return { subject: '', messages: selected };
+  }
+
+  function getSlackContext(el) {
+    // Slack messages are in .c-virtual_list__item or similar containers
+    const thread = el.closest('[class*="thread"], [class*="message_pane"], [class*="virtual_list"]')
+      || el.closest('[role="main"]');
+    if (!thread) return null;
+
+    // Channel name
+    let subject = '';
+    const channelEl = document.querySelector('[data-qa="channel_name"], [class*="channel_header"] button');
+    if (channelEl) subject = (channelEl.textContent || '').trim();
+
+    const msgEls = thread.querySelectorAll('[class*="message_content"], [data-qa="message_content"]');
+    const messages = [];
+
+    for (const msgEl of msgEls) {
+      if (el.contains(msgEl) || msgEl.contains(el)) continue;
+      const parent = msgEl.closest('[class*="message_kit"]') || msgEl.parentElement;
+      const senderEl = parent?.querySelector('[data-qa="message_sender_name"], [class*="sender"]');
+      const from = senderEl ? (senderEl.textContent || '').trim() : '';
+      const text = (msgEl.innerText || '').trim();
+      if (text) messages.push({ from, text });
+    }
+
+    if (messages.length === 0) return null;
+
+    // Keep last 2 messages for cost/speed
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
+    return { subject, messages: selected };
+  }
+
+  function getDiscordContext(el) {
+    const chat = el.closest('[class*="chatContent"], [class*="chat-"]') || el.closest('main');
+    if (!chat) return null;
+
+    // Channel name
+    let subject = '';
+    const channelEl = document.querySelector('[class*="title-"] h1, [class*="channelName"]');
+    if (channelEl) subject = (channelEl.textContent || '').trim();
+
+    const msgEls = chat.querySelectorAll('[id^="chat-messages-"], [class*="messageContent"]');
+    const messages = [];
+
+    for (const msgEl of msgEls) {
+      if (el.contains(msgEl) || msgEl.contains(el)) continue;
+      const parent = msgEl.closest('[class*="message-"]') || msgEl.parentElement;
+      const senderEl = parent?.querySelector('[class*="username"], [id*="message-username"]');
+      const from = senderEl ? (senderEl.textContent || '').trim() : '';
+      const contentEl = msgEl.querySelector('[id^="message-content-"]') || msgEl;
+      const text = (contentEl.innerText || '').trim();
+      if (text) messages.push({ from, text });
+    }
+
+    if (messages.length === 0) return null;
+
+    // Keep last 2 messages for cost/speed
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
+    return { subject, messages: selected };
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -427,20 +570,18 @@
     const draft = getFieldText(activeField);
     const threadContext = getThreadContext(activeField, platform);
 
-    // Build the prompt: if we have thread context, use it as the message to reply to
+    // Build the prompt from draft and/or thread context
     let prompt;
-    if (threadContext && !draft) {
-      // User hasn't typed anything yet — suggest replies to the thread message
-      prompt = threadContext;
-    } else if (threadContext && draft) {
-      // User has a partial draft — include both for context
-      prompt = `${threadContext}\n\n[My draft so far: ${draft}]`;
+    if (threadContext && threadContext.messages?.length > 0) {
+      // Use the last message in the thread as the primary prompt
+      const lastMsg = threadContext.messages[threadContext.messages.length - 1];
+      prompt = lastMsg.text || draft;
     } else {
       prompt = draft;
     }
 
     // Show helpful message instead of sending empty/placeholder prompt
-    if (!prompt) {
+    if (!prompt && !threadContext) {
       showEmptyPrompt(platform);
       return;
     }
@@ -448,7 +589,7 @@
     showLoading(platform);
 
     chrome.runtime.sendMessage(
-      { type: 'FETCH_REPLIES', prompt, platform, tone: selectedTone },
+      { type: 'FETCH_REPLIES', prompt: prompt || '', platform, tone: selectedTone, threadContext, draft },
       (response) => {
         // Discard if panel closed or a newer fetch started
         if (gen !== fetchGen || !panel) return;

@@ -139,6 +139,7 @@ export async function POST(req: NextRequest) {
       history?: { speaker: 'other' | 'user' | 'ai'; text: string }[];
       conversation?: string;
       draft?: string;
+      threadContext?: { subject?: string; messages: { from: string; text: string }[] };
       messageType?: string;
       relationship?: string;
       persona?: string;
@@ -233,8 +234,8 @@ export async function POST(req: NextRequest) {
     };
 
     if (mode === 'replies') {
-      const { prompt, context, toneProfile, relationshipProfile, contactNotes } = body;
-      if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
+      const { prompt, context, toneProfile, relationshipProfile, contactNotes, threadContext, draft } = body;
+      if (!prompt && !threadContext) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
       const config = CONTEXT_CONFIG[context ?? 'Any'] ?? CONTEXT_CONFIG.Any;
       const contextNote = config.description;
@@ -245,14 +246,52 @@ export async function POST(req: NextRequest) {
       const toneJson = toneLabels.map(t => `{"tone":"${t}","text":"..."}`).join(',');
       const toneList = toneLabels.join(', ');
 
+      // Build the user message based on whether we have thread context
+      let userContent: string;
+      let systemPrompt: string;
+      let maxTokens: number;
+
+      if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
+        // Thread-aware mode: use only subject + last 1-2 messages for speed and cost
+        const recentMessages = threadContext.messages.slice(-2);
+        const threadLines: string[] = [];
+        if (threadContext.subject) {
+          threadLines.push(`Subject: ${threadContext.subject}`);
+        }
+        threadLines.push('--- Recent messages ---');
+        for (const msg of recentMessages) {
+          const prefix = msg.from ? `${msg.from}: ` : '';
+          threadLines.push(`${prefix}${msg.text}`);
+        }
+        threadLines.push('--- End ---');
+
+        const threadText = threadLines.join('\n');
+        const draftNote = draft ? `\n\nThe user has started drafting a reply: "${draft}"` : '';
+
+        systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. You are given recent messages from a conversation. Generate exactly 4 reply suggestions that:
+- Directly address the most recent message
+- Sound like a real American would write them
+- Use contractions and natural phrasing
+- Match the appropriate formality level for the platform and conversation
+Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
+
+        userContent = `${threadText}${draftNote}\n\n${contextNote}\n\nGenerate 4 reply suggestions (${toneList}) to the most recent message.`;
+        maxTokens = 384; // trimmed context needs fewer tokens
+      } else {
+        // Simple mode: no thread context, just a prompt
+        systemPrompt = `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
+        userContent = `Someone said: "${prompt}"\n${contextNote}\n\nGenerate 4 replies (${toneList}).`;
+        maxTokens = 384;
+      }
+
       const message = await getAnthropic().messages.create({
         model: MODEL_FAST,
-        max_tokens: 384,
-        system: `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`,
+        max_tokens: maxTokens,
+        system: systemPrompt,
         messages: [
           {
             role: 'user',
-            content: `Someone said: "${prompt}"\n${contextNote}\n\nGenerate 4 replies (${toneList}).`,
+            content: userContent,
           },
         ],
       });
