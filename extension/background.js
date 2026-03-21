@@ -58,12 +58,21 @@ async function getValidToken() {
 }
 
 // Fetch reply suggestions from KChime API
-async function fetchReplies(prompt, platform, tone, token) {
+async function fetchReplies(prompt, platform, tone, token, threadContext, draft) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15000);
+  // Allow more time for thread-aware requests (more context to process)
+  const timeout = threadContext ? 25000 : 15000;
+  const timer = setTimeout(() => controller.abort(), timeout);
 
   const body = { mode: 'replies', prompt, context: platform || 'Any' };
   if (tone) body.toneProfile = { customInstructions: `Prefer a ${tone} tone.`, formality: 0.5, lengthPreference: 'medium', emojiEnabled: false };
+
+  // Pass structured thread context if available
+  if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
+    body.threadContext = threadContext;
+  }
+  // Pass draft separately so the API knows what the user has typed vs. the thread
+  if (draft) body.draft = draft;
 
   let res;
   try {
@@ -104,7 +113,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     (async () => {
       try {
         const token = await getValidToken();
-        const data = await fetchReplies(msg.prompt, msg.platform ?? 'General', msg.tone ?? null, token);
+        const data = await fetchReplies(msg.prompt, msg.platform ?? 'General', msg.tone ?? null, token, msg.threadContext ?? null, msg.draft ?? null);
         sendResponse({ ok: true, replies: data.replies });
       } catch (err) {
         sendResponse({ ok: false, error: err.message });
