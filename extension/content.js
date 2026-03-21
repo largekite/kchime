@@ -63,6 +63,25 @@
 
   // Single auto tone — no user-selectable tones
 
+  // Map detected platform to API context category
+  // API supports: Any, Office, Text, Party, Family
+  function platformToContext(platform) {
+    switch (platform) {
+      case 'Gmail':
+      case 'Outlook':
+      case 'LinkedIn':
+      case 'Slack':
+      case 'Microsoft Teams':
+        return 'Office';
+      case 'WhatsApp':
+      case 'Facebook Messenger':
+      case 'Discord':
+        return 'Text';
+      default:
+        return 'Any';
+    }
+  }
+
   // ── Thread context extraction ─────────────────────────────────────────────
 
   // Returns structured context: { subject, messages: [{from, text}] }
@@ -773,7 +792,7 @@
     showLoading(platform);
 
     chrome.runtime.sendMessage(
-      { type: 'FETCH_REPLIES', prompt: prompt || '', platform, tone: null, threadContext, draft },
+      { type: 'FETCH_REPLIES', prompt: prompt || '', platform: platformToContext(platform), tone: null, threadContext, draft },
       (response) => {
         // Discard if panel closed or a newer fetch started
         if (gen !== fetchGen || !panel) return;
