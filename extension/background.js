@@ -71,8 +71,7 @@ async function fetchReplies(prompt, platform, tone, token, threadContext, draft)
   const timeout = threadContext ? 25000 : 15000;
   const timer = setTimeout(() => controller.abort(), timeout);
 
-  const body = { mode: 'replies', prompt, context: platform || 'Any' };
-  // Auto tone — let the API decide based on context
+  const body = { mode: 'replies', prompt, context: platform || 'Any', source: 'extension' };
 
   // Pass structured thread context if available
   if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
