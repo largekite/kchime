@@ -65,7 +65,12 @@ async function fetchReplies(prompt, platform, tone, token, threadContext, draft)
   const timer = setTimeout(() => controller.abort(), timeout);
 
   const body = { mode: 'replies', prompt, context: platform || 'Any' };
-  if (tone) body.toneProfile = { customInstructions: `Prefer a ${tone} tone.`, formality: 0.5, lengthPreference: 'medium', emojiEnabled: false };
+  if (tone === 'professional') {
+    body.toneProfile = { customInstructions: 'Use a professional, formal tone. Be direct and polished. Avoid slang, humor, and emojis.', formality: 0.9, lengthPreference: 'medium', emojiEnabled: false };
+  } else if (tone === 'friendly') {
+    body.toneProfile = { customInstructions: 'Use a warm, friendly, conversational tone. Be approachable and personable. Light emoji use is okay.', formality: 0.2, lengthPreference: 'medium', emojiEnabled: true };
+  }
+  // Auto (tone === null): no toneProfile sent — let the API decide based on context
 
   // Pass structured thread context if available
   if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
