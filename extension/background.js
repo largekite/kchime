@@ -57,20 +57,22 @@ async function getValidToken() {
   });
 }
 
+// Track the active fetch so we can abort it when a new one starts
+let activeController = null;
+
 // Fetch reply suggestions from KChime API
 async function fetchReplies(prompt, platform, tone, token, threadContext, draft) {
+  // Abort any previous in-flight request
+  if (activeController) { try { activeController.abort(); } catch {} }
+
   const controller = new AbortController();
+  activeController = controller;
   // Allow more time for thread-aware requests (more context to process)
   const timeout = threadContext ? 25000 : 15000;
   const timer = setTimeout(() => controller.abort(), timeout);
 
   const body = { mode: 'replies', prompt, context: platform || 'Any' };
-  if (tone === 'professional') {
-    body.toneProfile = { customInstructions: 'Use a professional, formal tone. Be direct and polished. Avoid slang, humor, and emojis.', formality: 0.9, lengthPreference: 'medium', emojiEnabled: false };
-  } else if (tone === 'friendly') {
-    body.toneProfile = { customInstructions: 'Use a warm, friendly, conversational tone. Be approachable and personable. Light emoji use is okay.', formality: 0.2, lengthPreference: 'medium', emojiEnabled: true };
-  }
-  // Auto (tone === null): no toneProfile sent — let the API decide based on context
+  // Auto tone — let the API decide based on context
 
   // Pass structured thread context if available
   if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
@@ -92,10 +94,12 @@ async function fetchReplies(prompt, platform, tone, token, threadContext, draft)
     });
   } catch (e) {
     clearTimeout(timer);
+    if (activeController === controller) activeController = null;
     if (e.name === 'AbortError') throw new Error('Request timed out. Please try again.');
     throw e;
   }
   clearTimeout(timer);
+  if (activeController === controller) activeController = null;
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

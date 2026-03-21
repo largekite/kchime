@@ -111,39 +111,6 @@
 
 /* ── Tone chips ──────────────────────────────────────────────────────────── */
 
-#kchime-tones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 8px 10px;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.kchime-tone-chip {
-  flex-shrink: 0;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  color: #6b7280;
-  border-radius: 20px;
-  padding: 3px 9px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-  white-space: nowrap;
-}
-
-.kchime-tone-chip:hover {
-  border-color: var(--tone-color);
-  color: var(--tone-color);
-}
-
-.kchime-tone-chip.active {
-  background: var(--tone-color);
-  border-color: var(--tone-color);
-  color: #fff;
-}
-
 /* ── Loading ─────────────────────────────────────────────────────────────── */
 
 #kchime-loading {
