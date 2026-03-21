@@ -944,6 +944,8 @@
       const focused = document.activeElement;
       if (!focused) { hideWidget(); return; }
       if (isOwnUI(focused)) return;
+      // Don't close if the panel is open — user may be clicking panel controls
+      if (isOpen) return;
       if (!isTextInput(focused)) hideWidget();
     }, 180);
   }, true);
