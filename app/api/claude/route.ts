@@ -274,7 +274,7 @@ export async function POST(req: NextRequest) {
 
         if (isExtension) {
           // Extension: lean prompt, no analysis step — just generate replies fast
-          systemPrompt = `You are a natural American English reply assistant. Generate exactly ${replyCount} short replies to the most recent message. Use contractions, sound natural, no filler phrases. Return ONLY valid JSON: {"replies":[${toneJson}]}. No markdown.${personalizationNote}`;
+          systemPrompt = `You are a natural American English reply assistant. Generate exactly ${replyCount} short replies to the most recent message. Match the tone and intent of the conversation. Use contractions, sound natural, no filler phrases. Return ONLY valid JSON: {"replies":[${toneJson}]}. No markdown.${personalizationNote}`;
         } else {
           // Web: full analysis for higher quality
           const summaryInstruction = `First, internally analyze this conversation:
