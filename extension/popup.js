@@ -6,9 +6,39 @@ const $ = (id) => document.getElementById(id);
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
-chrome.runtime.sendMessage({ type: 'GET_TOKEN' }, async (response) => {
-  // Guard: response can be undefined if the service worker is cold-starting
-  const { token } = response || {};
+// Try to get token from background, fall back to storage if service worker is unavailable
+async function getTokenWithFallback() {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage({ type: 'GET_TOKEN' }, (response) => {
+        if (chrome.runtime.lastError || !response?.token) {
+          // Service worker unavailable — read directly from storage
+          chrome.storage.local.get(['token', 'expiresAt'], ({ token, expiresAt }) => {
+            if (token && expiresAt && Date.now() < expiresAt * 1000) {
+              resolve(token);
+            } else {
+              resolve(null);
+            }
+          });
+        } else {
+          resolve(response.token);
+        }
+      });
+    } catch {
+      // Extension context completely invalidated
+      chrome.storage.local.get(['token', 'expiresAt'], ({ token, expiresAt }) => {
+        if (token && expiresAt && Date.now() < expiresAt * 1000) {
+          resolve(token);
+        } else {
+          resolve(null);
+        }
+      });
+    }
+  });
+}
+
+(async () => {
+  const token = await getTokenWithFallback();
   $('loading').classList.add('hidden');
 
   if (!token) { showSignedOut(); return; }
@@ -32,7 +62,7 @@ chrome.runtime.sendMessage({ type: 'GET_TOKEN' }, async (response) => {
     // Network error — still show signed-in with no usage data
     showSignedIn(null, false, null);
   }
-});
+})();
 
 // Attempt to refresh the token and re-fetch user data
 async function tryRefreshAndRetry() {

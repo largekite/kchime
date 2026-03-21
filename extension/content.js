@@ -65,9 +65,6 @@
     { id: null,          label: 'Auto',         color: '#6b7280' },
     { id: 'professional', label: 'Professional', color: '#1d4ed8' },
     { id: 'friendly',    label: 'Friendly',     color: '#059669' },
-    { id: 'concise',     label: 'Concise',      color: '#7c3aed' },
-    { id: 'playful',     label: 'Playful',      color: '#d97706' },
-    { id: 'bold',        label: 'Bold',         color: '#dc2626' },
   ];
 
   // ── Thread context extraction ─────────────────────────────────────────────
@@ -551,7 +548,8 @@
         selectedTone = next;
         el.querySelectorAll('.kchime-tone-chip').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        if (changed && onToneChange) onToneChange();
+        // Defer re-render so the current event completes before DOM is replaced
+        if (changed && onToneChange) setTimeout(onToneChange, 0);
       });
     });
   }
@@ -579,6 +577,55 @@
       ${buildHeader(platform)}
       <div id="kchime-error">${msg}</div>`;
     panel.querySelector('#kchime-close').addEventListener('click', closePanel);
+    setTimeout(positionPanel, 0);
+  }
+
+  // Detect non-text content (images, calendar invites, attachments) in the email thread
+  function detectNonTextContent(field, platform) {
+    const container = platform === 'gmail'
+      ? (field.closest('[role="list"]') || field.closest('.nH'))
+      : (field.closest('[role="main"]') || field.closest('.ReadMsgContainer') || field.closest('[class*="ReadingPane"]'));
+    if (!container) return null;
+
+    const types = [];
+
+    // Images (excluding tiny icons/avatars)
+    const imgs = container.querySelectorAll('img');
+    const realImages = [...imgs].filter(img => {
+      const w = img.naturalWidth || img.width || 0;
+      const h = img.naturalHeight || img.height || 0;
+      return (w > 50 && h > 50) && !img.closest('[email], .gD, .go'); // skip sender avatars
+    });
+    if (realImages.length > 0) types.push('images');
+
+    // Calendar invites — Gmail uses .aHl class or .invite, Outlook uses CalendarItemBody
+    const calendarSelectors = '.aHl, .invite, [class*="calendar"], [class*="Calendar"], [data-cal-id], [class*="EventCard"]';
+    if (container.querySelector(calendarSelectors)) types.push('calendar invite');
+
+    // Attachments — Gmail uses .aZo/.aQH, Outlook uses AttachmentWell
+    const attachSelectors = '.aZo, .aQH, [class*="AttachmentWell"], [class*="attachment"], [download]';
+    if (container.querySelector(attachSelectors)) types.push('attachments');
+
+    return types.length > 0 ? types : null;
+  }
+
+  function showNonTextFallback(platform, contentTypes) {
+    if (!panel) return;
+    const typeStr = contentTypes.join(', ');
+    panel.innerHTML = `
+      ${buildHeader(platform)}
+      <div style="padding:12px;font-size:12px;color:#6b7280;background:#f9fafb">
+        <p style="margin:0 0 8px">This email contains <strong>${escHtml(typeStr)}</strong> but no readable text. Paste or type what you'd like to reply to:</p>
+        <textarea id="kchime-manual-input" placeholder="e.g. 'They sent a calendar invite for Friday 3pm' or paste forwarded text…" style="width:100%;min-height:80px;padding:8px;border:1px solid #d1d5db;border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        <button id="kchime-manual-submit" style="margin-top:8px;padding:6px 14px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">Generate Replies</button>
+      </div>`;
+    panel.querySelector('#kchime-close').addEventListener('click', closePanel);
+    panel.querySelector('#kchime-manual-submit').addEventListener('click', () => {
+      const text = panel.querySelector('#kchime-manual-input')?.value?.trim();
+      if (!text) return;
+      const manualContext = { subject: '', messages: [{ from: '', text }] };
+      fetchAndShowReplies(platform, manualContext);
+    });
     setTimeout(positionPanel, 0);
   }
 
@@ -738,7 +785,8 @@
 
     // Build the prompt from draft and/or thread context
     let prompt;
-    if (threadContext && threadContext.messages?.length > 0) {
+    const hasThreadMessages = threadContext && threadContext.messages?.length > 0;
+    if (hasThreadMessages) {
       // Use the last message in the thread as the primary prompt
       const lastMsg = threadContext.messages[threadContext.messages.length - 1];
       prompt = lastMsg.text || draft;
@@ -747,8 +795,14 @@
     }
 
     // Show helpful message instead of sending empty/placeholder prompt
-    if (!prompt && !threadContext) {
-      showFallbackPrompt(platform);
+    if (!prompt && !hasThreadMessages) {
+      // Check if the email has non-text content (images, calendar, attachments)
+      const hasNonTextContent = detectNonTextContent(activeField, platform);
+      if (hasNonTextContent) {
+        showNonTextFallback(platform, hasNonTextContent);
+      } else {
+        showFallbackPrompt(platform);
+      }
       return;
     }
 
@@ -760,8 +814,9 @@
         // Discard if panel closed or a newer fetch started
         if (gen !== fetchGen || !panel) return;
 
-        if (chrome.runtime.lastError) {
-          showError('Could not connect to KChime extension. Try reloading the page.');
+        if (chrome.runtime.lastError || !chrome.runtime?.id) {
+          showError('Lost connection to KChime. <button id="kchime-reload" style="color:#4f46e5;background:none;border:none;cursor:pointer;font-size:11px;font-weight:600;padding:0">Reload page →</button>');
+          panel?.querySelector('#kchime-reload')?.addEventListener('click', () => location.reload());
           return;
         }
         if (!response?.ok) {
