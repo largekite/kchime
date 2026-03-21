@@ -252,31 +252,31 @@ export async function POST(req: NextRequest) {
       let maxTokens: number;
 
       if (threadContext && threadContext.messages && threadContext.messages.length > 0) {
-        // Thread-aware mode: build a conversation history for richer context
+        // Thread-aware mode: use only subject + last 1-2 messages for speed and cost
+        const recentMessages = threadContext.messages.slice(-2);
         const threadLines: string[] = [];
         if (threadContext.subject) {
           threadLines.push(`Subject: ${threadContext.subject}`);
         }
-        threadLines.push('--- Conversation thread ---');
-        for (const msg of threadContext.messages) {
+        threadLines.push('--- Recent messages ---');
+        for (const msg of recentMessages) {
           const prefix = msg.from ? `${msg.from}: ` : '';
           threadLines.push(`${prefix}${msg.text}`);
         }
-        threadLines.push('--- End of thread ---');
+        threadLines.push('--- End ---');
 
         const threadText = threadLines.join('\n');
         const draftNote = draft ? `\n\nThe user has started drafting a reply: "${draft}"` : '';
 
-        systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. You are given a conversation thread (email, chat, or message history). Generate exactly 4 reply suggestions that:
-- Directly address the most recent message in the thread
-- Take into account the full conversation context, tone, and topic
+        systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. You are given recent messages from a conversation. Generate exactly 4 reply suggestions that:
+- Directly address the most recent message
 - Sound like a real American would write them
 - Use contractions and natural phrasing
 - Match the appropriate formality level for the platform and conversation
 Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
 
-        userContent = `${threadText}${draftNote}\n\n${contextNote}\n\nGenerate 4 reply suggestions (${toneList}) to the most recent message in this thread.`;
-        maxTokens = 512; // more room for context-aware replies
+        userContent = `${threadText}${draftNote}\n\n${contextNote}\n\nGenerate 4 reply suggestions (${toneList}) to the most recent message.`;
+        maxTokens = 384; // trimmed context needs fewer tokens
       } else {
         // Simple mode: no thread context, just a prompt
         systemPrompt = `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;

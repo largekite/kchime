@@ -155,17 +155,8 @@
 
     if (messages.length === 0) return null;
 
-    // For long threads: keep first message + last 3 messages
-    let selected;
-    if (messages.length > 4) {
-      selected = [
-        { ...messages[0], text: smartTruncate(messages[0].text, 800) },
-        { from: '', text: `[…${messages.length - 4} earlier messages omitted…]` },
-        ...messages.slice(-3).map(m => ({ ...m, text: smartTruncate(m.text, 1000) })),
-      ];
-    } else {
-      selected = messages.map(m => ({ ...m, text: smartTruncate(m.text, 1200) }));
-    }
+    // Keep only last 2 messages for cost/speed — subject provides enough context
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 1000) }));
 
     return { subject, messages: selected };
   }
@@ -233,8 +224,8 @@
 
     if (messages.length === 0) return null;
 
-    // Keep last 5 messages for chat context
-    const selected = messages.slice(-5).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
+    // Keep last 2 messages for cost/speed
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
     return { subject: '', messages: selected };
   }
 
@@ -263,8 +254,8 @@
 
     if (messages.length === 0) return null;
 
-    // Keep last 5 messages
-    const selected = messages.slice(-5).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
+    // Keep last 2 messages for cost/speed
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
     return { subject, messages: selected };
   }
 
@@ -292,7 +283,8 @@
 
     if (messages.length === 0) return null;
 
-    const selected = messages.slice(-5).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
+    // Keep last 2 messages for cost/speed
+    const selected = messages.slice(-2).map(m => ({ ...m, text: smartTruncate(m.text, 500) }));
     return { subject, messages: selected };
   }
 
