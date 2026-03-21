@@ -113,14 +113,11 @@
 
 #kchime-tones {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
   padding: 8px 10px;
-  overflow-x: auto;
-  scrollbar-width: none;
   border-bottom: 1px solid #f3f4f6;
 }
-
-#kchime-tones::-webkit-scrollbar { display: none; }
 
 .kchime-tone-chip {
   flex-shrink: 0;
