@@ -147,6 +147,7 @@ export async function POST(req: NextRequest) {
       toneProfile?: { formality: number; lengthPreference: string; emojiEnabled: boolean; customInstructions?: string };
       relationshipProfile?: { name: string; formality: number; warmth: number; brevity: number; directness: number; emojiAllowed: boolean };
       contactNotes?: string;
+      source?: 'extension';
     };
 
     const { mode } = body;
@@ -234,15 +235,18 @@ export async function POST(req: NextRequest) {
     };
 
     if (mode === 'replies') {
-      const { prompt, context, toneProfile, relationshipProfile, contactNotes, threadContext, draft } = body;
+      const { prompt, context, toneProfile, relationshipProfile, contactNotes, threadContext, draft, source } = body;
       if (!prompt && !threadContext) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 });
 
+      const isExtension = source === 'extension';
       const config = CONTEXT_CONFIG[context ?? 'Any'] ?? CONTEXT_CONFIG.Any;
       const contextNote = config.description;
-      const toneLabels = config.tones;
+      // Extension gets 3 replies (faster), web gets 4
+      const toneLabels = isExtension ? config.tones.slice(0, 3) : config.tones;
 
       const personalizationNote = buildPersonalizationNote(toneProfile, relationshipProfile, contactNotes);
 
+      const replyCount = toneLabels.length;
       const toneJson = toneLabels.map(t => `{"tone":"${t}","text":"..."}`).join(',');
       const toneList = toneLabels.join(', ');
 
@@ -266,33 +270,37 @@ export async function POST(req: NextRequest) {
         threadLines.push('--- End ---');
 
         const threadText = threadLines.join('\n');
-        const draftNote = draft ? `\n\nThe user has started drafting a reply: "${draft}"` : '';
+        const draftNote = draft ? `\n\nUser's draft: "${draft}"` : '';
 
-        // Lightweight context summarization: extract intent/tone inline
-        // to reduce token cost and improve reply quality without a separate API call
-        const summaryInstruction = `First, internally analyze this conversation:
+        if (isExtension) {
+          // Extension: lean prompt, no analysis step — just generate replies fast
+          systemPrompt = `You are a natural American English reply assistant. Generate exactly ${replyCount} short replies to the most recent message. Match the tone and intent of the conversation. Use contractions, sound natural, no filler phrases. Return ONLY valid JSON: {"replies":[${toneJson}]}. No markdown.${personalizationNote}`;
+        } else {
+          // Web: full analysis for higher quality
+          const summaryInstruction = `First, internally analyze this conversation:
 - What is the sender's intent? (request, question, update, scheduling, approval, complaint, or other)
 - What tone are they using? (formal, casual, urgent, neutral, friendly)
 - What specific action or response do they expect?
 Then use that analysis to generate precise, context-aware replies.`;
 
-        systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. ${summaryInstruction}
+          systemPrompt = `You are an American English communication coach helping non-native speakers craft natural replies. ${summaryInstruction}
 
-Generate exactly 4 reply suggestions that:
+Generate exactly ${replyCount} reply suggestions that:
 - Directly address the most recent message's intent and expected action
 - Sound like a real American would write them
 - Use contractions and natural phrasing
 - Match the appropriate formality level for the platform and conversation
 - Avoid generic filler phrases like "I hope this email finds you well"
 Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
+        }
 
-        userContent = `${threadText}${draftNote}\n\n${contextNote}\n\nGenerate 4 reply suggestions (${toneList}) to the most recent message.`;
-        maxTokens = 384;
+        userContent = `${threadText}${draftNote}\n\n${contextNote}\n\nGenerate ${replyCount} reply suggestions (${toneList}) to the most recent message.`;
+        maxTokens = isExtension ? 256 : 384;
       } else {
         // Simple mode: no thread context, just a prompt
-        systemPrompt = `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly 4 short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
-        userContent = `Someone said: "${prompt}"\n${contextNote}\n\nGenerate 4 replies (${toneList}).`;
-        maxTokens = 384;
+        systemPrompt = `You are an American English conversation coach helping non-native speakers respond naturally. Generate exactly ${replyCount} short, authentic replies to what someone said. Each reply must use contractions and sound like a real American would say it. Return ONLY valid JSON with this shape: {"replies":[${toneJson}]}. No markdown, no extra text.${personalizationNote}`;
+        userContent = `Someone said: "${prompt}"\n${contextNote}\n\nGenerate ${replyCount} replies (${toneList}).`;
+        maxTokens = isExtension ? 256 : 384;
       }
 
       const message = await getAnthropic().messages.create({
