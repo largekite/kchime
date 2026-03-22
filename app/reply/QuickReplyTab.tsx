@@ -122,12 +122,12 @@ export default function QuickReplyTab() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Quick Reply</h1>
-        <p className="text-sm text-gray-500 mt-1">Type what someone said — get 4 natural ways to respond.</p>
+        <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">Quick Reply</h1>
+        <p className="text-sm text-gray-500 mt-1 lg:text-base lg:mt-2">Type what someone said — get 4 natural ways to respond.</p>
       </div>
 
       {/* Input area */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+      <div className="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 lg:p-6 lg:rounded-3xl">
         {/* Context + contact chips — single row */}
         <div className="mb-3 flex items-center gap-2 flex-wrap">
           {CONTEXTS.map((c) => {
@@ -138,7 +138,7 @@ export default function QuickReplyTab() {
                 onClick={() => { if (!locked) setContext(c); }}
                 disabled={locked}
                 className={clsx(
-                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition',
+                  'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition lg:px-4 lg:py-1.5 lg:text-base lg:gap-2',
                   context === c
                     ? 'bg-teal-600 text-white'
                     : locked
@@ -181,7 +181,7 @@ export default function QuickReplyTab() {
             placeholder='What did someone say? e.g. "TGIF, am I right?"'
             rows={2}
             autoComplete="off"
-            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100"
+            className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 pr-8 text-sm text-gray-900 placeholder-gray-400 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-100 lg:px-5 lg:py-4 lg:text-base lg:rounded-2xl"
           />
           {/* Inline action: clear button or mic inside textarea */}
           {isListening ? (
@@ -220,7 +220,7 @@ export default function QuickReplyTab() {
         <button
           onClick={() => handleSubmit()}
           disabled={loading || (!input.trim() && !transcript.trim())}
-          className="mt-3 w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-40"
+          className="mt-3 w-full rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-40 lg:py-3.5 lg:text-base lg:mt-4 lg:rounded-2xl"
         >
           {loading ? 'Generating replies…' : 'Get Replies'}
         </button>
@@ -260,7 +260,7 @@ export default function QuickReplyTab() {
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-3">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-200" />
           ))}
@@ -281,7 +281,7 @@ export default function QuickReplyTab() {
               Regenerate
             </button>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-3">
             {replies.map((reply) => (
               <ReplyCard
                 key={reply.id}
@@ -297,9 +297,9 @@ export default function QuickReplyTab() {
 
       {/* Empty state */}
       {!loading && replies.length === 0 && recentPrompts.length === 0 && (
-        <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center">
-          <p className="font-semibold text-gray-700">What did someone say?</p>
-          <p className="text-sm text-gray-400 mt-1">Type or speak a phrase and get 4 natural ways to reply.</p>
+        <div className="rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center lg:p-16 lg:rounded-3xl">
+          <p className="font-semibold text-gray-700 lg:text-lg">What did someone say?</p>
+          <p className="text-sm text-gray-400 mt-1 lg:text-base lg:mt-2">Type or speak a phrase and get 4 natural ways to reply.</p>
         </div>
       )}
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}

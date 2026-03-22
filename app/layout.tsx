@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <ClientInit />
           <Navbar />
-          <main className="mx-auto max-w-4xl px-4 py-6 pb-24 md:pb-6 md:pl-56">{children}</main>
+          <main className="mx-auto max-w-4xl px-4 py-6 pb-24 md:pb-6 md:pl-56 lg:max-w-5xl lg:pl-64 lg:px-8 lg:py-8 xl:max-w-6xl">{children}</main>
           <NotificationPrompt />
         </Providers>
       </body>

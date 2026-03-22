@@ -83,16 +83,16 @@ export function ReplyCard({ reply, prompt, context, onSave, saved = false }: Pro
 
   return (
     <>
-      <div className={clsx('rounded-xl border p-4 transition', styles.bg, styles.border)}>
+      <div className={clsx('rounded-xl border p-4 transition lg:p-6 lg:rounded-2xl', styles.bg, styles.border)}>
         <div className="mb-2">
-          <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', styles.badge)}>
+          <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold lg:px-3 lg:py-1 lg:text-sm', styles.badge)}>
             {reply.tone}
           </span>
         </div>
 
-        <p className="mb-4 text-base font-medium leading-snug text-gray-900">{reply.text}</p>
+        <p className="mb-4 text-base font-medium leading-snug text-gray-900 lg:text-lg lg:mb-5 lg:leading-relaxed">{reply.text}</p>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 lg:gap-2">
           <button
             onClick={handleCopy}
             className="flex items-center gap-1 rounded-md bg-white/70 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-white transition shadow-sm"
