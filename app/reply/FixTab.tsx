@@ -151,12 +151,12 @@ export default function FixTab() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Fix My Message</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Paste a draft — get 3 polished rewrites that sound natural in American English.</p>
+        <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">Fix My Message</h1>
+        <p className="text-sm text-gray-500 mt-0.5 lg:text-base lg:mt-1">Paste a draft — get 3 polished rewrites that sound natural in American English.</p>
       </div>
 
       {/* Input card */}
-      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 space-y-4">
+      <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 space-y-4 lg:p-7 lg:rounded-3xl lg:space-y-5">
         {/* Section header with contact picker — matches WorkTab pattern */}
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-gray-700">Message details</p>
@@ -173,23 +173,23 @@ export default function FixTab() {
         {/* Message type + recipient dropdowns */}
         <div className="flex gap-3 flex-wrap">
           <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-xs font-medium text-gray-500">Message type</label>
+            <label className="text-xs font-medium text-gray-500 lg:text-sm">Message type</label>
             <select
               value={messageType}
               onChange={(e) => setMessageType(e.target.value)}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400 lg:px-4 lg:py-2.5 lg:text-base lg:rounded-xl"
             >
               {MESSAGE_TYPES.map((t) => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-xs font-medium text-gray-500">Sending to</label>
+            <label className="text-xs font-medium text-gray-500 lg:text-sm">Sending to</label>
             <select
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
               disabled={!!selectedContactId}
               className={clsx(
-                'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400',
+                'rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400 lg:px-4 lg:py-2.5 lg:text-base lg:rounded-xl',
                 selectedContactId && 'opacity-60 cursor-not-allowed',
               )}
             >
@@ -205,7 +205,7 @@ export default function FixTab() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Paste or type your draft message here…&#10;&#10;e.g. &quot;hey can u send the report when u get a chance thx&quot;"
             rows={5}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none lg:px-5 lg:py-4 lg:text-base lg:rounded-2xl"
           />
           <span className="absolute bottom-3 right-3 text-xs text-gray-300">{draft.length}</span>
         </div>
@@ -225,7 +225,7 @@ export default function FixTab() {
             onClick={handleFix}
             disabled={loading || !draft.trim()}
             className={clsx(
-              'ml-auto flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition',
+              'ml-auto flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition lg:px-7 lg:py-3 lg:text-base lg:rounded-2xl',
               loading || !draft.trim()
                 ? 'bg-teal-300 cursor-not-allowed'
                 : 'bg-teal-600 hover:bg-teal-700 active:scale-95'
@@ -245,7 +245,7 @@ export default function FixTab() {
             const style = TONE_STYLES[fix.tone] ?? TONE_STYLES.Polished;
             const copyId = `fix-${i}`;
             return (
-              <div key={i} className={clsx('rounded-2xl border p-5 space-y-3', style.bg)}>
+              <div key={i} className={clsx('rounded-2xl border p-5 space-y-3 lg:p-7 lg:rounded-3xl lg:space-y-4', style.bg)}>
                 <div className="flex items-center justify-between">
                   <span className={clsx('rounded-full px-2.5 py-0.5 text-xs font-semibold', style.badge)}>
                     {fix.tone}
@@ -259,7 +259,7 @@ export default function FixTab() {
                   </button>
                 </div>
 
-                <p className="text-sm text-gray-900 leading-relaxed">{fix.text}</p>
+                <p className="text-sm text-gray-900 leading-relaxed lg:text-base">{fix.text}</p>
 
                 {fix.improvements.length > 0 && (
                   <ul className="space-y-1">

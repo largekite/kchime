@@ -42,7 +42,7 @@ export function WorkReplyCard({ variation, isBest }: Props) {
   }
 
   return (
-    <div className={`relative rounded-2xl border bg-white p-5 shadow-sm transition ${isBest ? 'border-teal-400 ring-1 ring-teal-300' : 'border-gray-200'}`}>
+    <div className={`relative rounded-2xl border bg-white p-5 shadow-sm transition lg:p-7 lg:rounded-3xl ${isBest ? 'border-teal-400 ring-1 ring-teal-300' : 'border-gray-200'}`}>
       {isBest && (
         <span className="absolute -top-3 left-4 rounded-full bg-teal-600 px-3 py-0.5 text-xs font-semibold text-white shadow">
           Recommended
@@ -50,19 +50,19 @@ export function WorkReplyCard({ variation, isBest }: Props) {
       )}
 
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-gray-800">{variation.label}</h3>
+        <h3 className="text-sm font-bold text-gray-800 lg:text-base">{variation.label}</h3>
         <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${riskColors[variation.risk]}`}>
           {variation.risk} risk
         </span>
       </div>
 
-      <p className="mb-3 text-sm leading-relaxed text-gray-700">{variation.text}</p>
+      <p className="mb-3 text-sm leading-relaxed text-gray-700 lg:text-base lg:mb-4">{variation.text}</p>
 
       <p className="mb-4 text-xs text-gray-400">{riskHint[variation.risk]}</p>
 
       <button
         onClick={handleCopy}
-        className="w-full rounded-lg border border-gray-200 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 active:bg-gray-100"
+        className="w-full rounded-lg border border-gray-200 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 active:bg-gray-100 lg:py-3 lg:text-base lg:rounded-xl"
       >
         {copied ? 'Copied!' : 'Copy Reply'}
       </button>

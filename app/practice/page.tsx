@@ -39,13 +39,13 @@ export default function PracticeHubPage() {
             aria-selected={mode === id}
             aria-controls={`panel-${id}`}
             className={clsx(
-              'flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-teal-200',
+              'flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-teal-200 lg:px-6 lg:py-3 lg:text-base lg:gap-3 lg:rounded-2xl',
               mode === id
                 ? 'bg-teal-600 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:border-teal-300 hover:bg-teal-50'
             )}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="h-4 w-4 shrink-0 lg:h-5 lg:w-5" />
             <span className="flex flex-col items-start leading-tight">
               <span>{label}</span>
               <span className={clsx('text-[10px] font-normal', mode === id ? 'text-teal-200' : 'text-gray-400')}>

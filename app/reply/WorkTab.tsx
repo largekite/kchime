@@ -105,10 +105,10 @@ export default function WorkTab() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-2xl px-4 py-8 lg:max-w-4xl lg:py-10">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Work Reply</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-gray-900 lg:text-3xl">Work Reply</h1>
+        <p className="mt-1 text-sm text-gray-500 lg:text-base lg:mt-2">
           Paste a workplace message and pick a situation. You&apos;ll get 3 reply options from safe to bold.
         </p>
       </div>
@@ -126,7 +126,7 @@ export default function WorkTab() {
             />
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:gap-3">
           {PRESETS.map(({ label, hint }) => {
             const locked = !!selectedContactId && RELATIONSHIP_PRESETS.has(label) && preset !== label;
             return (
@@ -135,7 +135,7 @@ export default function WorkTab() {
                 onClick={() => { if (!locked) setPreset(label); }}
                 disabled={locked}
                 title={locked ? 'Automatically set by your selected contact' : hint}
-                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`rounded-xl border px-3 py-2.5 text-left transition lg:px-4 lg:py-3.5 lg:rounded-2xl ${
                   preset === label
                     ? 'border-teal-500 bg-teal-50'
                     : locked
@@ -143,7 +143,7 @@ export default function WorkTab() {
                       : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <span className={`block text-sm font-medium ${
+                <span className={`block text-sm font-medium lg:text-base ${
                   preset === label ? 'text-teal-700' : locked ? 'text-gray-300' : 'text-gray-700'
                 }`}>
                   {label}
@@ -172,7 +172,7 @@ export default function WorkTab() {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Paste the Slack message, email, feedback, or message you received..."
           rows={5}
-          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:outline-none resize-none"
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-teal-500 focus:outline-none resize-none lg:px-5 lg:py-4 lg:text-base lg:rounded-2xl"
         />
       </div>
 
@@ -183,7 +183,7 @@ export default function WorkTab() {
       <button
         onClick={handleAnalyze}
         disabled={loading}
-        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow transition hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full rounded-xl bg-teal-600 py-3 text-sm font-semibold text-white shadow transition hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed lg:py-4 lg:text-base lg:rounded-2xl"
       >
         {loading ? 'Analyzing…' : 'Analyze & Generate Replies'}
       </button>
