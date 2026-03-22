@@ -82,6 +82,28 @@
     }
   }
 
+  // Map detected platform to fix-message messageType
+  function platformToMessageType(platform) {
+    switch (platform) {
+      case 'Gmail':
+      case 'Outlook':
+      case 'LinkedIn':
+        return 'Work email';
+      case 'Slack':
+      case 'Microsoft Teams':
+        return 'Slack / Teams';
+      case 'WhatsApp':
+      case 'Facebook Messenger':
+      case 'Discord':
+        return 'Casual text';
+      case 'Twitter/X':
+      case 'Reddit':
+        return 'Social media';
+      default:
+        return 'Casual text';
+    }
+  }
+
   // ── Thread context extraction ─────────────────────────────────────────────
 
   // Returns structured context: { subject, messages: [{from, text}] }
@@ -665,6 +687,7 @@
         </div>
         <div class="kchime-reply-actions">
           <button class="kchime-reply-btn kchime-reply-use" data-index="${i}">Insert</button>
+          <button class="kchime-reply-btn kchime-reply-improve" data-index="${i}" title="Improve this reply">✨ Improve</button>
           <button class="kchime-reply-btn kchime-reply-edit" data-index="${i}">Edit</button>
           <button class="kchime-reply-btn kchime-reply-copy" data-index="${i}">Copy</button>
         </div>
@@ -750,8 +773,147 @@
       });
     });
 
+    // Improve button — sends reply to fix-message API and shows polished versions
+    panel.querySelectorAll('.kchime-reply-improve').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const idx = parseInt(e.currentTarget.dataset.index, 10);
+        const replyText = replies[idx].text;
+        const replyItem = btn.closest('.kchime-reply-item');
+
+        // Show inline loading state
+        btn.disabled = true;
+        btn.textContent = '⏳ Improving…';
+
+        chrome.runtime.sendMessage(
+          { type: 'IMPROVE_REPLY', draft: replyText, messageType: platformToMessageType(platform) },
+          (response) => {
+            if (!panel) return;
+            if (chrome.runtime.lastError || !response?.ok) {
+              btn.textContent = '✨ Improve';
+              btn.disabled = false;
+              // Show brief error tooltip
+              const err = document.createElement('span');
+              err.style.cssText = 'font-size:10px;color:#dc2626;margin-left:6px';
+              err.textContent = response?.error || 'Failed';
+              btn.parentElement.appendChild(err);
+              setTimeout(() => err.remove(), 2000);
+              return;
+            }
+
+            // Replace panel content with improved versions
+            const fixes = response.fixes || [];
+            if (!fixes.length) {
+              btn.textContent = '✨ Improve';
+              btn.disabled = false;
+              return;
+            }
+
+            showImprovedReplies(fixes, replyText, platform);
+          }
+        );
+      });
+    });
+
     panel.querySelector('#kchime-regen').addEventListener('click', () => {
       fetchAndShowReplies(platform);
+    });
+
+    setTimeout(positionPanel, 0);
+  }
+
+  // ── Show improved replies (from fix-message API) ─────────────────────────
+
+  function showImprovedReplies(fixes, originalText, platform) {
+    if (!panel) return;
+
+    const items = fixes.map((f, i) => `
+      <div class="kchime-reply-item" data-index="${i}">
+        <div class="kchime-reply-body">
+          <span class="kchime-reply-text">${escHtml(f.text)}</span>
+          <span class="kchime-reply-tone">${escHtml(f.tone)}</span>
+        </div>
+        ${f.improvements?.length ? `<div class="kchime-improve-notes">${f.improvements.map(n => `<span class="kchime-improve-note">• ${escHtml(n)}</span>`).join('')}</div>` : ''}
+        <div class="kchime-reply-actions">
+          <button class="kchime-reply-btn kchime-reply-use" data-index="${i}">Insert</button>
+          <button class="kchime-reply-btn kchime-reply-edit" data-index="${i}">Edit</button>
+          <button class="kchime-reply-btn kchime-reply-copy" data-index="${i}">Copy</button>
+        </div>
+      </div>`).join('');
+
+    panel.innerHTML = `
+      ${buildHeader(platform)}
+      <div style="padding:6px 12px 2px;font-size:11px;color:#6b7280;display:flex;align-items:center;gap:5px">
+        <span>✨</span> Improved versions
+      </div>
+      <div id="kchime-replies">${items}</div>
+      <div id="kchime-panel-footer">
+        <button id="kchime-back-btn" style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#6b7280;background:none;border:1px solid #e5e7eb;border-radius:8px;padding:4px 9px;cursor:pointer">
+          ← Back
+        </button>
+        <a href="https://kchime.com" target="_blank" id="kchime-footer-brand">kchime.com</a>
+      </div>`;
+
+    panel.querySelector('#kchime-close').addEventListener('click', closePanel);
+
+    // Back button → re-fetch original replies
+    panel.querySelector('#kchime-back-btn').addEventListener('click', () => {
+      fetchAndShowReplies(platform);
+    });
+
+    // Insert buttons
+    panel.querySelectorAll('.kchime-reply-use').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const idx = parseInt(e.currentTarget.dataset.index, 10);
+        const existingText = getFieldText(activeField);
+        if (existingText && existingText.length > 5) {
+          if (!window.confirm('Replace existing text with this reply?')) return;
+          if (activeField.isContentEditable) { activeField.innerHTML = ''; } else { activeField.value = ''; }
+        }
+        insertText(activeField, fixes[idx].text);
+        btn.textContent = '✓ Inserted';
+        setTimeout(closePanel, 500);
+      });
+    });
+
+    // Edit buttons
+    panel.querySelectorAll('.kchime-reply-edit').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const idx = parseInt(e.currentTarget.dataset.index, 10);
+        const replyItem = btn.closest('.kchime-reply-item');
+        const textSpan = replyItem.querySelector('.kchime-reply-text');
+        const actionsDiv = replyItem.querySelector('.kchime-reply-actions');
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'kchime-edit-area';
+        textarea.value = fixes[idx].text;
+        textarea.style.cssText = 'width:100%;min-height:60px;padding:6px 8px;border:1px solid #4f46e5;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box;margin-bottom:4px';
+        textSpan.replaceWith(textarea);
+        textarea.focus();
+
+        actionsDiv.innerHTML = `
+          <button class="kchime-reply-btn kchime-reply-use" style="background:#059669;border-color:#059669">Save & Insert</button>
+          <button class="kchime-reply-btn kchime-reply-copy">Cancel</button>`;
+
+        actionsDiv.querySelector('.kchime-reply-use').addEventListener('click', () => {
+          const edited = textarea.value.trim();
+          if (!edited) return;
+          insertText(activeField, edited);
+          closePanel();
+        });
+        actionsDiv.querySelector('.kchime-reply-copy').addEventListener('click', () => {
+          showImprovedReplies(fixes, originalText, platform);
+        });
+      });
+    });
+
+    // Copy buttons
+    panel.querySelectorAll('.kchime-reply-copy').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        const idx = parseInt(e.currentTarget.dataset.index, 10);
+        await copyToClipboard(fixes[idx].text);
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
     });
 
     setTimeout(positionPanel, 0);
