@@ -241,6 +241,30 @@
 
 .kchime-reply-copy:hover { background: #f3f4f6; }
 
+.kchime-reply-improve {
+  background: #fff;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+}
+
+.kchime-reply-improve:hover { background: #f5f3ff; }
+.kchime-reply-improve:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Improvement notes ─────────────────────────────────────────────────── */
+
+.kchime-improve-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 2px;
+}
+
+.kchime-improve-note {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 
 #kchime-panel-footer {

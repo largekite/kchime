@@ -130,6 +130,44 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true; // keep channel open for async response
   }
 
+  if (msg.type === 'IMPROVE_REPLY') {
+    (async () => {
+      try {
+        const token = await getValidToken();
+        // Abort any previous in-flight request
+        if (activeController) { try { activeController.abort(); } catch {} }
+        const controller = new AbortController();
+        activeController = controller;
+        const timer = setTimeout(() => controller.abort(), 20000);
+
+        const body = { mode: 'fix-message', draft: msg.draft, messageType: msg.messageType || 'Casual text', source: 'extension' };
+
+        const res = await fetch(`${API_BASE}/api/claude`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(body),
+        });
+
+        clearTimeout(timer);
+        if (activeController === controller) activeController = null;
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        sendResponse({ ok: true, fixes: data.fixes });
+      } catch (err) {
+        sendResponse({ ok: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
   if (msg.type === 'GET_TOKEN') {
     (async () => {
       const token = await getValidToken();
